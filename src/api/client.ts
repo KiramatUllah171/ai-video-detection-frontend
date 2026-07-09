@@ -54,6 +54,14 @@ apiClient.interceptors.response.use(
 
 export function getApiErrorMessage(error: unknown) {
   if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
+    if (error.code === 'ERR_NETWORK') {
+      return 'Network error while contacting the API. For large uploads, confirm the backend is running and allows the selected file size.'
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      return 'The request timed out. Please try again or use a smaller file.'
+    }
+
     const response = error.response?.data
     return response?.errors?.[0] ?? response?.message ?? error.message
   }

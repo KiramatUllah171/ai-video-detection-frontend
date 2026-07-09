@@ -69,15 +69,20 @@ export function ProcessingStatusPage() {
             <DetailItem label="Created" value={dayjs(status.createdAt).format('MMM D, YYYY h:mm A')} icon={<ClockIcon />} />
             <DetailItem label="Last updated" value={status.completedAt ? dayjs(status.completedAt).format('MMM D, YYYY h:mm A') : 'Polling every 3 seconds'} icon={<ActivityIcon />} />
           </div>
-          {status.status === 'Failed' && (
-            <ErrorMessage message={status.errorMessage ?? "We couldn't process this video. Please review the error details or try another file."} />
+          {status.status.toLowerCase() === 'failed' && (
+            <ErrorMessage
+              message={[
+                status.errorMessage ?? "We couldn't process this video. Please review the error details or try another file.",
+                status.errorCode ? `Error code: ${status.errorCode}` : null,
+              ].filter(Boolean).join(' ')}
+            />
           )}
-          {status.status === 'Completed' && (
+          {status.status.toLowerCase() === 'completed' && (
             <div className="success-panel">
               <CheckCircleIcon />
               <div>
-                <strong>Analysis completed.</strong>
-                <span>The report view will be connected when the reporting pipeline is available.</span>
+                <strong>AI analysis completed.</strong>
+                <span>The analysis result has been generated and will be available in the report experience.</span>
               </div>
             </div>
           )}
@@ -109,12 +114,12 @@ function getStatusMessage(status?: string) {
     case 'processing':
       return {
         title: 'Analysis is in progress.',
-        description: 'The worker is analyzing the uploaded video and updating this status as it advances.',
+        description: 'The worker is processing media, running AI frame analysis, and calculating evidence.',
       }
     case 'completed':
       return {
-        title: 'Analysis completed.',
-        description: 'The video finished the current analysis workflow.',
+        title: 'AI analysis completed.',
+        description: 'The video finished media processing, AI scoring, and evidence generation.',
       }
     case 'failed':
       return {
@@ -124,7 +129,7 @@ function getStatusMessage(status?: string) {
     default:
       return {
         title: 'Your video is uploaded and queued.',
-        description: 'Processing worker will handle analysis in the next pipeline step.',
+        description: 'The processing worker will pick up this video shortly.',
       }
   }
 }

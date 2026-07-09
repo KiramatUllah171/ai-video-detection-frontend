@@ -64,6 +64,7 @@ export function UploadVideoPage() {
     setError(null)
     try {
       const response = await apiClient.post<ApiResponse<UploadVideoResponse>>('/api/videos/upload', formData, {
+        timeout: 10 * 60 * 1000,
         onUploadProgress(event: AxiosProgressEvent) {
           if (event.total) {
             setProgress(Math.round((event.loaded / event.total) * 100))
