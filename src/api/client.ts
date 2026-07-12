@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios'
-import type { ApiResponse, AuthResponse } from './types'
+import type { AnalysisResult, ApiResponse, AuthResponse, MetadataResult, SourceMatch } from './types'
 import { authStorage } from '../auth/authStorage'
 
 const env = import.meta.env as Record<string, string | undefined>
@@ -67,4 +67,28 @@ export function getApiErrorMessage(error: unknown) {
   }
 
   return error instanceof Error ? error.message : 'Request failed.'
+}
+
+export async function getAnalysisResult(videoId: string | number) {
+  const response = await apiClient.get<ApiResponse<AnalysisResult>>(`/api/videos/${videoId}/analysis`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data.data
+}
+
+export async function getOriginMatches(videoId: string | number) {
+  const response = await apiClient.get<ApiResponse<SourceMatch[]>>(`/api/videos/${videoId}/origin-matches`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data.data
+}
+
+export async function getVideoMetadata(videoId: string | number) {
+  const response = await apiClient.get<ApiResponse<MetadataResult>>(`/api/videos/${videoId}/metadata`)
+  if (!response.data.success || !response.data.data) {
+    return undefined
+  }
+  return response.data.data
 }

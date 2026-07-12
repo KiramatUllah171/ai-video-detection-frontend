@@ -68,3 +68,71 @@ export type JobStatus = {
   startedAt?: string
   completedAt?: string
 }
+
+export type EvidenceItem = {
+  id: number
+  type: string
+  severity: string
+  title: string
+  description: string
+  scoreImpact?: number
+  timestampSeconds?: number
+  videoFrameId?: number
+}
+
+export type AnalysisResult = {
+  videoId: number
+  aiResultId: number
+  modelId?: string
+  modelVersion?: string
+  modelCapability?: string
+  isMock: boolean
+  aiGeneratedProbability: number
+  likelyRealProbability: number
+  confidencePercentage: number
+  visualScore: number
+  metadataScore?: number
+  temporalScore?: number
+  finalScore: number
+  confidence: number
+  label: string
+  summary?: string
+  warnings: string[]
+  modelDisagreement?: boolean
+  strongFrameEvidence?: boolean
+  minimumRecommendedScore?: number
+  ensembleStrategy?: string
+  componentScoresJson?: string
+  createdAt: string
+  evidenceItems: EvidenceItem[]
+}
+
+export type SourceMatch = {
+  id: number
+  videoId: number
+  platform: string
+  title?: string
+  uploadDatetime?: string
+  similarityScore: number
+  durationMatchScore?: number
+  hashMatchScore?: number
+  metadataMatchScore?: number
+  rank: number
+  confidence: string
+  details?: string
+}
+
+export type MetadataResult = {
+  videoId: number
+  codec?: string
+  audioCodec?: string
+  fps?: number
+  resolution?: string
+  durationSeconds?: number
+  bitrate?: number
+  encoder?: string
+  creationTime?: string
+  hasMissingMetadata: boolean
+  warningsJson?: string
+  createdAt: string
+}

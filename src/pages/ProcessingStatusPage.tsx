@@ -82,11 +82,16 @@ export function ProcessingStatusPage() {
               <CheckCircleIcon />
               <div>
                 <strong>AI analysis completed.</strong>
-                <span>The analysis result has been generated and will be available in the report experience.</span>
+                <span>The analysis result has been generated and is ready to review.</span>
               </div>
             </div>
           )}
           <div className="status-actions">
+            {status.status.toLowerCase() === 'completed' && (
+              <Link className={buttonClassName('primary')} to={`/analysis/${status.videoId}`}>
+                View Analysis Result
+              </Link>
+            )}
             <Link className={buttonClassName('outline')} to="/dashboard">
               Back to Dashboard
             </Link>

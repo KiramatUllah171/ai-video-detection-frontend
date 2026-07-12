@@ -131,8 +131,8 @@ export function DashboardPage() {
                     </td>
                     <td>{dayjs(item.createdAt).format('MMM D, YYYY h:mm A')}</td>
                     <td>
-                      <Link className={buttonClassName('outline')} to={`/processing/${item.videoId}`}>
-                        View Status
+                      <Link className={buttonClassName('outline')} to={item.status.toLowerCase() === 'completed' ? `/analysis/${item.videoId}` : `/processing/${item.videoId}`}>
+                        {item.status.toLowerCase() === 'completed' ? 'View Result' : 'View Status'}
                       </Link>
                     </td>
                   </tr>
