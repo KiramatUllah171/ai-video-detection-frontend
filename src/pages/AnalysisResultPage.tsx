@@ -89,6 +89,12 @@ export function AnalysisResultPage() {
             {analysis.label === 'Inconclusive' && (
               <WarningPanel message="Inconclusive - not enough reliable evidence for a strong real/fake label." subtle />
             )}
+            {analysis.fallbackUsed && (
+              <WarningPanel message="External verification was unavailable, so local analysis was used." />
+            )}
+            {analysis.provider === 'BitMind' && analysis.label === 'Suspicious' && (
+              <WarningPanel message="BitMind detected AI-like signals, but confidence is moderate. This is suspicious, not definitive." />
+            )}
             <WarningPanel message="This analysis is probability-based and should be reviewed with context. It does not guarantee whether a video is real or AI-generated and should not be treated as legal proof." subtle />
           </AppCard>
 
@@ -124,6 +130,46 @@ export function AnalysisResultPage() {
               </div>
             </AppCard>
           )}
+
+          <AppCard className="analysis-section">
+            <div className="card-header compact">
+              <div>
+                <h2>Detection Source</h2>
+                <p>{formatWords(analysis.finalDecisionSource ?? analysis.provider ?? 'Local')}</p>
+              </div>
+            </div>
+            <div className="detector-breakdown">
+              <div className="detector-card">
+                <span>Final source</span>
+                <strong>{formatWords(analysis.finalDecisionSource ?? 'Local')}</strong>
+                <small>Mode: {formatWords(analysis.providerMode ?? 'local')}</small>
+                <small>Provider: {analysis.provider ?? 'Local'}</small>
+              </div>
+              <div className="detector-card">
+                <span>External verification</span>
+                <strong>{analysis.externalProviderName ?? 'Not used'}</strong>
+                <small>Status: {analysis.externalProviderStatus ?? 'Skipped'}</small>
+                {analysis.externalLabel && <small>Label: {formatWords(analysis.externalLabel)}</small>}
+                <small>Score: {isFiniteNumber(analysis.externalScore) ? `${formatPercent(analysis.externalScore * 100)}% AI` : 'Score not provided'}</small>
+                <small>Confidence: {isFiniteNumber(analysis.externalConfidence) ? `${formatPercent(analysis.externalConfidence * 100)}%` : 'Unavailable'}</small>
+                {analysis.warnings.some((warning) => warning.toLowerCase().includes('compressed analysis copy')) && (
+                  <small>A compressed analysis copy was sent to BitMind because the original video exceeded the provider upload limit.</small>
+                )}
+                {analysis.providerCompletedAt && <small>Completed {dayjs(analysis.providerCompletedAt).format('MMM D, YYYY h:mm A')}</small>}
+                {!analysis.externalProviderName && <small>Reason: policy skipped, provider disabled, quota reached, or local result was high confidence.</small>}
+              </div>
+              {(analysis.providerMode ?? '').toLowerCase() === 'hybrid' && (
+                <div className="detector-card detector-card-combined">
+                  <span>Hybrid breakdown</span>
+                  <strong>{formatWords(analysis.label)}</strong>
+                  {analysis.localAnalysisSummary && <small>{analysis.localAnalysisSummary}</small>}
+                  {analysis.externalAnalysisSummary && <small>{analysis.externalAnalysisSummary}</small>}
+                  {analysis.hybridDecisionSummary && <small>{analysis.hybridDecisionSummary}</small>}
+                </div>
+              )}
+            </div>
+            {analysis.fallbackUsed && <WarningPanel message={`Fallback used: ${analysis.fallbackReason ?? 'external provider unavailable'}`} subtle />}
+          </AppCard>
 
           <AppCard className={`analysis-section ${analysis.label === 'Inconclusive' ? 'analysis-section-neutral' : ''}`}>
             <div className="card-header compact">
@@ -385,6 +431,11 @@ function normalizeAnalysis(analysis: AnalysisResult): AnalysisResult {
     confidence,
     summary: analysis.summary ?? 'This result is probability-based and generated from available analysis signals.',
     warnings: Array.isArray(analysis.warnings) ? analysis.warnings : [],
+    provider: analysis.provider ?? 'Local',
+    providerMode: analysis.providerMode ?? 'local',
+    finalDecisionSource: analysis.finalDecisionSource ?? 'Local',
+    fallbackUsed: Boolean(analysis.fallbackUsed),
+    providerWarnings: Array.isArray(analysis.providerWarnings) ? analysis.providerWarnings : [],
     modelDisagreement: Boolean(analysis.modelDisagreement),
     strongFrameEvidence: Boolean(analysis.strongFrameEvidence),
     minimumRecommendedScore: optionalNumber(analysis.minimumRecommendedScore),

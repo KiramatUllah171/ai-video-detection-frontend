@@ -98,6 +98,22 @@ export type AnalysisResult = {
   label: string
   summary?: string
   warnings: string[]
+  provider?: string
+  providerMode?: string
+  finalDecisionSource?: string
+  externalProviderName?: string
+  externalProviderStatus?: string
+  externalScore?: number
+  externalConfidence?: number
+  externalLabel?: string
+  fallbackUsed?: boolean
+  fallbackReason?: string
+  providerWarnings?: string[]
+  localAnalysisSummary?: string
+  externalAnalysisSummary?: string
+  hybridDecisionSummary?: string
+  providerRequestedAt?: string
+  providerCompletedAt?: string
   modelDisagreement?: boolean
   strongFrameEvidence?: boolean
   minimumRecommendedScore?: number
