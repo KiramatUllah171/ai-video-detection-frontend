@@ -6,7 +6,14 @@ type ProgressBarProps = {
 
 export function ProgressBar({ value = 0, status, showLabel = true }: ProgressBarProps) {
   const safeValue = Math.max(0, Math.min(100, value ?? 0))
-  const tone = status?.toLowerCase() === 'failed' ? 'danger' : status?.toLowerCase() === 'completed' ? 'success' : 'info'
+  const normalized = status?.toLowerCase()
+  const tone = normalized === 'failed'
+    ? 'danger'
+    : normalized === 'completed'
+      ? 'success'
+      : normalized === 'queued' || normalized === 'retrying'
+        ? 'queued'
+        : 'info'
 
   return (
     <div className="progress-wrap" aria-label={`Progress ${safeValue}%`}>

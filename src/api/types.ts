@@ -51,6 +51,8 @@ export type UploadVideoResponse = {
   originalName: string
   fileSize: number
   contentType: string
+  retryCount: number
+  maxRetryCount: number
   message: string
 }
 
@@ -62,11 +64,17 @@ export type JobStatus = {
   currentStep?: string
   errorMessage?: string
   errorCode?: string
+  userMessage?: string
+  canRetry?: boolean
   retryCount: number
   maxRetryCount: number
+  failedStage?: string
+  nextRecommendedAction?: string
+  technicalReferenceId?: string
   createdAt: string
   startedAt?: string
   completedAt?: string
+  lastUpdatedAt?: string
 }
 
 export type EvidenceItem = {

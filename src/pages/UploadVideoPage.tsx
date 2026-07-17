@@ -11,12 +11,14 @@ import { AppTextarea, FormField } from '../components/ui/FormField'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { FileVideoIcon, ShieldIcon, UploadIcon, XIcon } from '../components/ui/icons'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const maxSizeLabel = '500 MB'
 const formats = ['MP4', 'MOV', 'AVI', 'MKV', 'WebM']
 
 export function UploadVideoPage() {
   const auth = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -80,7 +82,7 @@ export function UploadVideoPage() {
         state: { jobId: response.data.data.jobId },
       })
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError))
+      setError(getApiErrorMessage(requestError, t))
     } finally {
       setUploading(false)
     }
@@ -89,9 +91,9 @@ export function UploadVideoPage() {
   return (
     <main className="page">
       <PageHeader
-        eyebrow="Secure upload"
-        title="Upload video for analysis"
-        subtitle="Submit a video to begin secure AI-assisted authenticity and origin analysis."
+        eyebrow={t('upload.eyebrow')}
+        title={t('upload.title')}
+        subtitle={t('upload.subtitle')}
       />
       <div className="content-grid">
         <AppCard className="span-8 upload-card">
@@ -120,10 +122,10 @@ export function UploadVideoPage() {
             <span className="upload-icon">
               <UploadIcon />
             </span>
-            <h2>Drag and drop your video here</h2>
-            <p>or browse from your device</p>
+            <h2>{t('upload.dropTitle')}</h2>
+            <p>{t('upload.dropSubtitle')}</p>
             <AppButton type="button" variant="outline" onClick={() => inputRef.current?.click()}>
-              Browse files
+              {t('upload.browse')}
             </AppButton>
             <input
               ref={inputRef}
@@ -132,12 +134,12 @@ export function UploadVideoPage() {
               hidden
               onChange={(event) => selectFile(event.target.files?.[0])}
             />
-            <div className="format-chips" aria-label="Supported video formats">
+            <div className="format-chips" aria-label={t('upload.supportedFormats')}>
               {formats.map((format) => (
                 <span key={format}>{format}</span>
               ))}
             </div>
-            <span className="upload-limit">Maximum file size: {maxSizeLabel}</span>
+            <span className="upload-limit">{t('upload.maxSize', { size: maxSizeLabel })}</span>
           </div>
           {file && (
             <div className="selected-file">
@@ -147,9 +149,9 @@ export function UploadVideoPage() {
               <div>
                 <strong>{file.name}</strong>
                 <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                <span>{file.type || 'Unknown content type'} | {file.name.split('.').pop()?.toUpperCase()}</span>
+                <span>{file.type || t('upload.unknownType')} | {file.name.split('.').pop()?.toUpperCase()}</span>
               </div>
-              <button type="button" className="icon-button" onClick={removeFile} aria-label="Remove selected file">
+              <button type="button" className="icon-button" onClick={removeFile} aria-label={t('upload.removeFile')}>
                 <XIcon />
               </button>
             </div>
@@ -159,15 +161,15 @@ export function UploadVideoPage() {
         <AppCard className="span-4 options-card">
           <div className="card-header compact">
             <div>
-              <h2>Analysis options</h2>
-              <p>Choose the workflow depth for this upload.</p>
+              <h2>{t('upload.options')}</h2>
+              <p>{t('upload.optionsSubtitle')}</p>
             </div>
           </div>
           <div className="mode-grid">
             {[
-              ['Basic', 'Fast standard authenticity workflow'],
-              ['Detailed', 'Deeper analysis mode for future advanced pipeline'],
-            ].map(([mode, description]) => (
+              ['Basic', t('upload.basic'), t('upload.basicDescription')],
+              ['Detailed', t('upload.detailed'), t('upload.detailedDescription')],
+            ].map(([mode, label, description]) => (
               <label className={`mode-card ${analysisMode === mode ? 'selected' : ''}`} key={mode}>
                 <input
                   type="radio"
@@ -176,12 +178,12 @@ export function UploadVideoPage() {
                   checked={analysisMode === mode}
                   onChange={(event) => setAnalysisMode(event.target.value)}
                 />
-                <strong>{mode}</strong>
+                <strong>{label}</strong>
                 <span>{description}</span>
               </label>
             ))}
           </div>
-          <FormField label="Notes" helper="Optional context for your team.">
+          <FormField label={t('upload.notes')} helper={t('upload.notesHelper')}>
             <AppTextarea rows={4} value={notes} onChange={(event) => setNotes(event.target.value)} />
           </FormField>
           <label className="consent-card">
@@ -193,13 +195,13 @@ export function UploadVideoPage() {
             <span>
               <ShieldIcon />
             </span>
-            <strong>I confirm I have the right to upload this video for analysis.</strong>
+            <strong>{t('upload.consent')}</strong>
           </label>
           {uploading && (
             <div className="upload-progress">
               <div>
-                <strong>Uploading securely</strong>
-                <span>{progress}% complete</span>
+                <strong>{t('upload.uploading')}</strong>
+                <span>{t('upload.complete', { progress })}</span>
               </div>
               <ProgressBar value={progress} showLabel={false} />
             </div>
@@ -212,7 +214,7 @@ export function UploadVideoPage() {
             onClick={handleUpload}
             icon={<UploadIcon />}
           >
-            Start Analysis
+            {t('dashboard.startAnalysis')}
           </AppButton>
         </AppCard>
       </div>

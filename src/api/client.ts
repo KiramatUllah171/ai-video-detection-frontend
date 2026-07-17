@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios'
-import type { AnalysisResult, ApiResponse, AuthResponse, MetadataResult, SourceMatch } from './types'
+import type { AnalysisResult, ApiResponse, AuthResponse, MetadataResult, SourceMatch, UploadVideoResponse } from './types'
 import { authStorage } from '../auth/authStorage'
 
 const env = import.meta.env as Record<string, string | undefined>
@@ -52,25 +52,74 @@ apiClient.interceptors.response.use(
   },
 )
 
-export function getApiErrorMessage(error: unknown) {
+type Translate = (key: string, values?: Record<string, string | number>) => string
+
+export function getApiErrorMessage(error: unknown, t?: Translate) {
   if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
     if (error.code === 'ERR_NETWORK') {
-      return 'Network error while contacting the API. For large uploads, confirm the backend is running and allows the selected file size.'
+      return t ? t('processing.defaultError') : 'Network error while contacting the API. For large uploads, confirm the backend is running and allows the selected file size.'
     }
 
     if (error.code === 'ECONNABORTED') {
-      return 'The request timed out. Please try again or use a smaller file.'
+      return t ? t('processing.defaultError') : 'The request timed out. Please try again or use a smaller file.'
     }
 
     const response = error.response?.data
-    return response?.errors?.[0] ?? response?.message ?? error.message
+    return localizeApiError(response?.errors?.[0] ?? response?.message ?? error.message, t)
   }
 
-  return error instanceof Error ? error.message : 'Request failed.'
+  return localizeApiError(error instanceof Error ? error.message : 'Request failed.', t)
+}
+
+function localizeApiError(message: string, t?: Translate) {
+  if (!t) {
+    return message
+  }
+
+  const normalized = message.trim().toLowerCase()
+  if (normalized.includes('email is already registered')) {
+    return t('signup.alreadyRegistered')
+  }
+  if (
+    normalized.includes('unauthorized') ||
+    normalized.includes('invalid email or password') ||
+    normalized.includes('invalid refresh token') ||
+    normalized.includes('user account is inactive') ||
+    normalized.includes('user was not found')
+  ) {
+    return t('profile.unavailable')
+  }
+  if (
+    normalized.includes('not found') ||
+    normalized.includes('not available yet') ||
+    normalized.includes('were not found') ||
+    normalized.includes('was not found')
+  ) {
+    return t('analysis.notAvailable')
+  }
+  if (
+    normalized.includes('only failed') ||
+    normalized.includes('maximum retry') ||
+    normalized.includes('no failed analysis job')
+  ) {
+    return t('processing.defaultError')
+  }
+  if (normalized.includes('request failed')) {
+    return t('processing.defaultError')
+  }
+  return message
 }
 
 export async function getAnalysisResult(videoId: string | number) {
   const response = await apiClient.get<ApiResponse<AnalysisResult>>(`/api/videos/${videoId}/analysis`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data.data
+}
+
+export async function retryAnalysis(videoId: string | number) {
+  const response = await apiClient.post<ApiResponse<UploadVideoResponse>>(`/api/videos/${videoId}/retry-analysis`)
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.errors?.[0] ?? response.data.message)
   }
