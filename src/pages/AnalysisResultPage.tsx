@@ -12,9 +12,11 @@ import { LoadingState } from '../components/ui/LoadingState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon, AlertCircleIcon, BarChartIcon, FileVideoIcon, ShieldIcon } from '../components/ui/icons'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export function AnalysisResultPage() {
   const { videoId } = useParams()
+  const { t } = useLanguage()
   const analysisQuery = useQuery({
     queryKey: ['analysis-result', videoId],
     enabled: Boolean(videoId),
@@ -35,20 +37,20 @@ export function AnalysisResultPage() {
   })
 
   const analysis = analysisQuery.data ? normalizeAnalysis(analysisQuery.data) : undefined
-  const mode = getModelMode(analysis)
+  const mode = getModelMode(analysis, t)
   const detectorBreakdown = analysis ? parseComponentScores(analysis.componentScoresJson) : undefined
 
   return (
     <main className="page analysis-page">
       <PageHeader
-        eyebrow="Authenticity result"
-        title="Video Analysis Result"
-        subtitle="Probability-based authenticity analysis using AI, metadata, and internal matching signals."
-        action={<Link className={buttonClassName('outline')} to="/dashboard">Back to Dashboard</Link>}
+        eyebrow={t('analysis.eyebrow')}
+        title={t('analysis.title')}
+        subtitle={t('analysis.subtitle')}
+        action={<Link className={buttonClassName('outline')} to="/dashboard">{t('analysis.backDashboard')}</Link>}
       />
 
-      {analysisQuery.isLoading && <LoadingState text="Loading analysis result..." />}
-      {analysisQuery.error && <ErrorMessage message={getApiErrorMessage(analysisQuery.error)} />}
+      {analysisQuery.isLoading && <LoadingState text={t('analysis.loading')} />}
+      {analysisQuery.error && <ErrorMessage message={getApiErrorMessage(analysisQuery.error, t)} />}
 
       {analysis && (
         <>
@@ -56,111 +58,150 @@ export function AnalysisResultPage() {
             <div className="analysis-title-row">
               <div>
                 <StatusBadge status={analysis.label} />
-                <h2>{formatLabel(analysis.label)}</h2>
-                <p>{analysis.summary}</p>
+                <h2>{localizeLabel(analysis.label, t)}</h2>
+                <p>{localizeAnalysisSummary(analysis, t)}</p>
               </div>
               <div className="analysis-meta">
                 <span>{mode}</span>
-                <strong>{analysis.modelVersion ?? 'Unknown model'}</strong>
-                <small>Result #{analysis.aiResultId} - {dayjs(analysis.createdAt).format('MMM D, YYYY h:mm A')}</small>
+                <strong>{analysis.modelVersion ?? t('analysis.unknownModel')}</strong>
+                <small>{t('analysis.resultNumber', { id: analysis.aiResultId, date: dayjs(analysis.createdAt).format('MMM D, YYYY h:mm A') })}</small>
               </div>
             </div>
             {analysis.isMock && (
               <WarningPanel
-                message="Mock result. Do not use this to judge whether the video is real or AI-generated."
+                message={t('analysis.mockWarning')}
                 strong
               />
             )}
             {analysis.modelCapability === 'frame_image' && (
-              <WarningPanel message="Frame-level model used. This checks individual frames and may miss temporal video artifacts." />
+              <WarningPanel message={t('analysis.frameWarning')} />
             )}
             {analysis.modelCapability === 'video_temporal' && analysis.confidence < 0.6 && (
-              <WarningPanel message="The selected free model produced a low-confidence result. Review evidence and consider additional verification." />
+              <WarningPanel message={t('analysis.lowConfidenceWarning')} />
             )}
             {analysis.modelDisagreement && (
-              <WarningPanel message="Model components disagree; treat result with caution." />
+              <WarningPanel message={t('analysis.disagreementWarning')} />
             )}
             {analysis.strongFrameEvidence && (
-              <WarningPanel message="Frame-level detector found strong AI-like visual signals while another detector disagreed." />
+              <WarningPanel message={t('analysis.strongFrameWarning')} />
             )}
             {analysis.modelDisagreement && detectorBreakdown?.video && detectorBreakdown?.frame && detectorBreakdown.video.ai_score < 0.5 && (detectorBreakdown.frame.raw_frame_ai_score ?? detectorBreakdown.frame.ai_score) >= 0.7 && (
-              <WarningPanel message="Frame-level detector produced high scores, but the temporal video detector did not confirm them. The result is inconclusive and should not be treated as evidence of AI generation." />
+              <WarningPanel message={t('analysis.inconclusiveWarning')} />
             )}
             {analysis.label === 'Inconclusive' && (
-              <WarningPanel message="Inconclusive - not enough reliable evidence for a strong real/fake label." subtle />
+              <WarningPanel message={t('analysis.inconclusiveWarning')} subtle />
             )}
-            <WarningPanel message="This analysis is probability-based and should be reviewed with context. It does not guarantee whether a video is real or AI-generated and should not be treated as legal proof." subtle />
+            {analysis.fallbackUsed && (
+              <WarningPanel message={t('analysis.fallbackWarning')} />
+            )}
+            {analysis.provider === 'BitMind' && analysis.label === 'Suspicious' && (
+              <WarningPanel message={t('analysis.suspiciousWarning')} />
+            )}
+            <WarningPanel message={t('analysis.proofWarning')} subtle />
           </AppCard>
 
           <section className="result-grid">
-            <MetricCard label="AI-generated / Manipulated Probability" value={`${formatPercent(analysis.aiGeneratedProbability)}%`} icon={<AlertCircleIcon />} isMock={analysis.isMock} />
-            <MetricCard label="Likely Real Probability" value={`${formatPercent(analysis.likelyRealProbability)}%`} icon={<ShieldIcon />} isMock={analysis.isMock} />
-            <MetricCard label="Confidence" value={`${formatPercent(analysis.confidencePercentage)}%`} icon={<ActivityIcon />} isMock={analysis.isMock} />
-            <MetricCard label="Final Score" value={`${formatPercent(analysis.finalScore * 100)}%`} icon={<BarChartIcon />} isMock={analysis.isMock} />
+            <MetricCard label={t('analysis.aiProbability')} value={`${formatPercent(analysis.aiGeneratedProbability)}%`} icon={<AlertCircleIcon />} isMock={analysis.isMock} />
+            <MetricCard label={t('analysis.realProbability')} value={`${formatPercent(analysis.likelyRealProbability)}%`} icon={<ShieldIcon />} isMock={analysis.isMock} />
+            <MetricCard label={t('analysis.confidence')} value={`${formatPercent(analysis.confidencePercentage)}%`} icon={<ActivityIcon />} isMock={analysis.isMock} />
+            <MetricCard label={t('analysis.finalScore')} value={`${formatPercent(analysis.finalScore * 100)}%`} icon={<BarChartIcon />} isMock={analysis.isMock} />
           </section>
 
           {detectorBreakdown && (
             <AppCard className="analysis-section">
               <div className="card-header compact">
                 <div>
-                  <h2>AI Detector Breakdown</h2>
-                  <p>Component model estimates used to calculate the ensemble result.</p>
+                  <h2>{t('analysis.detectorBreakdown')}</h2>
+                  <p>{t('analysis.detectorBreakdownSubtitle')}</p>
                 </div>
               </div>
               <div className="detector-breakdown">
-                <DetectorScore title="Video temporal detector" component={detectorBreakdown.video} />
-                <DetectorScore title="Frame detector" component={detectorBreakdown.frame} />
+                <DetectorScore title={t('analysis.videoDetector')} component={detectorBreakdown.video} />
+                <DetectorScore title={t('analysis.frameDetector')} component={detectorBreakdown.frame} />
                 <div className="detector-card detector-card-combined">
-                  <span>Combined ensemble score</span>
-                  <strong>{formatPercent((detectorBreakdown.combined?.adjusted_score ?? analysis.finalScore) * 100)}% AI</strong>
+                  <span>{t('analysis.combinedScore')}</span>
+                  <strong>{formatPercent((detectorBreakdown.combined?.adjusted_score ?? analysis.finalScore) * 100)}% {t('analysis.aiSuffix')}</strong>
                   {detectorBreakdown.combined?.weighted_average !== undefined && (
-                    <small>Weighted average {formatPercent(detectorBreakdown.combined.weighted_average * 100)}%</small>
+                    <small>{t('analysis.weightedAverage', { score: formatPercent(detectorBreakdown.combined.weighted_average * 100) })}</small>
                   )}
                   {analysis.minimumRecommendedScore !== undefined && analysis.minimumRecommendedScore !== null && (
-                    <small>Adjusted minimum {formatPercent(analysis.minimumRecommendedScore * 100)}% because strong frame evidence was detected.</small>
+                    <small>{t('analysis.adjustedMinimum', { score: formatPercent(analysis.minimumRecommendedScore * 100) })}</small>
                   )}
-                  {analysis.ensembleStrategy && <small>Strategy: {formatWords(analysis.ensembleStrategy)}</small>}
+                  {analysis.ensembleStrategy && <small>{t('analysis.strategy', { strategy: formatWords(analysis.ensembleStrategy) })}</small>}
                 </div>
               </div>
             </AppCard>
           )}
 
+          <AppCard className="analysis-section">
+            <div className="card-header compact">
+              <div>
+                <h2>{t('analysis.detectionSource')}</h2>
+                <p>{formatWords(analysis.finalDecisionSource ?? analysis.provider ?? 'Local')}</p>
+              </div>
+            </div>
+            <div className="detector-breakdown">
+              <div className="detector-card">
+                <span>{t('analysis.finalSource')}</span>
+                <strong>{formatWords(analysis.finalDecisionSource ?? 'Local')}</strong>
+                <small>{t('analysis.mode', { mode: formatWords(analysis.providerMode ?? 'local') })}</small>
+                <small>{t('analysis.provider', { provider: analysis.provider ?? 'Local' })}</small>
+              </div>
+              <div className="detector-card">
+                <span>{t('analysis.externalVerification')}</span>
+                <strong>{analysis.externalProviderName ?? t('analysis.notUsed')}</strong>
+                <small>{t('analysis.statusLine', { status: localizeStatusValue(analysis.externalProviderStatus, t) ?? t('analysis.skipped') })}</small>
+                {analysis.externalLabel && <small>{t('analysis.labelLine', { label: localizeLabel(analysis.externalLabel, t) })}</small>}
+                <small>{t('analysis.scoreLine', { score: isFiniteNumber(analysis.externalScore) ? `${formatPercent(analysis.externalScore * 100)}% ${t('analysis.aiSuffix')}` : t('analysis.scoreNotProvided') })}</small>
+                <small>{t('analysis.confidenceLine', { confidence: isFiniteNumber(analysis.externalConfidence) ? `${formatPercent(analysis.externalConfidence * 100)}%` : t('analysis.unavailable') })}</small>
+                {analysis.warnings.some((warning) => warning.toLowerCase().includes('compressed analysis copy')) && (
+                  <small>{t('analysis.compressedCopy')}</small>
+                )}
+                {analysis.providerCompletedAt && <small>{t('analysis.completedAt', { date: dayjs(analysis.providerCompletedAt).format('MMM D, YYYY h:mm A') })}</small>}
+                {!analysis.externalProviderName && <small>{t('analysis.providerSkippedReason')}</small>}
+              </div>
+              {(analysis.providerMode ?? '').toLowerCase() === 'hybrid' && (
+                <div className="detector-card detector-card-combined">
+                  <span>{t('analysis.hybridBreakdown')}</span>
+                  <strong>{formatWords(analysis.label)}</strong>
+                  {analysis.localAnalysisSummary && <small>{analysis.localAnalysisSummary}</small>}
+                  {analysis.externalAnalysisSummary && <small>{analysis.externalAnalysisSummary}</small>}
+                  {analysis.hybridDecisionSummary && <small>{analysis.hybridDecisionSummary}</small>}
+                </div>
+              )}
+            </div>
+            {analysis.fallbackUsed && <WarningPanel message={t('analysis.fallbackUsed', { reason: formatSafeFallbackReason(analysis.fallbackReason) })} subtle />}
+          </AppCard>
+
           <AppCard className={`analysis-section ${analysis.label === 'Inconclusive' ? 'analysis-section-neutral' : ''}`}>
             <div className="card-header compact">
               <div>
-                <h2>Probability Balance</h2>
-                <p>These values are model estimates, not proof.</p>
+                <h2>{t('analysis.probabilityBalance')}</h2>
+                <p>{t('analysis.probabilitySubtitle')}</p>
               </div>
             </div>
-            <div className="split-probability">
-              <div style={{ width: `${Math.max(0, Math.min(100, analysis.likelyRealProbability))}%` }}>
-                <span>{analysis.label === 'Inconclusive' || analysis.modelDisagreement ? 'Estimated real' : 'Likely real'} {formatPercent(analysis.likelyRealProbability)}%</span>
-              </div>
-              <div style={{ width: `${Math.max(0, Math.min(100, analysis.aiGeneratedProbability))}%` }}>
-                <span>{analysis.label === 'Inconclusive' || analysis.modelDisagreement ? 'Estimated AI/manipulated' : 'AI/manipulated'} {formatPercent(analysis.aiGeneratedProbability)}%</span>
-              </div>
-            </div>
+            <ProbabilityBalance analysis={analysis} />
           </AppCard>
 
           <section className="content-grid">
             <AppCard className="analysis-section span-8">
               <div className="card-header compact">
                 <div>
-                  <h2>Score Breakdown</h2>
-                  <p>Weighted signals used to calculate the final authenticity score.</p>
+                  <h2>{t('analysis.scoreBreakdown')}</h2>
+                  <p>{t('analysis.scoreBreakdownSubtitle')}</p>
                 </div>
               </div>
-              <ScoreBar label="Visual model score" value={analysis.visualScore} />
-              <ScoreBar label="Metadata score" value={analysis.metadataScore} />
-              <ScoreBar label="Temporal score" value={analysis.temporalScore} emptyLabel="Not available" />
-              <ScoreBar label="Final weighted score" value={analysis.finalScore} />
+              <ScoreBar label={t('analysis.visualScore')} value={analysis.visualScore} />
+              <ScoreBar label={t('analysis.metadataScore')} value={analysis.metadataScore} />
+              <ScoreBar label={t('analysis.temporalScore')} value={analysis.temporalScore} emptyLabel={t('analysis.notAvailable')} />
+              <ScoreBar label={t('analysis.finalWeightedScore')} value={analysis.finalScore} />
             </AppCard>
 
             <AppCard className="analysis-section span-4">
               <div className="card-header compact">
                 <div>
-                  <h2>Metadata Summary</h2>
-                  <p>Media properties extracted during FFmpeg processing.</p>
+                  <h2>{t('analysis.metadataSummary')}</h2>
+                  <p>{t('analysis.metadataSubtitle')}</p>
                 </div>
               </div>
               <MetadataSummary metadata={metadataQuery.data} />
@@ -170,8 +211,8 @@ export function AnalysisResultPage() {
           <AppCard className="analysis-section">
             <div className="card-header compact">
               <div>
-                <h2>Evidence</h2>
-                <p>Signals that influenced the probability-based result.</p>
+                <h2>{t('analysis.evidence')}</h2>
+                <p>{t('analysis.evidenceSubtitle')}</p>
               </div>
             </div>
             <EvidenceGroups evidence={analysis.evidenceItems} warnings={analysis.warnings} isMock={analysis.isMock} />
@@ -180,8 +221,8 @@ export function AnalysisResultPage() {
           <AppCard className="analysis-section">
             <div className="card-header compact">
               <div>
-                <h2>Internal Origin Intelligence</h2>
-                <p>Internal matching compares only against videos previously analyzed inside this system. It does not prove the original upload source.</p>
+                <h2>{t('analysis.originTracking')}</h2>
+                <p>{t('analysis.originSubtitle')}</p>
               </div>
             </div>
             <OriginMatches matches={matchesQuery.data ?? []} loading={matchesQuery.isLoading} />
@@ -193,13 +234,48 @@ export function AnalysisResultPage() {
 }
 
 function MetricCard({ label, value, icon, isMock = false }: { label: string; value: string; icon: ReactNode; isMock?: boolean }) {
+  const { t } = useLanguage()
   return (
     <AppCard className={`result-metric ${isMock ? 'result-metric-mock' : ''}`}>
       <span>{icon}</span>
-      {isMock && <em>Mock</em>}
+      {isMock && <em>{t('analysis.mock')}</em>}
       <small>{label}</small>
       <strong>{value}</strong>
     </AppCard>
+  )
+}
+
+function ProbabilityBalance({ analysis }: { analysis: AnalysisResult }) {
+  const { t } = useLanguage()
+  const realPercent = Math.max(0, Math.min(100, analysis.likelyRealProbability))
+  const aiPercent = Math.max(0, Math.min(100, analysis.aiGeneratedProbability))
+  const cautiousLabel = analysis.label === 'Inconclusive' || analysis.modelDisagreement
+  const realLabel = `${cautiousLabel ? t('analysis.estimatedReal') : t('analysis.likelyReal')} ${formatPercent(realPercent)}%`
+  const aiLabel = `${cautiousLabel ? t('analysis.estimatedAi') : t('analysis.aiManipulated')} ${formatPercent(aiPercent)}%`
+
+  return (
+    <div className="probability-balance">
+      <div className="split-probability" aria-label={`${realLabel}. ${aiLabel}.`}>
+        <div
+          className={realPercent < 12 ? 'is-small' : ''}
+          style={{ width: `${realPercent}%` }}
+          title={realLabel}
+        >
+          <span>{realLabel}</span>
+        </div>
+        <div
+          className={aiPercent < 12 ? 'is-small' : ''}
+          style={{ width: `${aiPercent}%` }}
+          title={aiLabel}
+        >
+          <span>{aiLabel}</span>
+        </div>
+      </div>
+      <div className="probability-legend">
+        <span className="probability-legend-real">{realLabel}</span>
+        <span className="probability-legend-ai">{aiLabel}</span>
+      </div>
+    </div>
   )
 }
 
@@ -213,11 +289,12 @@ function WarningPanel({ message, subtle = false, strong = false }: { message: st
 }
 
 function DetectorScore({ title, component }: { title: string; component?: DetectorComponent }) {
+  const { t } = useLanguage()
   if (!component) {
     return (
       <div className="detector-card">
         <span>{title}</span>
-        <strong>Unavailable</strong>
+        <strong>{t('analysis.unavailable')}</strong>
       </div>
     )
   }
@@ -225,26 +302,27 @@ function DetectorScore({ title, component }: { title: string; component?: Detect
   return (
     <div className="detector-card">
       <span>{title}</span>
-      <strong>{formatPercent(component.ai_score * 100)}% AI</strong>
+      <strong>{formatPercent(component.ai_score * 100)}% {t('analysis.aiSuffix')}</strong>
       {component.raw_frame_ai_score !== undefined && (
-        <small>Raw frame score {formatPercent(component.raw_frame_ai_score * 100)}% - calibrated {formatPercent((component.calibrated_frame_ai_score ?? component.ai_score) * 100)}%</small>
+        <small>{t('analysis.rawFrameScore', { raw: formatPercent(component.raw_frame_ai_score * 100), calibrated: formatPercent((component.calibrated_frame_ai_score ?? component.ai_score) * 100) })}</small>
       )}
       <small>{component.model_id}</small>
-      <small>{formatWords(component.model_capability)} - confidence {formatPercent(component.confidence * 100)}%</small>
+      <small>{t('analysis.confidenceInline', { capability: formatWords(component.model_capability), confidence: formatPercent(component.confidence * 100) })}</small>
       {component.reliability?.accuracy !== undefined && (
-        <small>Reliability {formatPercent(component.reliability.accuracy * 100)}% from {component.reliability.sample_count ?? 0} samples</small>
+        <small>{t('analysis.reliability', { accuracy: formatPercent(component.reliability.accuracy * 100), samples: component.reliability.sample_count ?? 0 })}</small>
       )}
     </div>
   )
 }
 
-function ScoreBar({ label, value, emptyLabel = 'No signal' }: { label: string; value?: number; emptyLabel?: string }) {
+function ScoreBar({ label, value, emptyLabel }: { label: string; value?: number; emptyLabel?: string }) {
+  const { t } = useLanguage()
   const percent = typeof value === 'number' ? Math.max(0, Math.min(100, value * 100)) : undefined
   return (
     <div className="score-row">
       <div>
         <span>{label}</span>
-        <strong>{percent === undefined ? emptyLabel : `${formatPercent(percent)}%`}</strong>
+        <strong>{percent === undefined ? emptyLabel ?? t('analysis.noSignal') : `${formatPercent(percent)}%`}</strong>
       </div>
       <div className="score-track">
         <span style={{ width: `${percent ?? 0}%` }} />
@@ -254,37 +332,38 @@ function ScoreBar({ label, value, emptyLabel = 'No signal' }: { label: string; v
 }
 
 function EvidenceGroups({ evidence, warnings, isMock }: { evidence: EvidenceItem[]; warnings: string[]; isMock: boolean }) {
+  const { t } = useLanguage()
   const groups = [
-    [isMock ? 'Mock frame indicators - development only' : 'AI frame indicators', evidence.filter((item) => item.type === 'AiFrameScore')],
-    ['Metadata warnings', evidence.filter((item) => item.type === 'MetadataWarning')],
-    ['Confidence and system notes', evidence.filter((item) => item.type !== 'AiFrameScore' && item.type !== 'MetadataWarning')],
+    [isMock ? t('analysis.mockFrameGroup') : t('analysis.aiFrameGroup'), evidence.filter((item) => item.type === 'AiFrameScore')],
+    [t('analysis.metadataWarnings'), evidence.filter((item) => item.type === 'MetadataWarning')],
+    [t('analysis.systemNotes'), evidence.filter((item) => item.type !== 'AiFrameScore' && item.type !== 'MetadataWarning')],
   ] as const
 
   return (
     <div className="evidence-groups">
-      {warnings.length > 0 && <WarningPanel message={warnings.join(' ')} subtle />}
+      {warnings.length > 0 && <WarningPanel message={warnings.map((warning) => localizeKnownMessage(warning, t)).join(' ')} subtle />}
       {isMock && (
         <p className="mock-helper-copy">
-          These scores were generated by the development mock model and should not be used to judge whether the video is real or AI-generated.
+          {t('analysis.mockHelper')}
         </p>
       )}
       {groups.map(([title, items]) => (
         <div className="evidence-group" key={title}>
           <h3>{title}</h3>
           {items.length === 0 ? (
-            <p className="muted-copy">No items in this category.</p>
+            <p className="muted-copy">{t('analysis.noItems')}</p>
           ) : (
             <div className="evidence-list">
               {items.map((item) => (
                 <div className="evidence-card" key={item.id}>
                   <div>
                     <StatusBadge status={item.severity} />
-                    <strong>{formatEvidenceTitle(item.title, isMock)}</strong>
-                    <p>{item.description}</p>
+                    <strong>{localizeEvidenceTitle(item.title, isMock, t)}</strong>
+                    <p>{localizeKnownMessage(item.description, t)}</p>
                   </div>
                   <small>
-                    {isFiniteNumber(item.timestampSeconds) ? `${item.timestampSeconds.toFixed(2)}s` : 'No timestamp'}
-                    {isFiniteNumber(item.scoreImpact) ? ` - impact ${item.scoreImpact.toFixed(2)}` : ''}
+                    {isFiniteNumber(item.timestampSeconds) ? `${item.timestampSeconds.toFixed(2)}s` : t('analysis.noTimestamp')}
+                    {isFiniteNumber(item.scoreImpact) ? ` - ${t('analysis.impact', { impact: item.scoreImpact.toFixed(2) })}` : ''}
                   </small>
                 </div>
               ))}
@@ -296,27 +375,19 @@ function EvidenceGroups({ evidence, warnings, isMock }: { evidence: EvidenceItem
   )
 }
 
-function formatEvidenceTitle(title: string, isMock: boolean) {
-  if (!isMock) return title
-
-  return title
-    .replace(/^High AI indicator frame$/i, 'Mock high-score frame')
-    .replace(/^Moderate AI indicator frame$/i, 'Mock moderate-score frame')
-    .replace(/^AI frame indicator$/i, 'Mock frame score')
-}
-
 function MetadataSummary({ metadata }: { metadata?: MetadataResult }) {
+  const { t } = useLanguage()
   if (!metadata) {
-    return <p className="muted-copy">Metadata summary unavailable.</p>
+    return <p className="muted-copy">{t('analysis.metadataUnavailable')}</p>
   }
 
   const rows = [
-    ['Duration', metadata.durationSeconds ? `${metadata.durationSeconds.toFixed(2)}s` : undefined],
-    ['Resolution', metadata.resolution],
-    ['FPS', metadata.fps?.toString()],
-    ['Codec', metadata.codec],
-    ['Audio', metadata.audioCodec],
-    ['Bitrate', metadata.bitrate?.toLocaleString()],
+    [t('analysis.duration'), metadata.durationSeconds ? `${metadata.durationSeconds.toFixed(2)}s` : undefined],
+    [t('analysis.resolution'), metadata.resolution],
+    [t('analysis.fps'), metadata.fps?.toString()],
+    [t('analysis.codec'), metadata.codec],
+    [t('analysis.audio'), metadata.audioCodec],
+    [t('analysis.bitrate'), metadata.bitrate?.toLocaleString()],
   ]
 
   return (
@@ -324,7 +395,7 @@ function MetadataSummary({ metadata }: { metadata?: MetadataResult }) {
       {rows.map(([label, value]) => (
         <div key={label}>
           <span>{label}</span>
-          <strong>{value ?? 'Unknown'}</strong>
+          <strong>{value ?? t('analysis.unknown')}</strong>
         </div>
       ))}
     </div>
@@ -332,12 +403,13 @@ function MetadataSummary({ metadata }: { metadata?: MetadataResult }) {
 }
 
 function OriginMatches({ matches, loading }: { matches: SourceMatch[]; loading: boolean }) {
+  const { t } = useLanguage()
   if (loading) {
-    return <LoadingState text="Checking internal matches..." />
+    return <LoadingState text={t('analysis.checkingMatches')} />
   }
 
   if (matches.length === 0) {
-    return <EmptyState icon={<FileVideoIcon />} title="No internal matches found" description="This video did not match previously analyzed internal videos above the configured threshold." />
+    return <EmptyState icon={<FileVideoIcon />} title={t('analysis.noMatchesTitle')} description={t('analysis.noMatchesDescription')} />
   }
 
   return (
@@ -345,12 +417,12 @@ function OriginMatches({ matches, loading }: { matches: SourceMatch[]; loading: 
       {matches.map((match) => (
         <div className="match-card" key={match.id}>
           <div>
-            <strong>#{match.rank} {match.title ?? 'Internal match'}</strong>
-            <span>{match.platform} - {match.confidence} confidence</span>
+            <strong>{localizeOriginMatchTitle(match, t)}</strong>
+            <span>{t('analysis.confidenceInline', { capability: localizePlatform(match.platform, t), confidence: localizeConfidence(match.confidence, t) })}</span>
           </div>
           <div>
             <strong>{formatPercent(match.similarityScore * 100)}%</strong>
-            <span>{match.uploadDatetime ? dayjs(match.uploadDatetime).format('MMM D, YYYY') : 'Date unavailable'}</span>
+            <span>{match.uploadDatetime ? dayjs(match.uploadDatetime).format('MMM D, YYYY') : t('analysis.dateUnavailable')}</span>
           </div>
         </div>
       ))}
@@ -358,13 +430,40 @@ function OriginMatches({ matches, loading }: { matches: SourceMatch[]; loading: 
   )
 }
 
-function getModelMode(analysis?: AnalysisResult) {
-  if (!analysis) return 'Unknown model'
-  if (analysis.isMock) return 'Mock Model'
-  if (analysis.modelCapability === 'ensemble_video_frame') return 'Ensemble: Video + Frame Detector'
-  if (analysis.modelCapability === 'frame_image') return 'Frame-Level Model'
-  if (analysis.modelCapability === 'video_temporal') return 'Real Video Model'
-  return 'AI Model'
+function getModelMode(analysis: AnalysisResult | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  if (!analysis) return t('analysis.unknownModel')
+  if (analysis.isMock) return t('analysis.modelMock')
+  if (analysis.modelCapability === 'ensemble_video_frame') return t('analysis.modelEnsemble')
+  if (analysis.modelCapability === 'frame_image') return t('analysis.modelFrame')
+  if (analysis.modelCapability === 'video_temporal') return t('analysis.modelTemporal')
+  return t('analysis.modelAi')
+}
+
+function localizeOriginMatchTitle(match: SourceMatch, t: ReturnType<typeof useLanguage>['t']) {
+  const title = match.title?.trim()
+  if (!title) {
+    return `#${match.rank} ${t('analysis.internalMatch')}`
+  }
+
+  const knownMatch = title.match(/^Previously analyzed internal video #(\d+)$/i)
+  if (knownMatch) {
+    return t('analysis.previouslyAnalyzedVideo', { rank: knownMatch[1] })
+  }
+
+  return `#${match.rank} ${title}`
+}
+
+function localizePlatform(platform: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  if (!platform) return t('analysis.unknown')
+  return platform.toLowerCase() === 'internal' ? t('analysis.internalPlatform') : platform
+}
+
+function localizeConfidence(confidence: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = confidence?.toLowerCase()
+  if (normalized === 'high') return t('status.high')
+  if (normalized === 'medium') return t('status.medium')
+  if (normalized === 'low') return t('status.low')
+  return confidence ?? t('analysis.unknown')
 }
 
 function normalizeAnalysis(analysis: AnalysisResult): AnalysisResult {
@@ -383,8 +482,13 @@ function normalizeAnalysis(analysis: AnalysisResult): AnalysisResult {
     temporalScore: optionalNumber(analysis.temporalScore),
     finalScore,
     confidence,
-    summary: analysis.summary ?? 'This result is probability-based and generated from available analysis signals.',
+    summary: analysis.summary ?? '',
     warnings: Array.isArray(analysis.warnings) ? analysis.warnings : [],
+    provider: analysis.provider ?? 'Local',
+    providerMode: analysis.providerMode ?? 'local',
+    finalDecisionSource: analysis.finalDecisionSource ?? 'Local',
+    fallbackUsed: Boolean(analysis.fallbackUsed),
+    providerWarnings: Array.isArray(analysis.providerWarnings) ? analysis.providerWarnings : [],
     modelDisagreement: Boolean(analysis.modelDisagreement),
     strongFrameEvidence: Boolean(analysis.strongFrameEvidence),
     minimumRecommendedScore: optionalNumber(analysis.minimumRecommendedScore),
@@ -448,6 +552,188 @@ function formatLabel(label: string) {
   return (label || 'Inconclusive').replace(/([a-z])([A-Z])/g, '$1 $2')
 }
 
+function localizeLabel(label: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = (label || 'Inconclusive').toLowerCase().replace(/\s+/g, '')
+  const map: Record<string, ReturnType<typeof useLanguage>['t'] extends (key: infer K, values?: Record<string, string | number>) => string ? K & string : never> = {
+    likelyreal: 'status.likelyreal',
+    likelyaigenerated: 'status.likelyaigenerated',
+    suspicious: 'status.suspicious',
+    inconclusive: 'status.inconclusive',
+    completed: 'status.completed',
+    failed: 'status.failed',
+    processing: 'status.processing',
+    queued: 'status.queued',
+    high: 'status.high',
+    medium: 'status.medium',
+    low: 'status.low',
+  }
+  const key = map[normalized]
+  return key ? t(key) : formatLabel(label || 'Inconclusive')
+}
+
+function localizeStatusValue(status: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  if (!status) return undefined
+  return localizeLabel(status, t)
+}
+
+function localizeAnalysisSummary(analysis: AnalysisResult, t: ReturnType<typeof useLanguage>['t']) {
+  const summary = analysis.summary?.trim()
+  if (!summary) {
+    return t('analysis.defaultSummary')
+  }
+
+  const normalizedSummary = summary.toLowerCase()
+  if (
+    normalizedSummary.includes('bitmind external verification was used') ||
+    normalizedSummary.includes('metadata is shown separately') ||
+    normalizedSummary.includes('external ai detection provider')
+  ) {
+    return t('analysis.bitmindSummary')
+  }
+
+  return localizeKnownMessage(summary, t)
+}
+
+function localizeEvidenceTitle(title: string, isMock: boolean, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = title.trim().toLowerCase()
+  if (normalized === 'missing creation time') return t('analysis.missingCreationTimeTitle')
+  if (normalized === 'missing encoder metadata') return t('analysis.missingEncoderTitle')
+  if (normalized === 'no audio stream detected') return `${t('analysis.audio')} ${t('analysis.notAvailable')}`
+  if (normalized === 'heavy compression indicator') return `${t('analysis.bitrate')} ${t('status.low')}`
+  if (normalized === 'incomplete core metadata') return t('analysis.metadataUnavailable')
+  if (normalized === 'unreadable metadata') return t('analysis.metadataUnavailable')
+  if (normalized === 'detector disagreement') return t('analysis.disagreementWarning')
+  if (normalized === 'low confidence result') return t('analysis.lowConfidenceWarning')
+  if (normalized === 'external provider notice') return t('analysis.externalVerification')
+  if (isMock && normalized === 'high ai indicator frame') return `${t('analysis.mock')} ${t('status.high')}`
+  if (isMock && normalized === 'moderate ai indicator frame') return `${t('analysis.mock')} ${t('status.medium')}`
+  if (isMock && normalized === 'ai frame indicator') return t('analysis.mockFrameGroup')
+  return title
+}
+
+function localizeKnownMessage(message: string, t: ReturnType<typeof useLanguage>['t']) {
+  const trimmed = message.trim()
+  const direct = localizeKnownSentence(trimmed, t)
+  if (direct) {
+    return direct
+  }
+
+  const sentences = trimmed.match(/[^.!?]+[.!?]+|[^.!?]+$/g)
+  if (!sentences || sentences.length <= 1) {
+    return message
+  }
+
+  return sentences
+    .map((sentence) => {
+      const cleanSentence = sentence.trim()
+      return localizeKnownSentence(cleanSentence, t) ?? cleanSentence
+    })
+    .join(' ')
+}
+
+function localizeKnownSentence(message: string, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = message.trim().toLowerCase()
+  if (normalized === 'this video may be processed by an external ai detection provider for analysis.') {
+    return t('analysis.externalProviderNotice')
+  }
+  if (normalized.includes('this result is probability-based and generated using the current ai service output')) {
+    return t('analysis.defaultSummary')
+  }
+  if (normalized.includes('this is not a guarantee of authenticity or origin')) {
+    return t('analysis.proofWarning')
+  }
+  if (
+    normalized.includes('development mock model was used') ||
+    normalized.includes('mock model was used') ||
+    normalized.includes('this is a mock ai response') ||
+    normalized.includes('do not treat this result as real ai detection')
+  ) {
+    return t('analysis.mockWarning')
+  }
+  if (normalized.includes('mock score generated from deterministic frame identifier hash')) {
+    return t('analysis.mockHelper')
+  }
+  if (
+    normalized.includes('frame-level model used') ||
+    normalized.includes('temporal video consistency') ||
+    normalized.includes('frame-level model helps detect visual artifacts')
+  ) {
+    return t('analysis.frameWarning')
+  }
+  if (normalized.includes('model components disagree')) {
+    return t('analysis.disagreementWarning')
+  }
+  if (
+    normalized.includes('frame-level detector found strong ai-like visual signals') ||
+    normalized.includes('frame detector found ai-like visual signals')
+  ) {
+    return t('analysis.strongFrameWarning')
+  }
+  if (normalized.includes('frame detector gave high scores')) {
+    return t('analysis.inconclusiveWarning')
+  }
+  if (normalized.includes('temporal detector found suspicious sequence-level signals')) {
+    return t('analysis.suspiciousWarning')
+  }
+  if (
+    normalized.includes('primary video detector model was not available') ||
+    normalized.includes('frame-level detector model was not available') ||
+    normalized.includes('frame detector unavailable') ||
+    normalized.includes('only one detector model was available') ||
+    normalized.includes('no detector model is available')
+  ) {
+    return t('analysis.fallbackWarning')
+  }
+  if (normalized.includes('local and bitmind providers disagree')) {
+    return t('analysis.disagreementWarning')
+  }
+  if (
+    normalized.includes('calibration report has too few samples') ||
+    normalized.includes('detector was down-weighted by calibration reliability checks')
+  ) {
+    return t('analysis.lowConfidenceWarning')
+  }
+  if (normalized.includes('frame score combined from available detector models')) {
+    return t('analysis.detectorBreakdownSubtitle')
+  }
+  if (normalized === 'this is a probability-based analysis.' || normalized === 'this is a probability-based ensemble analysis.') {
+    return t('analysis.defaultSummary')
+  }
+  if (normalized === 'the video metadata does not include a creation timestamp.') {
+    return t('analysis.missingCreationTimeDescription')
+  }
+  if (normalized === 'the video metadata does not identify the encoder.') {
+    return t('analysis.missingEncoderDescription')
+  }
+  if (normalized === 'no audio stream was detected in the media metadata.') {
+    return `${t('analysis.audio')}: ${t('analysis.notAvailable')}`
+  }
+  if (normalized === 'the media bitrate appears unusually low for the available metadata.') {
+    return `${t('analysis.bitrate')}: ${t('status.low')}`
+  }
+  if (
+    normalized === 'some core media metadata could not be read.' ||
+    normalized === 'the media metadata could not be read reliably.' ||
+    normalized === 'missing_core_metadata' ||
+    normalized === 'unreadable_metadata'
+  ) {
+    return t('analysis.metadataUnavailable')
+  }
+  if (normalized === 'missing_creation_time') {
+    return t('analysis.missingCreationTimeDescription')
+  }
+  if (normalized === 'missing_encoder') {
+    return t('analysis.missingEncoderDescription')
+  }
+  if (normalized === 'no_audio_stream') {
+    return `${t('analysis.audio')}: ${t('analysis.notAvailable')}`
+  }
+  if (normalized === 'unusually_low_bitrate') {
+    return `${t('analysis.bitrate')}: ${t('status.low')}`
+  }
+  return undefined
+}
+
 function formatPercent(value: number) {
   const numeric = typeof value === 'number' && Number.isFinite(value) ? value : 0
   return Math.max(0, Math.min(100, numeric)).toFixed(1)
@@ -455,4 +741,15 @@ function formatPercent(value: number) {
 
 function formatWords(value?: string) {
   return (value || 'Unknown').replace(/_/g, ' ')
+}
+
+function formatSafeFallbackReason(reason?: string) {
+  if (!reason) {
+    return 'external provider unavailable'
+  }
+
+  const technicalPattern = /(http\s*\d{3}|bitmind|api key|token|exception|stack|trace|[a-z]:\\|\/tmp\/|raw response)/i
+  return technicalPattern.test(reason)
+    ? 'external provider unavailable'
+    : reason
 }

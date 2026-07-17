@@ -14,9 +14,11 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon, AlertCircleIcon, CheckCircleIcon, ClockIcon, UploadIcon, VideoIcon } from '../components/ui/icons'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export function DashboardPage() {
   const auth = useAuth()
+  const { t } = useLanguage()
   const historyQuery = useQuery({
     queryKey: ['video-history'],
     queryFn: async () => {
@@ -36,13 +38,13 @@ export function DashboardPage() {
   return (
     <main className="page">
       <PageHeader
-        eyebrow="Secure analysis workspace"
-        title={`Good to see you, ${firstName}`}
-        subtitle="Monitor uploaded videos, queued analysis jobs, and authenticity report readiness."
+        eyebrow={t('dashboard.eyebrow')}
+        title={t('dashboard.title', { name: firstName })}
+        subtitle={t('dashboard.subtitle')}
         action={
           <Link className={buttonClassName('primary')} to="/upload">
             <UploadIcon />
-            Upload New Video
+            {t('dashboard.uploadNew')}
           </Link>
         }
       />
@@ -51,44 +53,41 @@ export function DashboardPage() {
         <div>
           <span className="hero-pill light">
             <ActivityIcon />
-            Authenticity pipeline
+            {t('dashboard.pipeline')}
           </span>
-          <h2>Bring every video into a traceable verification workflow.</h2>
-          <p>
-            Upload media, monitor queued analysis, and keep every investigation step visible from one
-            professional control center.
-          </p>
+          <h2>{t('dashboard.heroTitle')}</h2>
+          <p>{t('dashboard.heroText')}</p>
         </div>
         <Link className={buttonClassName('secondary')} to="/upload">
-          Start Analysis
+          {t('dashboard.startAnalysis')}
         </Link>
       </section>
 
-      <section className="summary-grid" aria-label="Video analysis summary">
-        <SummaryCard icon={<VideoIcon />} label="Total uploads" value={totalUploads} />
-        <SummaryCard icon={<ClockIcon />} label="Queued jobs" value={queuedJobs} />
-        <SummaryCard icon={<ActivityIcon />} label="Processing" value={processingJobs} />
-        <SummaryCard icon={<CheckCircleIcon />} label="Completed" value={completedAnalyses} />
-        <SummaryCard icon={<AlertCircleIcon />} label="Failed" value={failedJobs} tone="danger" />
+      <section className="summary-grid" aria-label={t('dashboard.summaryLabel')}>
+        <SummaryCard icon={<VideoIcon />} label={t('dashboard.totalUploads')} value={totalUploads} />
+        <SummaryCard icon={<ClockIcon />} label={t('dashboard.queuedJobs')} value={queuedJobs} />
+        <SummaryCard icon={<ActivityIcon />} label={t('dashboard.processing')} value={processingJobs} />
+        <SummaryCard icon={<CheckCircleIcon />} label={t('dashboard.completed')} value={completedAnalyses} />
+        <SummaryCard icon={<AlertCircleIcon />} label={t('dashboard.failed')} value={failedJobs} tone="danger" />
       </section>
 
       <AppCard>
         <div className="card-header">
           <div>
-            <h2>Recent uploads</h2>
-            <p>Latest videos submitted to the secure analysis queue.</p>
+            <h2>{t('dashboard.recentUploads')}</h2>
+            <p>{t('dashboard.recentSubtitle')}</p>
           </div>
         </div>
-        {historyQuery.isLoading && <LoadingState text="Loading your secure video history..." />}
-        {historyQuery.error && <ErrorMessage message="We couldn't load your video history. Please refresh and try again." />}
+        {historyQuery.isLoading && <LoadingState text={t('dashboard.loadingHistory')} />}
+        {historyQuery.error && <ErrorMessage message={t('dashboard.historyError')} />}
         {!historyQuery.isLoading && !historyQuery.error && items.length === 0 && (
           <EmptyState
             icon={<UploadIcon />}
-            title="No videos uploaded yet"
-            description="Upload your first video to start an AI-assisted authenticity analysis."
+            title={t('dashboard.emptyTitle')}
+            description={t('dashboard.emptyDescription')}
             action={
               <Link className={buttonClassName('primary')} to="/upload">
-                Upload Video
+                {t('dashboard.uploadVideo')}
               </Link>
             }
           />
@@ -98,12 +97,12 @@ export function DashboardPage() {
             <table className="premium-table">
               <thead>
                 <tr>
-                  <th>Video name</th>
-                  <th>Status</th>
-                  <th>Job status</th>
-                  <th>Progress</th>
-                  <th>Created</th>
-                  <th>Action</th>
+                  <th>{t('dashboard.videoName')}</th>
+                  <th>{t('dashboard.status')}</th>
+                  <th>{t('dashboard.jobStatus')}</th>
+                  <th>{t('dashboard.progress')}</th>
+                  <th>{t('dashboard.created')}</th>
+                  <th>{t('dashboard.action')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,7 +131,7 @@ export function DashboardPage() {
                     <td>{dayjs(item.createdAt).format('MMM D, YYYY h:mm A')}</td>
                     <td>
                       <Link className={buttonClassName('outline')} to={item.status.toLowerCase() === 'completed' ? `/analysis/${item.videoId}` : `/processing/${item.videoId}`}>
-                        {item.status.toLowerCase() === 'completed' ? 'View Result' : 'View Status'}
+                        {item.status.toLowerCase() === 'completed' ? t('dashboard.viewResult') : t('dashboard.viewStatus')}
                       </Link>
                     </td>
                   </tr>

@@ -8,9 +8,11 @@ import { AppCard } from '../components/ui/AppCard'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { AppInput, FormField } from '../components/ui/FormField'
 import { AuthLayout } from '../layouts/AuthLayout'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export function SignupPage() {
   const auth = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -22,7 +24,7 @@ export function SignupPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (password !== confirmPassword) {
-      setError('Passwords must match.')
+      setError(t('signup.passwordMismatch'))
       return
     }
 
@@ -32,7 +34,7 @@ export function SignupPage() {
       await auth.signup(name, email, password, confirmPassword)
       navigate('/dashboard', { replace: true })
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError))
+      setError(getApiErrorMessage(requestError, t))
     } finally {
       setLoading(false)
     }
@@ -41,31 +43,31 @@ export function SignupPage() {
   return (
     <AuthLayout>
       <AppCard className="auth-card">
-        <span className="eyebrow">Start securely</span>
-        <h1 className="auth-title">Create your account</h1>
-        <p className="auth-subtitle">Start analyzing videos with a secure AI-assisted workflow.</p>
+        <span className="eyebrow">{t('signup.eyebrow')}</span>
+        <h1 className="auth-title">{t('signup.title')}</h1>
+        <p className="auth-subtitle">{t('signup.subtitle')}</p>
         {error && <ErrorMessage message={error} />}
         <form className="auth-form" onSubmit={handleSubmit}>
-          <FormField label="Name">
+          <FormField label={t('signup.name')}>
             <AppInput
               value={name}
               onChange={(event) => setName(event.target.value)}
               autoComplete="name"
               required
-              placeholder="Your full name"
+              placeholder={t('signup.namePlaceholder')}
             />
           </FormField>
-          <FormField label="Email">
+          <FormField label={t('login.email')}>
             <AppInput
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
               required
-              placeholder="you@company.com"
+              placeholder={t('login.emailPlaceholder')}
             />
           </FormField>
-          <FormField label="Password" helper="Use at least 8 characters.">
+          <FormField label={t('login.password')} helper={t('signup.passwordHelper')}>
             <AppInput
               type="password"
               minLength={8}
@@ -73,10 +75,10 @@ export function SignupPage() {
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="new-password"
               required
-              placeholder="Create a password"
+              placeholder={t('signup.passwordPlaceholder')}
             />
           </FormField>
-          <FormField label="Confirm password">
+          <FormField label={t('signup.confirmPassword')}>
             <AppInput
               type="password"
               minLength={8}
@@ -84,15 +86,15 @@ export function SignupPage() {
               onChange={(event) => setConfirmPassword(event.target.value)}
               autoComplete="new-password"
               required
-              placeholder="Repeat your password"
+              placeholder={t('signup.confirmPlaceholder')}
             />
           </FormField>
           <AppButton type="submit" loading={loading} fullWidth>
-            Create account
+            {t('signup.createAccount')}
           </AppButton>
         </form>
         <p className="auth-switch">
-          Already registered? <Link to="/login">Login</Link>
+          {t('signup.alreadyRegistered')} <Link to="/login">{t('signup.login')}</Link>
         </p>
       </AppCard>
     </AuthLayout>

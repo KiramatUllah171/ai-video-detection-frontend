@@ -8,9 +8,11 @@ import { AppCard } from '../components/ui/AppCard'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { AppInput, FormField } from '../components/ui/FormField'
 import { AuthLayout } from '../layouts/AuthLayout'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export function LoginPage() {
   const auth = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const location = useLocation()
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +29,7 @@ export function LoginPage() {
       const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/dashboard'
       navigate(from, { replace: true })
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError))
+      setError(getApiErrorMessage(requestError, t))
     } finally {
       setLoading(false)
     }
@@ -36,37 +38,37 @@ export function LoginPage() {
   return (
     <AuthLayout>
       <AppCard className="auth-card">
-        <span className="eyebrow">Secure access</span>
-        <h1 className="auth-title">Welcome back</h1>
-        <p className="auth-subtitle">Sign in to continue your video authenticity analysis.</p>
+        <span className="eyebrow">{t('login.eyebrow')}</span>
+        <h1 className="auth-title">{t('login.title')}</h1>
+        <p className="auth-subtitle">{t('login.subtitle')}</p>
         {error && <ErrorMessage message={error} />}
         <form className="auth-form" onSubmit={handleSubmit}>
-          <FormField label="Email">
+          <FormField label={t('login.email')}>
             <AppInput
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
               required
-              placeholder="you@company.com"
+              placeholder={t('login.emailPlaceholder')}
             />
           </FormField>
-          <FormField label="Password">
+          <FormField label={t('login.password')}>
             <AppInput
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
               required
-              placeholder="Enter your password"
+              placeholder={t('login.passwordPlaceholder')}
             />
           </FormField>
           <AppButton type="submit" loading={loading} fullWidth>
-            Sign in
+            {t('login.signIn')}
           </AppButton>
         </form>
         <p className="auth-switch">
-          New here? <Link to="/signup">Create an account</Link>
+          {t('login.newHere')} <Link to="/signup">{t('login.createAccount')}</Link>
         </p>
       </AppCard>
     </AuthLayout>

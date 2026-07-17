@@ -51,6 +51,8 @@ export type UploadVideoResponse = {
   originalName: string
   fileSize: number
   contentType: string
+  retryCount: number
+  maxRetryCount: number
   message: string
 }
 
@@ -62,11 +64,17 @@ export type JobStatus = {
   currentStep?: string
   errorMessage?: string
   errorCode?: string
+  userMessage?: string
+  canRetry?: boolean
   retryCount: number
   maxRetryCount: number
+  failedStage?: string
+  nextRecommendedAction?: string
+  technicalReferenceId?: string
   createdAt: string
   startedAt?: string
   completedAt?: string
+  lastUpdatedAt?: string
 }
 
 export type EvidenceItem = {
@@ -98,6 +106,22 @@ export type AnalysisResult = {
   label: string
   summary?: string
   warnings: string[]
+  provider?: string
+  providerMode?: string
+  finalDecisionSource?: string
+  externalProviderName?: string
+  externalProviderStatus?: string
+  externalScore?: number
+  externalConfidence?: number
+  externalLabel?: string
+  fallbackUsed?: boolean
+  fallbackReason?: string
+  providerWarnings?: string[]
+  localAnalysisSummary?: string
+  externalAnalysisSummary?: string
+  hybridDecisionSummary?: string
+  providerRequestedAt?: string
+  providerCompletedAt?: string
   modelDisagreement?: boolean
   strongFrameEvidence?: boolean
   minimumRecommendedScore?: number
