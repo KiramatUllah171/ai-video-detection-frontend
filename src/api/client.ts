@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios'
-import type { AnalysisResult, ApiResponse, AuthResponse, MetadataResult, SourceMatch, UploadVideoResponse } from './types'
+import type { AnalysisResult, ApiResponse, AuthResponse, JobStatus, MetadataResult, SourceMatch, UploadVideoResponse } from './types'
 import { authStorage } from '../auth/authStorage'
 
 const env = import.meta.env as Record<string, string | undefined>
@@ -10,6 +10,7 @@ const baseURL =
 
 export const apiClient = axios.create({
   baseURL,
+  withCredentials: true,
 })
 
 apiClient.interceptors.request.use((config) => {
@@ -27,24 +28,22 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config
 
     if (error.response?.status === 401 && originalRequest && !originalRequest.headers?.['x-refresh-attempted']) {
-      const refreshToken = authStorage.getRefreshToken()
-      if (refreshToken) {
-        try {
-          originalRequest.headers = originalRequest.headers ?? {}
-          originalRequest.headers['x-refresh-attempted'] = 'true'
-          const refreshResponse = await axios.post<ApiResponse<AuthResponse>>(
-            `${baseURL}/api/auth/refresh`,
-            { refreshToken },
-          )
+      try {
+        originalRequest.headers = originalRequest.headers ?? {}
+        originalRequest.headers['x-refresh-attempted'] = 'true'
+        const refreshResponse = await axios.post<ApiResponse<AuthResponse>>(
+          `${baseURL}/api/auth/refresh`,
+          {},
+          { withCredentials: true },
+        )
 
-          if (refreshResponse.data.success && refreshResponse.data.data) {
-            authStorage.setSession(refreshResponse.data.data)
-            originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.data.accessToken}`
-            return apiClient(originalRequest)
-          }
-        } catch {
-          authStorage.clear()
+        if (refreshResponse.data.success && refreshResponse.data.data) {
+          authStorage.setSession(refreshResponse.data.data)
+          originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.data.accessToken}`
+          return apiClient(originalRequest)
         }
+      } catch {
+        authStorage.clear()
       }
     }
 
@@ -120,6 +119,14 @@ export async function getAnalysisResult(videoId: string | number) {
 
 export async function retryAnalysis(videoId: string | number) {
   const response = await apiClient.post<ApiResponse<UploadVideoResponse>>(`/api/videos/${videoId}/retry-analysis`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data.data
+}
+
+export async function cancelAnalysis(videoId: string | number) {
+  const response = await apiClient.post<ApiResponse<JobStatus>>(`/api/videos/${videoId}/cancel-analysis`)
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.errors?.[0] ?? response.data.message)
   }

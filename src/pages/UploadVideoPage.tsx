@@ -14,6 +14,7 @@ import { FileVideoIcon, ShieldIcon, UploadIcon, XIcon } from '../components/ui/i
 import { useLanguage } from '../i18n/LanguageContext'
 
 const maxSizeLabel = '500 MB'
+const maxUploadSizeBytes = 524_288_000
 const formats = ['MP4', 'MOV', 'AVI', 'MKV', 'WebM']
 
 export function UploadVideoPage() {
@@ -32,6 +33,13 @@ export function UploadVideoPage() {
 
   function selectFile(nextFile?: File) {
     if (nextFile) {
+      if (nextFile.size > maxUploadSizeBytes) {
+        setFile(null)
+        setError('The maximum allowed video size is 500 MB.')
+        setProgress(0)
+        return
+      }
+
       setFile(nextFile)
       setError(null)
       setProgress(0)
@@ -167,7 +175,7 @@ export function UploadVideoPage() {
           </div>
           <div className="mode-grid">
             {[
-              ['Basic', t('upload.basic'), t('upload.basicDescription')],
+              ['Basic', t('upload.smartScan'), t('upload.smartScanDescription')],
               ['Detailed', t('upload.detailed'), t('upload.detailedDescription')],
             ].map(([mode, label, description]) => (
               <label className={`mode-card ${analysisMode === mode ? 'selected' : ''}`} key={mode}>
@@ -183,6 +191,17 @@ export function UploadVideoPage() {
               </label>
             ))}
           </div>
+          <p className="form-helper">
+            {t('upload.scanModeNotice')}
+          </p>
+          {file && file.size > 50 * 1024 * 1024 && (
+            <div className="success-panel">
+              <div>
+                <strong>{t('upload.longVideoTitle')}</strong>
+                <span>{t('upload.longVideoDescription')}</span>
+              </div>
+            </div>
+          )}
           <FormField label={t('upload.notes')} helper={t('upload.notesHelper')}>
             <AppTextarea rows={4} value={notes} onChange={(event) => setNotes(event.target.value)} />
           </FormField>

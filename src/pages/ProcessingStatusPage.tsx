@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { apiClient, getAnalysisResult, getApiErrorMessage, retryAnalysis } from '../api/client'
+import { apiClient, cancelAnalysis, getAnalysisResult, getApiErrorMessage, retryAnalysis } from '../api/client'
 import type { ApiResponse, JobStatus } from '../api/types'
 import { AppButton } from '../components/ui/AppButton'
 import { AppCard } from '../components/ui/AppCard'
@@ -22,6 +22,7 @@ export function ProcessingStatusPage() {
   const { t } = useLanguage()
   const redirectStartedRef = useRef(false)
   const [retryLockedJobId, setRetryLockedJobId] = useState<number | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
   const statusQuery = useQuery({
     queryKey: ['job-status', videoId],
     enabled: Boolean(videoId),
@@ -44,6 +45,7 @@ export function ProcessingStatusPage() {
   const statusName = status?.status.toLowerCase()
   const isFailed = statusName === 'failed'
   const isCompleted = statusName === 'completed'
+  const canCancel = statusName ? ['queued', 'preparing', 'processing', 'retrying', 'finalizing', 'cancelrequested'].includes(statusName) : false
   const safeErrorMessage = status?.userMessage ?? status?.errorMessage ?? t('processing.defaultError')
   const retryMutation = useMutation({
     mutationFn: () => retryAnalysis(videoId!),
@@ -68,6 +70,21 @@ export function ProcessingStatusPage() {
     },
   })
   const retryLocked = status ? retryLockedJobId === status.jobId : false
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelAnalysis(videoId!),
+    onSuccess: async (nextStatus) => {
+      setCancelError(null)
+      queryClient.setQueryData<JobStatus>(['job-status', videoId], nextStatus)
+      if (nextStatus.status.toLowerCase() === 'cancelled' || nextStatus.status.toLowerCase() === 'cancelrequested') {
+        navigate('/upload', { replace: true, state: { message: 'Analysis cancelled.' } })
+        return
+      }
+      await statusQuery.refetch()
+    },
+    onError: (error) => {
+      setCancelError(getApiErrorMessage(error, t) || "We couldn't confirm that processing was cancelled. Please try again. Your video is still safe.")
+    },
+  })
 
   useEffect(() => {
     if (!videoId || !isCompleted || redirectStartedRef.current) {
@@ -129,21 +146,45 @@ export function ProcessingStatusPage() {
               <p>{message.description}</p>
             </div>
           </div>
-          <div className="status-progress-panel">
-            <div>
-              <span>{t('processing.progress')}</span>
-              <strong>{status.progress}%</strong>
+          {!cancelError && (
+            <div className="status-progress-panel">
+              <div>
+                <span>{t('processing.progress')}</span>
+                <strong>{formatPercent(status.progress)}</strong>
+              </div>
+              <ProgressBar value={status.progress ?? 0} status={status.status} showLabel={false} />
             </div>
-            <ProgressBar value={status.progress} status={status.status} showLabel={false} />
-          </div>
+          )}
+          {status.totalSegments ? (
+            <div className="success-panel">
+              <div>
+                <strong>{status.scanMode ?? 'Smart Scan'}</strong>
+                <span>
+                  {t('processing.segmentProgress', {
+                    completed: status.completedSegments ?? 0,
+                    total: status.totalSegments,
+                  })}
+                </span>
+              </div>
+            </div>
+          ) : null}
           <div className="detail-grid">
             <DetailItem label={t('processing.jobId')} value={String(status.jobId)} icon={<ActivityIcon />} />
             <DetailItem label={t('processing.videoId')} value={String(status.videoId)} icon={<FileVideoIcon />} />
-            <DetailItem label={t('processing.currentStep')} value={status.currentStep ?? t('processing.waitingWorker')} icon={<ClockIcon />} />
+            <DetailItem label={t('processing.currentStep')} value={formatSafeStatusText(status.currentStep, t)} icon={<ClockIcon />} />
             <DetailItem label={t('processing.retryAttempt')} value={t('processing.attempt', { current: Math.min(status.retryCount + 1, status.maxRetryCount), max: status.maxRetryCount })} icon={<AlertCircleIcon />} />
             <DetailItem label={t('processing.created')} value={dayjs(status.createdAt).format('MMM D, YYYY h:mm A')} icon={<ClockIcon />} />
             <DetailItem label={t('processing.lastUpdated')} value={formatLastUpdated(status, t)} icon={<ActivityIcon />} />
           </div>
+          {cancelError && (
+            <div className="failed-panel" role="alert">
+              <div>
+                <h3>{t('processing.cancelUnconfirmedTitle')}</h3>
+                <p>{t('processing.cancelUnconfirmedDescription')}</p>
+              </div>
+              <ErrorMessage message={cancelError} />
+            </div>
+          )}
           {isFailed && (
             <div className="failed-panel" role="alert">
               <div>
@@ -164,6 +205,33 @@ export function ProcessingStatusPage() {
             </div>
           )}
           <div className="status-actions">
+            {canCancel && (
+              <AppButton
+                type="button"
+                variant="outline"
+                loading={cancelMutation.isPending}
+                disabled={cancelMutation.isPending}
+                onClick={() => {
+                  if (!window.confirm('Cancel this analysis? Processing will stop, but your uploaded video will remain available.')) {
+                    return
+                  }
+                  setCancelError(null)
+                  cancelMutation.mutate()
+                }}
+              >
+                {cancelMutation.isPending ? t('processing.cancelling') : t('processing.cancelAnalysis')}
+              </AppButton>
+            )}
+            {cancelError && (
+              <AppButton type="button" variant="outline" onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending}>
+                {t('processing.retryCancellation')}
+              </AppButton>
+            )}
+            {cancelError && (
+              <AppButton type="button" variant="ghost" onClick={() => statusQuery.refetch()}>
+                {t('processing.refreshStatus')}
+              </AppButton>
+            )}
             {isFailed && (
               <AppButton
                 type="button"
@@ -256,13 +324,27 @@ function getStatusIcon(status?: string) {
 }
 
 function formatLastUpdated(status: JobStatus, t: ReturnType<typeof useLanguage>['t']) {
-  const updatedAt = status.lastUpdatedAt ?? status.completedAt
+  const updatedAt = status.lastActivityAt ?? status.lastUpdatedAt ?? status.completedAt
   if (updatedAt) {
     return dayjs(updatedAt).format('MMM D, YYYY h:mm A')
   }
 
   const statusName = status.status.toLowerCase()
-  return statusName === 'queued' || statusName === 'processing' || statusName === 'retrying'
+  return statusName === 'queued' || statusName === 'processing' || statusName === 'retrying' || statusName === 'preparing'
     ? t('processing.polling')
     : t('processing.notAvailable')
+}
+
+function formatPercent(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value)}%` : 'Calculating...'
+}
+
+function formatSafeStatusText(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  if (!value) {
+    return t('processing.waitingWorker')
+  }
+
+  return value
+    .replace(/External\s+BitMind\s+verification/gi, 'External verification')
+    .replace(/BitMind/gi, 'external verification')
 }

@@ -63,7 +63,7 @@ export function AnalysisResultPage() {
               </div>
               <div className="analysis-meta">
                 <span>{mode}</span>
-                <strong>{analysis.modelVersion ?? t('analysis.unknownModel')}</strong>
+                <strong>{formatModelDisplay(analysis.modelVersion, t)}</strong>
                 <small>{t('analysis.resultNumber', { id: analysis.aiResultId, date: dayjs(analysis.createdAt).format('MMM D, YYYY h:mm A') })}</small>
               </div>
             </div>
@@ -94,7 +94,7 @@ export function AnalysisResultPage() {
             {analysis.fallbackUsed && (
               <WarningPanel message={t('analysis.fallbackWarning')} />
             )}
-            {analysis.provider === 'BitMind' && analysis.label === 'Suspicious' && (
+            {isExternalVerificationProvider(analysis.provider) && analysis.label === 'Suspicious' && (
               <WarningPanel message={t('analysis.suspiciousWarning')} />
             )}
             <WarningPanel message={t('analysis.proofWarning')} subtle />
@@ -137,19 +137,19 @@ export function AnalysisResultPage() {
             <div className="card-header compact">
               <div>
                 <h2>{t('analysis.detectionSource')}</h2>
-                <p>{formatWords(analysis.finalDecisionSource ?? analysis.provider ?? 'Local')}</p>
+                <p>{formatProviderDisplay(analysis.finalDecisionSource ?? analysis.provider, t)}</p>
               </div>
             </div>
             <div className="detector-breakdown">
               <div className="detector-card">
                 <span>{t('analysis.finalSource')}</span>
-                <strong>{formatWords(analysis.finalDecisionSource ?? 'Local')}</strong>
-                <small>{t('analysis.mode', { mode: formatWords(analysis.providerMode ?? 'local') })}</small>
-                <small>{t('analysis.provider', { provider: analysis.provider ?? 'Local' })}</small>
+                <strong>{formatProviderDisplay(analysis.finalDecisionSource, t)}</strong>
+                <small>{t('analysis.mode', { mode: formatModeDisplay(analysis.providerMode, t) })}</small>
+                <small>{t('analysis.provider', { provider: formatProviderDisplay(analysis.provider, t) })}</small>
               </div>
               <div className="detector-card">
                 <span>{t('analysis.externalVerification')}</span>
-                <strong>{analysis.externalProviderName ?? t('analysis.notUsed')}</strong>
+                <strong>{analysis.externalProviderName ? formatProviderDisplay(analysis.externalProviderName, t) : t('analysis.notUsed')}</strong>
                 <small>{t('analysis.statusLine', { status: localizeStatusValue(analysis.externalProviderStatus, t) ?? t('analysis.skipped') })}</small>
                 {analysis.externalLabel && <small>{t('analysis.labelLine', { label: localizeLabel(analysis.externalLabel, t) })}</small>}
                 <small>{t('analysis.scoreLine', { score: isFiniteNumber(analysis.externalScore) ? `${formatPercent(analysis.externalScore * 100)}% ${t('analysis.aiSuffix')}` : t('analysis.scoreNotProvided') })}</small>
@@ -164,9 +164,9 @@ export function AnalysisResultPage() {
                 <div className="detector-card detector-card-combined">
                   <span>{t('analysis.hybridBreakdown')}</span>
                   <strong>{formatWords(analysis.label)}</strong>
-                  {analysis.localAnalysisSummary && <small>{analysis.localAnalysisSummary}</small>}
-                  {analysis.externalAnalysisSummary && <small>{analysis.externalAnalysisSummary}</small>}
-                  {analysis.hybridDecisionSummary && <small>{analysis.hybridDecisionSummary}</small>}
+                  {analysis.localAnalysisSummary && <small>{localizeKnownMessage(analysis.localAnalysisSummary, t)}</small>}
+                  {analysis.externalAnalysisSummary && <small>{localizeKnownMessage(analysis.externalAnalysisSummary, t)}</small>}
+                  {analysis.hybridDecisionSummary && <small>{localizeKnownMessage(analysis.hybridDecisionSummary, t)}</small>}
                 </div>
               )}
             </div>
@@ -620,19 +620,22 @@ function localizeKnownMessage(message: string, t: ReturnType<typeof useLanguage>
 
   const sentences = trimmed.match(/[^.!?]+[.!?]+|[^.!?]+$/g)
   if (!sentences || sentences.length <= 1) {
-    return message
+    return sanitizeDisplayMessage(message)
   }
 
   return sentences
     .map((sentence) => {
       const cleanSentence = sentence.trim()
-      return localizeKnownSentence(cleanSentence, t) ?? cleanSentence
+      return localizeKnownSentence(cleanSentence, t) ?? sanitizeDisplayMessage(cleanSentence)
     })
     .join(' ')
 }
 
 function localizeKnownSentence(message: string, t: ReturnType<typeof useLanguage>['t']) {
   const normalized = message.trim().toLowerCase()
+  if (normalized.includes('provider authentication failed')) {
+    return t('analysis.fallbackWarning')
+  }
   if (normalized === 'this video may be processed by an external ai detection provider for analysis.') {
     return t('analysis.externalProviderNotice')
   }
@@ -687,6 +690,12 @@ function localizeKnownSentence(message: string, t: ReturnType<typeof useLanguage
   if (normalized.includes('local and bitmind providers disagree')) {
     return t('analysis.disagreementWarning')
   }
+  if (normalized.includes('bitmind detected ai-like signals')) {
+    return t('analysis.suspiciousWarning')
+  }
+  if (normalized.includes('compressed analysis copy') && normalized.includes('bitmind')) {
+    return t('analysis.compressedCopy')
+  }
   if (
     normalized.includes('calibration report has too few samples') ||
     normalized.includes('detector was down-weighted by calibration reliability checks')
@@ -740,7 +749,50 @@ function formatPercent(value: number) {
 }
 
 function formatWords(value?: string) {
-  return (value || 'Unknown').replace(/_/g, ' ')
+  return sanitizeDisplayMessage(value || 'Unknown').replace(/_/g, ' ')
+}
+
+function isExternalVerificationProvider(value?: string) {
+  return (value ?? '').toLowerCase().includes('bitmind')
+}
+
+function formatProviderDisplay(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  if (!value) {
+    return t('analysis.internalVerification')
+  }
+
+  const normalized = value.toLowerCase().replace(/\s+/g, '')
+  if (normalized.includes('bitmind') || normalized.includes('externalprovider')) {
+    return t('analysis.externalVerification')
+  }
+  if (normalized === 'fallbacklocal' || normalized === 'local') {
+    return t('analysis.internalVerification')
+  }
+  return formatWords(value)
+}
+
+function formatModeDisplay(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = (value ?? 'local').toLowerCase()
+  if (normalized === 'bitmind') {
+    return t('analysis.externalVerification')
+  }
+  if (normalized === 'hybrid') {
+    return t('analysis.hybridBreakdown')
+  }
+  if (normalized === 'local') {
+    return t('analysis.internalVerification')
+  }
+  return formatWords(value)
+}
+
+function formatModelDisplay(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  if (!value) {
+    return t('analysis.unknownModel')
+  }
+
+  return value.toLowerCase().includes('bitmind')
+    ? t('analysis.externalVerificationModel')
+    : value
 }
 
 function formatSafeFallbackReason(reason?: string) {
@@ -752,4 +804,12 @@ function formatSafeFallbackReason(reason?: string) {
   return technicalPattern.test(reason)
     ? 'external provider unavailable'
     : reason
+}
+
+function sanitizeDisplayMessage(value: string) {
+  return value
+    .replace(/bitmind-oracle-v1-sn34/gi, 'external-verification-model')
+    .replace(/bitmind-subnet-34/gi, 'external-verification-model')
+    .replace(/External\s+BitMind\s+verification/gi, 'External verification')
+    .replace(/BitMind/gi, 'external verification')
 }
