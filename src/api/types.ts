@@ -62,6 +62,12 @@ export type JobStatus = {
   status: string
   progress: number
   currentStep?: string
+  scanMode?: string
+  completedSegments?: number
+  totalSegments?: number
+  analyzedCoverageSeconds?: number | null
+  totalDurationSeconds?: number | null
+  lastActivityAt?: string | null
   errorMessage?: string
   errorCode?: string
   userMessage?: string

@@ -14,7 +14,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function loadCurrentUser() {
       if (!authStorage.getAccessToken()) {
-        setIsLoading(false)
+        try {
+          const refreshResponse = await apiClient.post<ApiResponse<AuthResponse>>('/api/auth/refresh', {})
+          if (!cancelled && refreshResponse.data.success && refreshResponse.data.data) {
+            authStorage.setSession(refreshResponse.data.data)
+            setUser(refreshResponse.data.data.user)
+          }
+        } catch {
+          authStorage.clear()
+          if (!cancelled) {
+            setUser(null)
+          }
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false)
+          }
+        }
         return
       }
 
@@ -75,11 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const logout = useCallback(async () => {
-    const refreshToken = authStorage.getRefreshToken()
     try {
-      if (refreshToken) {
-        await apiClient.post('/api/auth/logout', { refreshToken })
-      }
+      await apiClient.post('/api/auth/logout', {})
     } finally {
       authStorage.clear()
       setUser(null)

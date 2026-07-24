@@ -65,6 +65,8 @@ describe('ProcessingStatusPage', () => {
 
     expect(await screen.findAllByText("We couldn't complete the analysis.")).toHaveLength(2)
     expect(screen.getByText('The external analysis service is temporarily unavailable. Please try again later.')).toBeInTheDocument()
+    expect(screen.getByText('Failed: External verification failed')).toBeInTheDocument()
+    expect(screen.queryByText(/BitMind/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/HTTP 401/i)).not.toBeInTheDocument()
 
     const retryButton = screen.getByRole('button', { name: /retry analysis/i })
