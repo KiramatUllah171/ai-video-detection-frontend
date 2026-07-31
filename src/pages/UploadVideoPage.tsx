@@ -29,9 +29,13 @@ export function UploadVideoPage() {
   const [isDragging, setIsDragging] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [uploading, setUploading] = useState(false)
+  const [isStartingAnalysis, setIsStartingAnalysis] = useState(false)
 
   function selectFile(nextFile?: File) {
+    if (isStartingAnalysis) {
+      return
+    }
+
     if (nextFile) {
       if (nextFile.size > maxUploadSizeBytes) {
         setFile(null)
@@ -50,6 +54,10 @@ export function UploadVideoPage() {
   }
 
   function removeFile() {
+    if (isStartingAnalysis) {
+      return
+    }
+
     setFile(null)
     setProgress(0)
     if (inputRef.current) {
@@ -58,7 +66,7 @@ export function UploadVideoPage() {
   }
 
   async function handleUpload() {
-    if (!file || !consentAccepted || !auth.isAuthenticated) {
+    if (!file || !consentAccepted || !auth.isAuthenticated || isStartingAnalysis) {
       return
     }
 
@@ -70,7 +78,7 @@ export function UploadVideoPage() {
       formData.append('notes', notes.trim())
     }
 
-    setUploading(true)
+    setIsStartingAnalysis(true)
     setError(null)
     try {
       const response = await apiClient.post<ApiResponse<UploadVideoResponse>>('/api/videos/upload', formData, {
@@ -91,8 +99,7 @@ export function UploadVideoPage() {
       })
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, t))
-    } finally {
-      setUploading(false)
+      setIsStartingAnalysis(false)
     }
   }
 
@@ -110,17 +117,27 @@ export function UploadVideoPage() {
             className={`upload-dropzone ${isDragging ? 'active' : ''}`}
             role="button"
             tabIndex={0}
+            aria-disabled={isStartingAnalysis}
             onDragOver={(event) => {
               event.preventDefault()
+              if (isStartingAnalysis) {
+                return
+              }
               setIsDragging(true)
             }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={(event) => {
               event.preventDefault()
               setIsDragging(false)
+              if (isStartingAnalysis) {
+                return
+              }
               selectFile(event.dataTransfer.files[0])
             }}
             onKeyDown={(event) => {
+              if (isStartingAnalysis) {
+                return
+              }
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
                 inputRef.current?.click()
@@ -132,7 +149,16 @@ export function UploadVideoPage() {
             </span>
             <h2>{t('upload.dropTitle')}</h2>
             <p>{t('upload.dropSubtitle')}</p>
-            <AppButton type="button" variant="outline" onClick={() => inputRef.current?.click()}>
+            <AppButton
+              type="button"
+              variant="outline"
+              disabled={isStartingAnalysis}
+              onClick={() => {
+                if (!isStartingAnalysis) {
+                  inputRef.current?.click()
+                }
+              }}
+            >
               {t('upload.browse')}
             </AppButton>
             <input
@@ -140,6 +166,7 @@ export function UploadVideoPage() {
               type="file"
               accept=".mp4,.mov,.avi,.mkv,.webm,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm"
               hidden
+              disabled={isStartingAnalysis}
               onChange={(event) => selectFile(event.target.files?.[0])}
             />
             <div className="format-chips" aria-label={t('upload.supportedFormats')}>
@@ -159,7 +186,14 @@ export function UploadVideoPage() {
                 <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                 <span>{file.type || t('upload.unknownType')} | {file.name.split('.').pop()?.toUpperCase()}</span>
               </div>
-              <button type="button" className="icon-button" onClick={removeFile} aria-label={t('upload.removeFile')}>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={removeFile}
+                disabled={isStartingAnalysis}
+                aria-disabled={isStartingAnalysis}
+                aria-label={isStartingAnalysis ? t('upload.removeFileDisabled') : t('upload.removeFile')}
+              >
                 <XIcon />
               </button>
             </div>
@@ -216,7 +250,7 @@ export function UploadVideoPage() {
             </span>
             <strong>{t('upload.consent')}</strong>
           </label>
-          {uploading && (
+          {isStartingAnalysis && (
             <div className="upload-progress">
               <div>
                 <strong>{t('upload.uploading')}</strong>
@@ -228,12 +262,12 @@ export function UploadVideoPage() {
           <AppButton
             type="button"
             fullWidth
-            loading={uploading}
-            disabled={!file || !consentAccepted || !auth.isAuthenticated}
+            loading={isStartingAnalysis}
+            disabled={!file || !consentAccepted || !auth.isAuthenticated || isStartingAnalysis}
             onClick={handleUpload}
             icon={<UploadIcon />}
           >
-            {t('dashboard.startAnalysis')}
+            {isStartingAnalysis ? t('upload.startingAnalysis') : t('dashboard.startAnalysis')}
           </AppButton>
         </AppCard>
       </div>

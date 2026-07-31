@@ -165,3 +165,23 @@ export function XIcon(props: IconProps) {
     </IconBase>
   )
 }
+
+export function EyeIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </IconBase>
+  )
+}
+
+export function EyeOffIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m3 3 18 18" />
+      <path d="M10.58 10.58A2 2 0 0 0 12 14a2 2 0 0 0 1.42-.58" />
+      <path d="M9.88 5.18A9.7 9.7 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.62 3.48" />
+      <path d="M6.61 6.61C3.86 8.46 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.39-1.61" />
+    </IconBase>
+  )
+}
