@@ -40,6 +40,8 @@ export type VideoHistoryItem = {
   latestJobId?: number
   latestJobStatus?: string
   latestJobProgress?: number
+  latestJobUpdatedAt?: string | null
+  canRetry?: boolean
   currentStep?: string
 }
 
@@ -59,9 +61,11 @@ export type UploadVideoResponse = {
 export type JobStatus = {
   jobId: number
   videoId: number
+  originalName?: string
   status: string
   progress: number
   currentStep?: string
+  lastCheckpoint?: string
   scanMode?: string
   completedSegments?: number
   totalSegments?: number

@@ -11,9 +11,11 @@ export function ProgressBar({ value = 0, status, showLabel = true }: ProgressBar
     ? 'danger'
     : normalized === 'completed'
       ? 'success'
-      : normalized === 'queued' || normalized === 'retrying'
+      : normalized === 'queued' || normalized === 'retrying' || normalized === 'resumerequested'
         ? 'queued'
-        : 'info'
+        : normalized === 'paused' || normalized === 'pauserequested'
+          ? 'paused'
+          : 'info'
 
   return (
     <div className="progress-wrap" aria-label={`Progress ${safeValue}%`}>

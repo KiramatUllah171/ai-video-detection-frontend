@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiClient, retryAnalysis } from '../api/client'
+import { apiClient, cancelAnalysis, pauseAnalysis, reanalyzeVideo, resumeAnalysis, retryAnalysis } from '../api/client'
 import { LanguageProvider } from '../i18n/LanguageContext'
 import { ProcessingStatusPage } from './ProcessingStatusPage'
 
@@ -15,7 +15,11 @@ vi.mock('../api/client', async () => {
     apiClient: {
       get: vi.fn(),
     },
+    cancelAnalysis: vi.fn(),
     getAnalysisResult: vi.fn(),
+    pauseAnalysis: vi.fn(),
+    reanalyzeVideo: vi.fn(),
+    resumeAnalysis: vi.fn(),
     retryAnalysis: vi.fn(),
   }
 })
@@ -63,7 +67,7 @@ describe('ProcessingStatusPage', () => {
 
     renderWithProviders(<ProcessingStatusPage />)
 
-    expect(await screen.findAllByText("We couldn't complete the analysis.")).toHaveLength(2)
+    expect(await screen.findAllByText("We couldn't complete the analysis.")).toHaveLength(3)
     expect(screen.getByText('The external analysis service is temporarily unavailable. Please try again later.')).toBeInTheDocument()
     expect(screen.getByText('Failed: External verification failed')).toBeInTheDocument()
     expect(screen.queryByText(/BitMind/i)).not.toBeInTheDocument()
@@ -76,7 +80,283 @@ describe('ProcessingStatusPage', () => {
     await waitFor(() => expect(retryAnalysis).toHaveBeenCalledTimes(1))
     expect(retryAnalysis).toHaveBeenCalledWith('10')
   })
+
+  it('shows cancelled-specific content and can start analysis again', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        success: true,
+        message: '',
+        errors: [],
+        data: {
+          jobId: 20,
+          videoId: 10,
+          originalName: 'very-long-uploaded-file-name-for-review.mp4',
+          status: 'Cancelled',
+          progress: 66,
+          currentStep: 'Analysis cancelled',
+          scanMode: 'Detailed',
+          completedSegments: 5,
+          totalSegments: 8,
+          retryCount: 0,
+          maxRetryCount: 3,
+          createdAt: '2026-07-17T10:00:00Z',
+          lastUpdatedAt: '2026-07-17T10:01:00Z',
+        },
+      },
+    })
+    let resolveReanalysis: ((value: Awaited<ReturnType<typeof reanalyzeVideo>>) => void) | undefined
+    vi.mocked(reanalyzeVideo).mockReturnValue(new Promise((resolve) => {
+      resolveReanalysis = resolve
+    }))
+
+    renderWithProviders(<ProcessingStatusPage />)
+
+    expect(await screen.findAllByText('Analysis cancelled')).toHaveLength(4)
+    expect(screen.getByText('Processing was stopped. Your uploaded video is still available. Use Start analysis again to run a new analysis on the same file.')).toBeInTheDocument()
+    expect(screen.getByText('Processing stopped after 5 of 8 parts.')).toBeInTheDocument()
+    expect(screen.getByText('very-long-uploaded-file-name-for-review.mp4')).toBeInTheDocument()
+    expect(screen.getByText('Detailed Scan')).toBeInTheDocument()
+    expect(screen.queryByText('Your video is uploaded and queued.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Analyzing different parts - 5 of 8')).not.toBeInTheDocument()
+    expect(screen.queryByText(['Job', 'ID'].join(' '))).not.toBeInTheDocument()
+    expect(screen.queryByText(['Video', 'ID'].join(' '))).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /cancel analysis/i })).not.toBeInTheDocument()
+
+    const startAgainButton = screen.getByRole('button', { name: /start analysis again/i })
+    await userEvent.click(startAgainButton)
+    await userEvent.click(startAgainButton)
+
+    await waitFor(() => expect(reanalyzeVideo).toHaveBeenCalledTimes(1))
+    expect(reanalyzeVideo).toHaveBeenCalledWith('10')
+    expect(screen.getByRole('button', { name: /starting analysis/i })).toBeDisabled()
+    resolveReanalysis?.({
+      videoId: 10,
+      jobId: 21,
+      status: 'Queued',
+      jobStatus: 'Queued',
+      originalName: 'very-long-uploaded-file-name-for-review.mp4',
+      fileSize: 100,
+      contentType: 'video/mp4',
+      retryCount: 0,
+      maxRetryCount: 3,
+      message: 'Video queued for reanalysis.',
+    })
+  })
+
+  it('uses the application modal for cancellation and disables duplicate requests', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm')
+    let resolveCancellation: ((value: Awaited<ReturnType<typeof cancelAnalysis>>) => void) | undefined
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        success: true,
+        message: '',
+        errors: [],
+        data: {
+          jobId: 20,
+          videoId: 10,
+          originalName: 'sample.mp4',
+          status: 'Processing',
+          progress: 42,
+          currentStep: 'Analyzing video',
+          scanMode: 'Basic',
+          completedSegments: 2,
+          totalSegments: 8,
+          retryCount: 0,
+          maxRetryCount: 3,
+          createdAt: '2026-07-17T10:00:00Z',
+          lastUpdatedAt: '2026-07-17T10:01:00Z',
+        },
+      },
+    })
+    vi.mocked(cancelAnalysis).mockReturnValue(new Promise((resolve) => {
+      resolveCancellation = resolve
+    }))
+
+    renderWithProviders(<ProcessingStatusPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /cancel analysis/i }))
+
+    expect(screen.getByRole('dialog', { name: 'Cancel analysis?' })).toBeInTheDocument()
+    expect(screen.getByText(/Processing will stop, but your uploaded video will remain available/)).toBeInTheDocument()
+    expect(confirmSpy).not.toHaveBeenCalled()
+
+    const keepAnalyzingButton = screen.getByRole('button', { name: /keep analyzing/i })
+    const cancelButtons = screen.getAllByRole('button', { name: /cancel analysis/i })
+    const destructiveButton = cancelButtons[cancelButtons.length - 1]
+    await userEvent.click(destructiveButton)
+
+    expect(cancelAnalysis).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: /cancelling/i })).toBeDisabled()
+    expect(keepAnalyzingButton).toBeDisabled()
+
+    resolveCancellation?.({
+      jobId: 20,
+      videoId: 10,
+      originalName: 'sample.mp4',
+      status: 'CancelRequested',
+      progress: 42,
+      currentStep: 'Cancelling analysis',
+      scanMode: 'Basic',
+      completedSegments: 2,
+      totalSegments: 8,
+      retryCount: 0,
+      maxRetryCount: 3,
+      createdAt: '2026-07-17T10:00:00Z',
+      lastUpdatedAt: '2026-07-17T10:02:00Z',
+    })
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    confirmSpy.mockRestore()
+  })
+
+  it('uses the pause modal and shows pausing state without native confirmation', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm')
+    let resolvePause: ((value: Awaited<ReturnType<typeof pauseAnalysis>>) => void) | undefined
+    mockStatus({
+      status: 'Processing',
+      progress: 42,
+      currentStep: 'Analyzing video',
+      completedSegments: 2,
+      totalSegments: 8,
+    })
+    vi.mocked(pauseAnalysis).mockReturnValue(new Promise((resolve) => {
+      resolvePause = resolve
+    }))
+
+    renderWithProviders(<ProcessingStatusPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /pause analysis/i }))
+
+    expect(screen.getByRole('dialog', { name: 'Pause analysis?' })).toBeInTheDocument()
+    expect(screen.getByText(/Processing will stop at the next safe checkpoint/)).toBeInTheDocument()
+    expect(confirmSpy).not.toHaveBeenCalled()
+
+    const keepAnalyzingButton = screen.getByRole('button', { name: /keep analyzing/i })
+    const pauseButtons = screen.getAllByRole('button', { name: /pause analysis/i })
+    await userEvent.click(pauseButtons[pauseButtons.length - 1])
+
+    expect(pauseAnalysis).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByRole('button', { name: /pausing/i }).every((button) => button.hasAttribute('disabled'))).toBe(true)
+    expect(keepAnalyzingButton).toBeDisabled()
+
+    resolvePause?.(buildStatus({ status: 'PauseRequested', currentStep: 'Pausing analysis' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    confirmSpy.mockRestore()
+  })
+
+  it('shows paused content and resumes without confirmation', async () => {
+    mockStatus({
+      status: 'Paused',
+      progress: 66,
+      currentStep: 'Paused during detailed scan',
+      scanMode: 'Detailed',
+      completedSegments: 5,
+      totalSegments: 8,
+    })
+    vi.mocked(resumeAnalysis).mockResolvedValue(buildStatus({
+      status: 'ResumeRequested',
+      progress: 66,
+      currentStep: 'Resuming analysis',
+      scanMode: 'Detailed',
+      completedSegments: 5,
+      totalSegments: 8,
+    }))
+
+    renderWithProviders(<ProcessingStatusPage />)
+
+    expect(await screen.findAllByText('Analysis paused')).toHaveLength(3)
+    expect(screen.getByText('Processing is paused. Your uploaded video and completed analysis progress have been preserved.')).toBeInTheDocument()
+    expect(screen.getByText('Analysis paused after 5 of 8 parts.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pause analysis/i })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /resume analysis/i }))
+
+    expect(resumeAnalysis).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('renders status-aware pause and resume actions', async () => {
+    const states = [
+      ['PauseRequested', /pausing/i, /cancel analysis/i],
+      ['ResumeRequested', /resuming/i, /cancel analysis/i],
+      ['Completed', null, null],
+      ['Failed', null, null],
+      ['Cancelled', null, null],
+    ] as const
+
+    for (const [status, expectedAction, expectedCancel] of states) {
+      vi.clearAllMocks()
+      mockStatus({ status, progress: 50, currentStep: status })
+      const { unmount } = renderWithProviders(<ProcessingStatusPage />)
+      await screen.findAllByText(status === 'PauseRequested' ? 'Pausing' : status === 'ResumeRequested' ? 'Resuming' : new RegExp(status, 'i'))
+
+      if (expectedAction) {
+        expect(screen.getByRole('button', { name: expectedAction })).toBeDisabled()
+      } else {
+        expect(screen.queryByRole('button', { name: /pause analysis|resume analysis/i })).not.toBeInTheDocument()
+      }
+
+      if (expectedCancel) {
+        expect(screen.getByRole('button', { name: expectedCancel })).toBeInTheDocument()
+      } else {
+        expect(screen.queryByRole('button', { name: /cancel analysis/i })).not.toBeInTheDocument()
+      }
+
+      unmount()
+    }
+  })
+
+  it('shows application errors for failed pause and resume requests', async () => {
+    mockStatus({ status: 'Processing', progress: 30, currentStep: 'Analyzing video' })
+    vi.mocked(pauseAnalysis).mockRejectedValue(new Error('This analysis cannot be paused in its current state.'))
+
+    const { unmount } = renderWithProviders(<ProcessingStatusPage />)
+    await userEvent.click(await screen.findByRole('button', { name: /pause analysis/i }))
+    const pauseButtons = screen.getAllByRole('button', { name: /pause analysis/i })
+    await userEvent.click(pauseButtons[pauseButtons.length - 1])
+
+    expect(await screen.findAllByText('This analysis cannot be paused in its current state.')).toHaveLength(2)
+    unmount()
+
+    vi.clearAllMocks()
+    mockStatus({ status: 'Paused', progress: 30, currentStep: 'Paused during smart scan' })
+    vi.mocked(resumeAnalysis).mockRejectedValue(new Error('The analysis was cancelled before it could be resumed.'))
+    renderWithProviders(<ProcessingStatusPage />)
+    await userEvent.click(await screen.findByRole('button', { name: /resume analysis/i }))
+
+    expect(await screen.findByText('The analysis was cancelled before it could be resumed.')).toBeInTheDocument()
+  })
 })
+
+function buildStatus(overrides: Partial<Awaited<ReturnType<typeof pauseAnalysis>>> = {}) {
+  return {
+    jobId: 20,
+    videoId: 10,
+    originalName: 'sample.mp4',
+    status: 'Processing',
+    progress: 42,
+    currentStep: 'Analyzing video',
+    scanMode: 'Basic',
+    completedSegments: 2,
+    totalSegments: 8,
+    retryCount: 0,
+    maxRetryCount: 3,
+    createdAt: '2026-07-17T10:00:00Z',
+    lastUpdatedAt: '2026-07-17T10:01:00Z',
+    ...overrides,
+  }
+}
+
+function mockStatus(overrides: Partial<ReturnType<typeof buildStatus>> = {}) {
+  vi.mocked(apiClient.get).mockResolvedValue({
+    data: {
+      success: true,
+      message: '',
+      errors: [],
+      data: buildStatus(overrides),
+    },
+  })
+}
 
 function renderWithProviders(ui: ReactElement) {
   const queryClient = new QueryClient({

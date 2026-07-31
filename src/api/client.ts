@@ -125,8 +125,32 @@ export async function retryAnalysis(videoId: string | number) {
   return response.data.data
 }
 
+export async function reanalyzeVideo(videoId: string | number) {
+  const response = await apiClient.post<ApiResponse<UploadVideoResponse>>(`/api/videos/${videoId}/reanalyze`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data.data
+}
+
 export async function cancelAnalysis(videoId: string | number) {
   const response = await apiClient.post<ApiResponse<JobStatus>>(`/api/videos/${videoId}/cancel-analysis`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data.data
+}
+
+export async function pauseAnalysis(videoId: string | number) {
+  const response = await apiClient.post<ApiResponse<JobStatus>>(`/api/videos/${videoId}/pause-analysis`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data.data
+}
+
+export async function resumeAnalysis(videoId: string | number) {
+  const response = await apiClient.post<ApiResponse<JobStatus>>(`/api/videos/${videoId}/resume-analysis`)
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.errors?.[0] ?? response.data.message)
   }
@@ -147,4 +171,40 @@ export async function getVideoMetadata(videoId: string | number) {
     return undefined
   }
   return response.data.data
+}
+
+export async function requestPasswordReset(email: string) {
+  const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/forgot-password', { email })
+  if (!response.data.success) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data
+}
+
+export async function resetPassword(token: string, password: string, confirmPassword: string) {
+  const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/reset-password', {
+    token,
+    password,
+    confirmPassword,
+  })
+  if (!response.data.success) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data
+}
+
+export async function confirmEmail(token: string) {
+  const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/confirm-email', { token })
+  if (!response.data.success) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data
+}
+
+export async function resendEmailConfirmation(email: string) {
+  const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/resend-confirmation-email', { email })
+  if (!response.data.success) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data
 }
