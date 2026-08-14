@@ -15,9 +15,11 @@ import { ProgressBar } from '../components/ui/ProgressBar'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon, AlertCircleIcon, CheckCircleIcon, ClockIcon, FileVideoIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
+import { fromVideoRouteId, toVideoRouteId } from '../routes/videoRouteId'
 
 export function ProcessingStatusPage() {
-  const { videoId } = useParams()
+  const { videoId: routeVideoId } = useParams()
+  const videoId = fromVideoRouteId(routeVideoId)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useLanguage()
@@ -167,7 +169,7 @@ export function ProcessingStatusPage() {
         try {
           await getAnalysisResult(videoId!)
           if (!cancelled) {
-            navigate(`/analysis/${videoId}`, { replace: true })
+            navigate(`/analysis/${toVideoRouteId(videoId)}`, { replace: true })
           }
           return
         } catch {
@@ -176,7 +178,7 @@ export function ProcessingStatusPage() {
       }
 
       if (!cancelled) {
-        navigate(`/analysis/${videoId}`, { replace: true })
+        navigate(`/analysis/${toVideoRouteId(videoId)}`, { replace: true })
       }
     }
 
@@ -373,7 +375,7 @@ export function ProcessingStatusPage() {
               </AppButton>
             )}
             {isCompleted && (
-              <Link className={buttonClassName('primary')} to={`/analysis/${status.videoId}`}>
+              <Link className={buttonClassName('primary')} to={`/analysis/${toVideoRouteId(status.videoId)}`}>
                 {t('processing.viewResult')}
               </Link>
             )}

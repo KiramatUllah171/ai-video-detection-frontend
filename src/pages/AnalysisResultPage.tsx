@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getAnalysisResult, getApiErrorMessage, getOriginMatches, getVideoMetadata } from '../api/client'
+import { downloadAnalysisReport, getAnalysisResult, getApiErrorMessage, getOriginMatches, getVideoMetadata } from '../api/client'
 import type { AnalysisResult, EvidenceItem, MetadataResult, SourceMatch } from '../api/types'
 import { AppCard } from '../components/ui/AppCard'
 import { buttonClassName } from '../components/ui/buttonStyles'
@@ -13,10 +13,15 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon, AlertCircleIcon, BarChartIcon, FileVideoIcon, ShieldIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
+import { fromVideoRouteId } from '../routes/videoRouteId'
 
 export function AnalysisResultPage() {
-  const { videoId } = useParams()
+  const { videoId: routeVideoId } = useParams()
+  const videoId = fromVideoRouteId(routeVideoId)
   const { t } = useLanguage()
+  const [showAdvancedDetails, setShowAdvancedDetails] = useState(false)
+  const [downloadError, setDownloadError] = useState('')
+  const [isDownloadingReport, setIsDownloadingReport] = useState(false)
   const analysisQuery = useQuery({
     queryKey: ['analysis-result', videoId],
     enabled: Boolean(videoId),
@@ -39,6 +44,31 @@ export function AnalysisResultPage() {
   const analysis = analysisQuery.data ? normalizeAnalysis(analysisQuery.data) : undefined
   const mode = getModelMode(analysis, t)
   const detectorBreakdown = analysis ? parseComponentScores(analysis.componentScoresJson) : undefined
+  const matches = matchesQuery.data ?? []
+
+  const handleDownloadReport = async () => {
+    if (!videoId || isDownloadingReport) {
+      return
+    }
+
+    setDownloadError('')
+    setIsDownloadingReport(true)
+    try {
+      const { blob, fileName } = await downloadAnalysisReport(videoId)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      setDownloadError(getApiErrorMessage(error, t))
+    } finally {
+      setIsDownloadingReport(false)
+    }
+  }
 
   return (
     <main className="page analysis-page">
@@ -46,11 +76,22 @@ export function AnalysisResultPage() {
         eyebrow={t('analysis.eyebrow')}
         title={t('analysis.title')}
         subtitle={t('analysis.subtitle')}
-        action={<Link className={buttonClassName('outline')} to="/dashboard">{t('analysis.backDashboard')}</Link>}
+        action={(
+          <div className="analysis-header-actions">
+            {analysis && (
+              <button type="button" className={buttonClassName('primary')} onClick={handleDownloadReport} disabled={isDownloadingReport}>
+                <FileVideoIcon />
+                {isDownloadingReport ? t('analysis.downloadingReport') : t('analysis.downloadPdfReport')}
+              </button>
+            )}
+            <Link className={buttonClassName('outline')} to="/dashboard">{t('analysis.backDashboard')}</Link>
+          </div>
+        )}
       />
 
       {analysisQuery.isLoading && <LoadingState text={t('analysis.loading')} />}
       {analysisQuery.error && <ErrorMessage message={getApiErrorMessage(analysisQuery.error, t)} />}
+      {downloadError && <ErrorMessage message={downloadError} />}
 
       {analysis && (
         <>
@@ -64,7 +105,7 @@ export function AnalysisResultPage() {
               <div className="analysis-meta">
                 <span>{mode}</span>
                 <strong>{formatModelDisplay(analysis.modelVersion, t)}</strong>
-                <small>{t('analysis.resultNumber', { id: analysis.aiResultId, date: dayjs(analysis.createdAt).format('MMM D, YYYY h:mm A') })}</small>
+                <small>{t('analysis.resultGeneratedAt', { date: dayjs(analysis.createdAt).format('MMM D, YYYY h:mm A') })}</small>
               </div>
             </div>
             {analysis.isMock && (
@@ -73,28 +114,28 @@ export function AnalysisResultPage() {
                 strong
               />
             )}
-            {analysis.modelCapability === 'frame_image' && (
+            {showAdvancedDetails && analysis.modelCapability === 'frame_image' && (
               <WarningPanel message={t('analysis.frameWarning')} />
             )}
-            {analysis.modelCapability === 'video_temporal' && analysis.confidence < 0.6 && (
+            {showAdvancedDetails && analysis.modelCapability === 'video_temporal' && analysis.confidence < 0.6 && (
               <WarningPanel message={t('analysis.lowConfidenceWarning')} />
             )}
-            {analysis.modelDisagreement && (
+            {showAdvancedDetails && analysis.modelDisagreement && (
               <WarningPanel message={t('analysis.disagreementWarning')} />
             )}
-            {analysis.strongFrameEvidence && (
+            {showAdvancedDetails && analysis.strongFrameEvidence && (
               <WarningPanel message={t('analysis.strongFrameWarning')} />
             )}
-            {analysis.modelDisagreement && detectorBreakdown?.video && detectorBreakdown?.frame && detectorBreakdown.video.ai_score < 0.5 && (detectorBreakdown.frame.raw_frame_ai_score ?? detectorBreakdown.frame.ai_score) >= 0.7 && (
+            {showAdvancedDetails && analysis.modelDisagreement && detectorBreakdown?.video && detectorBreakdown?.frame && detectorBreakdown.video.ai_score < 0.5 && (detectorBreakdown.frame.raw_frame_ai_score ?? detectorBreakdown.frame.ai_score) >= 0.7 && (
               <WarningPanel message={t('analysis.inconclusiveWarning')} />
             )}
-            {analysis.label === 'Inconclusive' && (
+            {showAdvancedDetails && analysis.label === 'Inconclusive' && (
               <WarningPanel message={t('analysis.inconclusiveWarning')} subtle />
             )}
-            {analysis.fallbackUsed && (
+            {showAdvancedDetails && analysis.fallbackUsed && (
               <WarningPanel message={t('analysis.fallbackWarning')} />
             )}
-            {isExternalVerificationProvider(analysis.provider) && analysis.label === 'Suspicious' && (
+            {showAdvancedDetails && isExternalVerificationProvider(analysis.provider) && analysis.label === 'Suspicious' && (
               <WarningPanel message={t('analysis.suspiciousWarning')} />
             )}
             <WarningPanel message={t('analysis.proofWarning')} subtle />
@@ -107,7 +148,16 @@ export function AnalysisResultPage() {
             <MetricCard label={t('analysis.finalScore')} value={`${formatPercent(analysis.finalScore * 100)}%`} icon={<BarChartIcon />} isMock={analysis.isMock} />
           </section>
 
-          {detectorBreakdown && (
+          <UserReportSummary analysis={analysis} matches={matches} matchesLoading={matchesQuery.isLoading} />
+
+          <section className="analysis-advanced-toggle">
+            <button type="button" className={`${buttonClassName('outline')} technical-details-pulse ${getTechnicalDetailsPulseClass(analysis)}`} onClick={() => setShowAdvancedDetails((current) => !current)}>
+              {showAdvancedDetails ? t('analysis.hideTechnicalDetails') : t('analysis.showTechnicalDetails')}
+            </button>
+            <p>{t('analysis.technicalDetailsHelper')}</p>
+          </section>
+
+          {showAdvancedDetails && detectorBreakdown && (
             <AppCard className="analysis-section">
               <div className="card-header compact">
                 <div>
@@ -133,6 +183,7 @@ export function AnalysisResultPage() {
             </AppCard>
           )}
 
+          {showAdvancedDetails && (
           <AppCard className="analysis-section">
             <div className="card-header compact">
               <div>
@@ -172,6 +223,7 @@ export function AnalysisResultPage() {
             </div>
             {analysis.fallbackUsed && <WarningPanel message={t('analysis.fallbackUsed', { reason: formatSafeFallbackReason(analysis.fallbackReason) })} subtle />}
           </AppCard>
+          )}
 
           <AppCard className={`analysis-section ${analysis.label === 'Inconclusive' ? 'analysis-section-neutral' : ''}`}>
             <div className="card-header compact">
@@ -183,6 +235,7 @@ export function AnalysisResultPage() {
             <ProbabilityBalance analysis={analysis} />
           </AppCard>
 
+          {showAdvancedDetails && (
           <section className="content-grid">
             <AppCard className="analysis-section span-8">
               <div className="card-header compact">
@@ -207,7 +260,9 @@ export function AnalysisResultPage() {
               <MetadataSummary metadata={metadataQuery.data} />
             </AppCard>
           </section>
+          )}
 
+          {showAdvancedDetails && (
           <AppCard className="analysis-section">
             <div className="card-header compact">
               <div>
@@ -217,7 +272,9 @@ export function AnalysisResultPage() {
             </div>
             <EvidenceGroups evidence={analysis.evidenceItems} warnings={analysis.warnings} isMock={analysis.isMock} />
           </AppCard>
+          )}
 
+          {showAdvancedDetails && (
           <AppCard className="analysis-section">
             <div className="card-header compact">
               <div>
@@ -225,8 +282,9 @@ export function AnalysisResultPage() {
                 <p>{t('analysis.originSubtitle')}</p>
               </div>
             </div>
-            <OriginMatches matches={matchesQuery.data ?? []} loading={matchesQuery.isLoading} />
+            <OriginMatches matches={matches} loading={matchesQuery.isLoading} />
           </AppCard>
+          )}
         </>
       )}
     </main>
@@ -243,6 +301,68 @@ function MetricCard({ label, value, icon, isMock = false }: { label: string; val
       <strong>{value}</strong>
     </AppCard>
   )
+}
+
+function UserReportSummary({ analysis, matches, matchesLoading }: { analysis: AnalysisResult; matches: SourceMatch[]; matchesLoading: boolean }) {
+  const { t } = useLanguage()
+  const topMatch = matches[0]
+  const hasMatch = Boolean(topMatch)
+  const aiProbability = formatPercent(analysis.aiGeneratedProbability)
+  const realProbability = formatPercent(analysis.likelyRealProbability)
+  const confidence = formatPercent(analysis.confidencePercentage)
+
+  return (
+    <AppCard className="analysis-user-summary">
+      <div className="card-header compact">
+        <div>
+          <h2>{t('analysis.userSummaryTitle')}</h2>
+          <p>{t('analysis.userSummarySubtitle')}</p>
+        </div>
+      </div>
+      <div className="user-summary-grid">
+        <div className="user-summary-verdict">
+          <span>{t('analysis.finalVerdict')}</span>
+          <strong>{localizeLabel(analysis.label, t)}</strong>
+          <p>{getPlainResultExplanation(analysis, t)}</p>
+        </div>
+        <div className="user-summary-list">
+          <SummaryPoint
+            title={t('analysis.aiChanceTitle')}
+            text={t('analysis.aiChanceText', { ai: aiProbability, real: realProbability })}
+          />
+          <SummaryPoint
+            title={t('analysis.confidenceTitle')}
+            text={getConfidenceExplanation(analysis, confidence, t)}
+          />
+          <SummaryPoint
+            title={t('analysis.originSimpleTitle')}
+            text={matchesLoading ? t('analysis.originCheckingSimple') : getOriginExplanation(topMatch, t)}
+          />
+        </div>
+      </div>
+      <div className="analysis-next-step">
+        <strong>{t('analysis.recommendedAction')}</strong>
+        <p>{getRecommendedAction(analysis, hasMatch, t)}</p>
+      </div>
+    </AppCard>
+  )
+}
+
+function SummaryPoint({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="summary-point">
+      <strong>{title}</strong>
+      <p>{text}</p>
+    </div>
+  )
+}
+
+function getTechnicalDetailsPulseClass(analysis: AnalysisResult) {
+  if (analysis.aiGeneratedProbability > analysis.likelyRealProbability) {
+    return 'technical-details-pulse-ai'
+  }
+
+  return 'technical-details-pulse-real'
 }
 
 function ProbabilityBalance({ analysis }: { analysis: AnalysisResult }) {
@@ -464,6 +584,64 @@ function localizeConfidence(confidence: string | undefined, t: ReturnType<typeof
   if (normalized === 'medium') return t('status.medium')
   if (normalized === 'low') return t('status.low')
   return confidence ?? t('analysis.unknown')
+}
+
+function getPlainResultExplanation(analysis: AnalysisResult, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = (analysis.label ?? '').toLowerCase().replace(/\s+/g, '')
+  if (analysis.isMock) {
+    return t('analysis.simpleMockExplanation')
+  }
+  if (normalized === 'likelyreal') {
+    return t('analysis.simpleLikelyRealExplanation')
+  }
+  if (normalized === 'likelyaigenerated') {
+    return t('analysis.simpleLikelyAiExplanation')
+  }
+  if (normalized === 'suspicious') {
+    return t('analysis.simpleSuspiciousExplanation')
+  }
+  return t('analysis.simpleInconclusiveExplanation')
+}
+
+function getConfidenceExplanation(analysis: AnalysisResult, confidence: string, t: ReturnType<typeof useLanguage>['t']) {
+  if (analysis.confidencePercentage >= 75) {
+    return t('analysis.confidenceHighSimple', { confidence })
+  }
+  if (analysis.confidencePercentage >= 45) {
+    return t('analysis.confidenceMediumSimple', { confidence })
+  }
+  return t('analysis.confidenceLowSimple', { confidence })
+}
+
+function getOriginExplanation(match: SourceMatch | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  if (!match) {
+    return t('analysis.originNoMatchSimple')
+  }
+
+  return t('analysis.originMatchSimple', {
+    similarity: formatPercent(match.similarityScore * 100),
+    confidence: localizeConfidence(match.confidence, t),
+  })
+}
+
+function getRecommendedAction(analysis: AnalysisResult, hasMatch: boolean, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = (analysis.label ?? '').toLowerCase().replace(/\s+/g, '')
+  if (analysis.isMock) {
+    return t('analysis.actionMock')
+  }
+  if (normalized === 'likelyreal' && !hasMatch) {
+    return t('analysis.actionLikelyReal')
+  }
+  if (normalized === 'likelyreal' && hasMatch) {
+    return t('analysis.actionLikelyRealWithMatch')
+  }
+  if (normalized === 'likelyaigenerated') {
+    return t('analysis.actionLikelyAi')
+  }
+  if (normalized === 'suspicious') {
+    return t('analysis.actionSuspicious')
+  }
+  return t('analysis.actionInconclusive')
 }
 
 function normalizeAnalysis(analysis: AnalysisResult): AnalysisResult {

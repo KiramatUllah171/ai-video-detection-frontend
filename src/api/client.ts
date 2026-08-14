@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import type { AnalysisResult, ApiResponse, AuthResponse, JobStatus, MetadataResult, SourceMatch, UploadVideoResponse } from './types'
 import { authStorage } from '../auth/authStorage'
+import { isStrongPasswordErrorMessage } from '../auth/passwordPolicy'
 
 const env = import.meta.env as Record<string, string | undefined>
 const baseURL =
@@ -14,6 +15,11 @@ export const apiClient = axios.create({
 })
 
 apiClient.interceptors.request.use((config) => {
+  if (authStorage.isSessionExpired()) {
+    authStorage.clear()
+    return config
+  }
+
   const token = authStorage.getAccessToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -28,6 +34,11 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config
 
     if (error.response?.status === 401 && originalRequest && !originalRequest.headers?.['x-refresh-attempted']) {
+      if (authStorage.isSessionExpired()) {
+        authStorage.clear()
+        return Promise.reject(error)
+      }
+
       try {
         originalRequest.headers = originalRequest.headers ?? {}
         originalRequest.headers['x-refresh-attempted'] = 'true'
@@ -78,6 +89,9 @@ function localizeApiError(message: string, t?: Translate) {
   const normalized = message.trim().toLowerCase()
   if (normalized.includes('email is already registered') || normalized.includes('email address is already registered')) {
     return t('signup.emailAlreadyRegistered')
+  }
+  if (isStrongPasswordErrorMessage(normalized)) {
+    return t('signup.strongPasswordRequirement')
   }
   if (normalized.includes('confirm your email address') || normalized.includes('email address has not been confirmed')) {
     return t('login.emailNotConfirmed')
@@ -174,6 +188,31 @@ export async function getVideoMetadata(videoId: string | number) {
     return undefined
   }
   return response.data.data
+}
+
+export async function downloadAnalysisReport(videoId: string | number) {
+  const response = await apiClient.get<Blob>(`/api/videos/${videoId}/report/pdf`, {
+    responseType: 'blob',
+  })
+
+  return {
+    blob: new Blob([response.data], { type: 'application/pdf' }),
+    fileName: getDownloadFileName(response.headers['content-disposition']),
+  }
+}
+
+function getDownloadFileName(contentDisposition?: string) {
+  if (!contentDisposition) {
+    return 'ai-video-detection-report.pdf'
+  }
+
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition)
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1].trim())
+  }
+
+  const filenameMatch = /filename="?([^";]+)"?/i.exec(contentDisposition)
+  return filenameMatch?.[1]?.trim() || 'ai-video-detection-report.pdf'
 }
 
 export async function requestPasswordReset(email: string) {

@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { checkPasswordReset, resetPassword } from '../api/client'
+import { isStrongPassword, isStrongPasswordErrorMessage } from '../auth/passwordPolicy'
 import { AppButton } from '../components/ui/AppButton'
 import { AlertCircleIcon, CheckCircleIcon, EyeIcon, EyeOffIcon } from '../components/ui/icons'
 import { AuthCard, AuthLayout } from '../layouts/AuthLayout'
@@ -80,6 +81,11 @@ export function ResetPasswordPage() {
       return
     }
 
+    if (!isStrongPassword(password)) {
+      setError(t('resetPassword.strongPasswordRequirement'))
+      return
+    }
+
     if (password !== confirmPassword) {
       setError(t('resetPassword.passwordMismatch'))
       return
@@ -155,7 +161,7 @@ export function ResetPasswordPage() {
                   placeholder={t('resetPassword.newPasswordPlaceholder')}
                   disabled={loading || success || tokenState !== 'ready'}
                   aria-invalid={Boolean(error)}
-                  aria-describedby={error ? 'reset-password-error' : undefined}
+                  aria-describedby={error ? 'reset-password-error reset-password-helper' : 'reset-password-helper'}
                 />
                 <button
                   type="button"
@@ -167,6 +173,7 @@ export function ResetPasswordPage() {
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
+              <span id="reset-password-helper" className="form-helper">{t('resetPassword.passwordHelper')}</span>
             </div>
             <div className="auth-field">
               <label className="form-label" htmlFor="reset-confirm-password">{t('resetPassword.confirmPassword')}</label>
@@ -208,6 +215,9 @@ function getResetErrorMessage(error: unknown, t: ReturnType<typeof useLanguage>[
   }
   if (message.includes('already been used') || message.includes('already used')) {
     return t('resetPassword.usedToken')
+  }
+  if (isStrongPasswordErrorMessage(message)) {
+    return t('resetPassword.strongPasswordRequirement')
   }
   if (message.includes('invalid') || message.includes('expired') || message.includes('token')) {
     return t('resetPassword.invalidToken')
