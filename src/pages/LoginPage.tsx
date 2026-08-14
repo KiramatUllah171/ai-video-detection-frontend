@@ -1,18 +1,25 @@
 import type { FormEvent } from 'react'
+import axios from 'axios'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import type { ApiResponse } from '../api/types'
 import { AppButton } from '../components/ui/AppButton'
 import { AlertCircleIcon, EyeIcon, EyeOffIcon } from '../components/ui/icons'
 import { AuthCard, AuthLayout } from '../layouts/AuthLayout'
 import { useLanguage } from '../i18n/LanguageContext'
+
+type LoginErrorState = {
+  message: string
+  field: 'email' | 'password' | 'form'
+}
 
 export function LoginPage() {
   const auth = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
   const location = useLocation()
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<LoginErrorState | null>(null)
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState(() => localStorage.getItem('ai-video-detection-last-email') ?? '')
   const [password, setPassword] = useState('')
@@ -41,7 +48,7 @@ export function LoginPage() {
       const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/dashboard'
       navigate(from, { replace: true })
     } catch (requestError) {
-      setError(getLoginErrorMessage(requestError, t))
+      setError(getLoginError(requestError, t))
     } finally {
       setLoading(false)
     }
@@ -66,7 +73,7 @@ export function LoginPage() {
         {error && (
           <div id="login-error" className="auth-alert" role="alert" aria-live="assertive">
             <AlertCircleIcon />
-            <span>{error}</span>
+            <span>{error.message}</span>
           </div>
         )}
         <form className="auth-form" onSubmit={handleSubmit} aria-busy={loading}>
@@ -85,7 +92,7 @@ export function LoginPage() {
               required
               placeholder={t('login.emailPlaceholder')}
               disabled={loading}
-              aria-invalid={Boolean(error)}
+              aria-invalid={error?.field === 'email' || error?.field === 'form'}
               aria-describedby={error ? 'login-error' : undefined}
             />
           </div>
@@ -106,7 +113,7 @@ export function LoginPage() {
                 required
                 placeholder={t('login.passwordPlaceholder')}
                 disabled={loading}
-                aria-invalid={Boolean(error)}
+                aria-invalid={error?.field === 'password' || error?.field === 'form'}
                 aria-describedby={error ? 'login-error' : undefined}
               />
               <button
@@ -146,10 +153,22 @@ export function LoginPage() {
   )
 }
 
-function getLoginErrorMessage(error: unknown, t: ReturnType<typeof useLanguage>['t']) {
-  const message = error instanceof Error ? error.message.toLowerCase() : ''
+function getLoginError(error: unknown, t: ReturnType<typeof useLanguage>['t']): LoginErrorState {
+  const message = getLoginApiMessage(error)
   if (message.includes('network') || message.includes('failed to fetch') || message.includes('err_network')) {
-    return t('login.networkError')
+    return { message: t('login.networkError'), field: 'form' }
+  }
+
+  if (message.includes('confirm your email') || message.includes('email address has not been confirmed')) {
+    return { message: t('login.emailNotConfirmed'), field: 'email' }
+  }
+
+  if (message.includes('could not find an account') || message.includes('email address was not found')) {
+    return { message: t('login.emailNotFound'), field: 'email' }
+  }
+
+  if (message.includes('password you entered is incorrect') || message.includes('password was incorrect')) {
+    return { message: t('login.incorrectPassword'), field: 'password' }
   }
 
   if (
@@ -158,8 +177,17 @@ function getLoginErrorMessage(error: unknown, t: ReturnType<typeof useLanguage>[
     message.includes('password') ||
     message.includes('credential')
   ) {
-    return t('login.invalidCredentials')
+    return { message: t('login.invalidCredentials'), field: 'form' }
   }
 
-  return t('login.serverError')
+  return { message: t('login.serverError'), field: 'form' }
+}
+
+function getLoginApiMessage(error: unknown) {
+  if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
+    const response = error.response?.data
+    return (response?.errors?.[0] ?? response?.message ?? error.message).toLowerCase()
+  }
+
+  return error instanceof Error ? error.message.toLowerCase() : ''
 }

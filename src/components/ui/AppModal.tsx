@@ -7,6 +7,8 @@ type AppModalProps = {
   children: ReactNode
   icon?: ReactNode
   busy?: boolean
+  closeOnBackdrop?: boolean
+  closeOnEscape?: boolean
   onClose: () => void
 }
 
@@ -19,7 +21,16 @@ const focusableSelector = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',')
 
-export function AppModal({ open, title, children, icon, busy = false, onClose }: AppModalProps) {
+export function AppModal({
+  open,
+  title,
+  children,
+  icon,
+  busy = false,
+  closeOnBackdrop = true,
+  closeOnEscape = true,
+  onClose,
+}: AppModalProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
@@ -45,7 +56,7 @@ export function AppModal({ open, title, children, icon, busy = false, onClose }:
   }, [open])
 
   useEffect(() => {
-    if (!open || busy) {
+    if (!open || busy || !closeOnEscape) {
       return
     }
 
@@ -58,7 +69,7 @@ export function AppModal({ open, title, children, icon, busy = false, onClose }:
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [busy, onClose, open])
+  }, [busy, closeOnEscape, onClose, open])
 
   if (!open) {
     return null
@@ -90,7 +101,7 @@ export function AppModal({ open, title, children, icon, busy = false, onClose }:
     <div
       className="app-modal-backdrop"
       onMouseDown={(event) => {
-        if (!busy && event.target === event.currentTarget) {
+        if (closeOnBackdrop && !busy && event.target === event.currentTarget) {
           onClose()
         }
       }}

@@ -75,18 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = useCallback(
     async (name: string, email: string, password: string, confirmPassword: string) => {
-      const response = await apiClient.post<ApiResponse<AuthResponse>>('/api/auth/signup', {
+      const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/signup', {
         name,
         email,
         password,
         confirmPassword,
       })
-      if (!response.data.success || !response.data.data) {
+      if (!response.data.success) {
         throw new Error(response.data.errors[0] ?? response.data.message)
       }
-      applySession(response.data.data)
     },
-    [applySession],
+    [],
   )
 
   const logout = useCallback(async () => {

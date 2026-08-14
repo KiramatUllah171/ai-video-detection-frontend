@@ -76,8 +76,11 @@ function localizeApiError(message: string, t?: Translate) {
   }
 
   const normalized = message.trim().toLowerCase()
-  if (normalized.includes('email is already registered')) {
-    return t('signup.alreadyRegistered')
+  if (normalized.includes('email is already registered') || normalized.includes('email address is already registered')) {
+    return t('signup.emailAlreadyRegistered')
+  }
+  if (normalized.includes('confirm your email address') || normalized.includes('email address has not been confirmed')) {
+    return t('login.emailNotConfirmed')
   }
   if (
     normalized.includes('unauthorized') ||
@@ -193,8 +196,32 @@ export async function resetPassword(token: string, password: string, confirmPass
   return response.data
 }
 
+export async function checkPasswordReset(token: string) {
+  const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/check-password-reset', { token })
+  if (!response.data.success) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data
+}
+
 export async function confirmEmail(token: string) {
   const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/confirm-email', { token })
+  if (!response.data.success) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data
+}
+
+export async function checkEmailConfirmation(token: string) {
+  const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/check-email-confirmation', { token })
+  if (!response.data.success) {
+    throw new Error(response.data.errors?.[0] ?? response.data.message)
+  }
+  return response.data
+}
+
+export async function declineEmailConfirmation(token: string) {
+  const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/decline-email-confirmation', { token })
   if (!response.data.success) {
     throw new Error(response.data.errors?.[0] ?? response.data.message)
   }
