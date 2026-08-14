@@ -1472,6 +1472,150 @@
   line-height: 1;
 }
 
+.analysis-user-summary {
+  padding: 24px;
+  border-color: rgba(37, 99, 235, 0.18);
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, 0.92), rgba(240, 253, 250, 0.72)),
+    #ffffff;
+}
+
+.user-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr);
+  gap: 18px;
+}
+
+.user-summary-verdict,
+.summary-point,
+.analysis-next-step {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.user-summary-verdict {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.user-summary-verdict span,
+.summary-point strong,
+.analysis-next-step strong {
+  color: var(--slate-500);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.user-summary-verdict strong {
+  color: var(--slate-900);
+  font-size: 28px;
+  line-height: 1.12;
+}
+
+.user-summary-verdict p,
+.summary-point p,
+.analysis-next-step p,
+.analysis-advanced-toggle p {
+  margin: 0;
+  color: var(--slate-600);
+  line-height: 1.55;
+}
+
+.user-summary-list {
+  display: grid;
+  gap: 12px;
+}
+
+.summary-point {
+  display: grid;
+  gap: 6px;
+  padding: 15px;
+  border-radius: 16px;
+}
+
+.analysis-next-step {
+  display: grid;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border-color: rgba(14, 116, 144, 0.24);
+  background: rgba(236, 254, 255, 0.86);
+}
+
+.analysis-next-step strong {
+  color: #0e7490;
+}
+
+.analysis-advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.analysis-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.analysis-advanced-toggle p {
+  max-width: 640px;
+}
+
+.analysis-advanced-toggle .technical-details-pulse {
+  color: #ffffff;
+  border-color: transparent;
+  background: var(--technical-details-pulse-bg);
+  box-shadow: 0 12px 26px var(--technical-details-pulse-shadow);
+  transform: none;
+  animation: technicalDetailsPulse 1.6s ease-in-out infinite;
+}
+
+.analysis-advanced-toggle .technical-details-pulse:hover:not(:disabled),
+.analysis-advanced-toggle .technical-details-pulse:focus-visible {
+  color: #ffffff;
+  border-color: transparent;
+  background: var(--technical-details-pulse-bg-strong);
+  transform: none;
+}
+
+.technical-details-pulse-real {
+  --technical-details-pulse-bg: #10b981;
+  --technical-details-pulse-bg-strong: #059669;
+  --technical-details-pulse-shadow: rgba(5, 150, 105, 0.28);
+  --technical-details-pulse-shadow-strong: rgba(5, 150, 105, 0.42);
+  --technical-details-pulse-ring: rgba(5, 150, 105, 0.24);
+}
+
+.technical-details-pulse-ai {
+  --technical-details-pulse-bg: #e11d48;
+  --technical-details-pulse-bg-strong: #fb7185;
+  --technical-details-pulse-shadow: rgba(225, 29, 72, 0.28);
+  --technical-details-pulse-shadow-strong: rgba(225, 29, 72, 0.42);
+  --technical-details-pulse-ring: rgba(225, 29, 72, 0.24);
+}
+
+@keyframes technicalDetailsPulse {
+  0%,
+  100% {
+    background: var(--technical-details-pulse-bg);
+    box-shadow: 0 12px 26px var(--technical-details-pulse-shadow), 0 0 0 0 transparent;
+    filter: brightness(1);
+  }
+  50% {
+    background: var(--technical-details-pulse-bg-strong);
+    box-shadow: 0 18px 36px var(--technical-details-pulse-shadow-strong), 0 0 0 7px var(--technical-details-pulse-ring);
+    filter: brightness(1.08);
+  }
+}
+
 .result-metric-mock {
   position: relative;
   background: #f8fafc;
@@ -1918,6 +2062,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .user-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
   .span-8,
   .span-4 {
     grid-column: span 12;
@@ -1994,6 +2142,16 @@
 
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .analysis-advanced-toggle {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .analysis-header-actions {
+    justify-content: flex-start;
+    width: 100%;
   }
 
   .analysis-meta {
@@ -3991,6 +4149,7 @@ html.theme-dark .auth-title,
 html.theme-dark .card-header h2,
 html.theme-dark .dashboard-hero h2,
 html.theme-dark .analysis-title-row h2,
+html.theme-dark .user-summary-verdict strong,
 html.theme-dark .status-hero h2,
 html.theme-dark .empty-state h3,
 html.theme-dark .video-cell strong,
@@ -4011,6 +4170,10 @@ html.theme-dark .page-subtitle,
 html.theme-dark .card-header p,
 html.theme-dark .dashboard-hero p,
 html.theme-dark .analysis-title-row p,
+html.theme-dark .user-summary-verdict p,
+html.theme-dark .summary-point p,
+html.theme-dark .analysis-next-step p,
+html.theme-dark .analysis-advanced-toggle p,
 html.theme-dark .auth-subtitle,
 html.theme-dark .video-cell span,
 html.theme-dark .selected-file span,
@@ -4035,6 +4198,8 @@ html.theme-dark .form-label,
 html.theme-dark .upload-progress span,
 html.theme-dark .status-progress-panel span,
 html.theme-dark .progress-label,
+html.theme-dark .user-summary-verdict span,
+html.theme-dark .summary-point strong,
 html.theme-dark .analysis-meta small {
   color: var(--dark-text-secondary);
 }
@@ -4043,6 +4208,18 @@ html.theme-dark .upload-progress strong,
 html.theme-dark .status-progress-panel strong,
 html.theme-dark .analysis-meta strong {
   color: var(--dark-text);
+}
+
+html.theme-dark .analysis-user-summary,
+html.theme-dark .user-summary-verdict,
+html.theme-dark .summary-point,
+html.theme-dark .analysis-next-step {
+  border-color: var(--dark-border);
+  background: rgba(15, 23, 42, 0.78);
+}
+
+html.theme-dark .analysis-next-step strong {
+  color: #67e8f9;
 }
 
 html.theme-dark .eyebrow,
@@ -4175,6 +4352,14 @@ html.theme-dark .app-button-ghost:hover:not(:disabled) {
   color: var(--dark-text);
   background: rgba(79, 109, 245, 0.16);
   border-color: rgba(109, 140, 255, 0.54);
+}
+
+html.theme-dark .analysis-advanced-toggle .technical-details-pulse,
+html.theme-dark .analysis-advanced-toggle .technical-details-pulse:hover:not(:disabled),
+html.theme-dark .analysis-advanced-toggle .technical-details-pulse:focus-visible {
+  color: #ffffff;
+  border-color: transparent;
+  background: var(--technical-details-pulse-bg);
 }
 
 html.theme-dark .dashboard-hero {
@@ -6322,6 +6507,11 @@ html.theme-dark .password-toggle:hover:not(:disabled) {
 
 .auth-switch a {
   color: #34d6ff;
+}
+
+.auth-card .form-helper,
+html.theme-dark .auth-card .form-helper {
+  color: #ffffff;
 }
 
 .auth-alert,

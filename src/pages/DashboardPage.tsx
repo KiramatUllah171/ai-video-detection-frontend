@@ -15,6 +15,7 @@ import { ProgressBar } from '../components/ui/ProgressBar'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon, AlertCircleIcon, CheckCircleIcon, ClockIcon, UploadIcon, VideoIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
+import { toVideoRouteId } from '../routes/videoRouteId'
 
 export function DashboardPage() {
   const auth = useAuth()
@@ -164,7 +165,7 @@ export function DashboardPage() {
                     </td>
                     <td>{dayjs(item.createdAt).format('MMM D, YYYY h:mm A')}</td>
                     <td>
-                      <Link className={buttonClassName('outline')} to={getEffectiveStatus(item) === 'completed' ? `/analysis/${item.videoId}` : `/processing/${item.videoId}`}>
+                      <Link className={buttonClassName('outline')} to={getEffectiveStatus(item) === 'completed' ? `/analysis/${toVideoRouteId(item.videoId)}` : `/processing/${toVideoRouteId(item.videoId)}`}>
                         {getEffectiveStatus(item) === 'completed' ? t('dashboard.viewResult') : t('dashboard.viewStatus')}
                       </Link>
                     </td>

@@ -12,6 +12,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { FileVideoIcon, ShieldIcon, UploadIcon, XIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
+import { toVideoRouteId } from '../routes/videoRouteId'
 
 const maxSizeLabel = '500 MB'
 const maxUploadSizeBytes = 524_288_000
@@ -94,7 +95,7 @@ export function UploadVideoPage() {
         throw new Error(response.data.errors[0] ?? response.data.message)
       }
 
-      navigate(`/processing/${response.data.data.videoId}`, {
+      navigate(`/processing/${toVideoRouteId(response.data.data.videoId)}`, {
         state: { jobId: response.data.data.jobId },
       })
     } catch (requestError) {

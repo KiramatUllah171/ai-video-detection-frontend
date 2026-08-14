@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useRef, useState } from 'react'
 import { getApiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { isStrongPassword } from '../auth/passwordPolicy'
 import { AppButton } from '../components/ui/AppButton'
 import { AlertCircleIcon, CheckCircleIcon, EyeIcon, EyeOffIcon } from '../components/ui/icons'
 import { AuthCard, AuthLayout } from '../layouts/AuthLayout'
@@ -25,6 +26,11 @@ export function SignupPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!isStrongPassword(password)) {
+      setError(t('signup.strongPasswordRequirement'))
+      return
+    }
+
     if (password !== confirmPassword) {
       setError(t('signup.passwordMismatch'))
       return

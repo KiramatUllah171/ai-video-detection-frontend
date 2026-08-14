@@ -7,23 +7,37 @@ import { AuthContext } from './AuthContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(() => authStorage.getUser())
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(() => authStorage.getExpiresAt())
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
 
     async function loadCurrentUser() {
-      if (!authStorage.getAccessToken()) {
+      const storedAccessToken = authStorage.getAccessToken()
+      const storedExpiresAt = authStorage.getExpiresAt()
+
+      if (storedAccessToken && (!storedExpiresAt || authStorage.isSessionExpired())) {
+        authStorage.clear()
+        setUser(null)
+        setSessionExpiresAt(null)
+        setIsLoading(false)
+        return
+      }
+
+      if (!storedAccessToken) {
         try {
           const refreshResponse = await apiClient.post<ApiResponse<AuthResponse>>('/api/auth/refresh', {})
           if (!cancelled && refreshResponse.data.success && refreshResponse.data.data) {
             authStorage.setSession(refreshResponse.data.data)
             setUser(refreshResponse.data.data.user)
+            setSessionExpiresAt(refreshResponse.data.data.expiresAt)
           }
         } catch {
           authStorage.clear()
           if (!cancelled) {
             setUser(null)
+            setSessionExpiresAt(null)
           }
         } finally {
           if (!cancelled) {
@@ -43,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authStorage.clear()
         if (!cancelled) {
           setUser(null)
+          setSessionExpiresAt(null)
         }
       } finally {
         if (!cancelled) {
@@ -57,9 +72,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  useEffect(() => {
+    if (!sessionExpiresAt) {
+      return
+    }
+
+    const expiresInMs = Date.parse(sessionExpiresAt) - Date.now()
+    if (expiresInMs <= 0) {
+      authStorage.clear()
+      setUser(null)
+      setSessionExpiresAt(null)
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      authStorage.clear()
+      setUser(null)
+      setSessionExpiresAt(null)
+    }, expiresInMs)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [sessionExpiresAt])
+
   const applySession = useCallback((session: AuthResponse) => {
     authStorage.setSession(session)
     setUser(session.user)
+    setSessionExpiresAt(session.expiresAt)
   }, [])
 
   const login = useCallback(
@@ -94,13 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       authStorage.clear()
       setUser(null)
+      setSessionExpiresAt(null)
     }
   }, [])
 
   const value = useMemo(
     () => ({
       user,
-      isAuthenticated: Boolean(user && authStorage.getAccessToken()),
+      isAuthenticated: Boolean(user && authStorage.getAccessToken() && !authStorage.isSessionExpired()),
       isLoading,
       login,
       signup,
