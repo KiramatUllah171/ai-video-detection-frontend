@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { requestPasswordReset } from '../api/client'
 import { AppButton } from '../components/ui/AppButton'
+import { AppModal } from '../components/ui/AppModal'
 import { AlertCircleIcon, CheckCircleIcon } from '../components/ui/icons'
 import { AuthCard, AuthLayout } from '../layouts/AuthLayout'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -13,6 +14,7 @@ export function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [successModalOpen, setSuccessModalOpen] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -26,6 +28,7 @@ export function ForgotPasswordPage() {
     try {
       await requestPasswordReset(email.trim())
       setSuccess(true)
+      setSuccessModalOpen(true)
     } catch (requestError) {
       setError(getRecoveryErrorMessage(requestError, t))
     } finally {
@@ -76,6 +79,20 @@ export function ForgotPasswordPage() {
           <Link to="/login">{t('forgotPassword.backToSignIn')}</Link>
         </p>
       </AuthCard>
+      <AppModal
+        open={successModalOpen}
+        title={t('forgotPassword.successTitle')}
+        closeOnBackdrop={false}
+        closeOnEscape={false}
+        onClose={() => setSuccessModalOpen(false)}
+      >
+        <p className="app-modal-copy">{t('forgotPassword.success')}</p>
+        <div className="app-modal-actions">
+          <AppButton type="button" onClick={() => setSuccessModalOpen(false)}>
+            {t('forgotPassword.gotIt')}
+          </AppButton>
+        </div>
+      </AppModal>
     </AuthLayout>
   )
 }
