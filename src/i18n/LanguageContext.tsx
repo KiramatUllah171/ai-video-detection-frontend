@@ -30,9 +30,9 @@ export const languages: LanguageOption[] = [
 
 const translations = {
   en: {
-    'app.name': 'AI Video Detection',
-    'app.tagline': 'Authenticity Intelligence',
-    'app.homeLabel': 'AI Video Detection home',
+    'app.name': 'sachvideoai',
+    'app.tagline': 'Video Authenticity Reports',
+    'app.homeLabel': 'sachvideoai home',
     'nav.dashboard': 'Dashboard',
     'nav.uploadVideo': 'Upload Video',
     'theme.switchLight': 'Switch to light theme',
@@ -330,7 +330,7 @@ const translations = {
     'auth.featureSecureUpload': 'Secure Upload',
     'auth.featureAiAnalysis': 'AI Analysis',
     'auth.featureTrustedReports': 'Trusted Reports',
-    'auth.copyright': '© 2026 AI Video Detection',
+    'auth.copyright': '© 2026 sachvideoai',
     'auth.trustTitle': 'Built for controlled media review',
     'auth.trustEncryptedMedia': 'Encrypted media handling',
     'auth.trustTraceableProcessing': 'Traceable processing activity',
@@ -389,7 +389,7 @@ const translations = {
     'confirmEmail.eyebrow': 'EMAIL VERIFICATION',
     'confirmEmail.title': 'Confirm your email',
     'confirmEmail.subtitle': 'Review this email verification request before continuing.',
-    'confirmEmail.readyMessage': 'Only confirm this request if you personally created this AI Video Detection account.',
+    'confirmEmail.readyMessage': 'Only confirm this request if you personally created this sachvideoai account.',
     'confirmEmail.checkingStatus': 'Checking this verification link...',
     'confirmEmail.checking': 'Verifying your email confirmation link...',
     'confirmEmail.success': 'Your email address has been confirmed successfully.',
@@ -887,9 +887,9 @@ const translations = {
 } satisfies Record<LanguageCode, Record<string, string>>
 translations.hi = {
   ...translations.en,
-  'app.name': 'AI वीडियो डिटेक्शन',
-  'app.tagline': 'प्रामाणिकता इंटेलिजेंस',
-  'app.homeLabel': 'AI वीडियो डिटेक्शन होम',
+  'app.name': 'sachvideoai',
+  'app.tagline': 'वीडियो प्रामाणिकता रिपोर्ट',
+  'app.homeLabel': 'sachvideoai होम',
   'nav.dashboard': 'डैशबोर्ड',
   'nav.uploadVideo': 'वीडियो अपलोड करें',
   'theme.switchLight': 'लाइट थीम पर जाएं',
@@ -1148,9 +1148,9 @@ translations.hi = {
 }
 
 Object.assign(translations.ur, {
-  'app.name': 'AI ویڈیو ڈیٹیکشن',
-  'app.tagline': 'اصلیت انٹیلیجنس',
-  'app.homeLabel': 'AI ویڈیو ڈیٹیکشن ہوم',
+  'app.name': 'sachvideoai',
+  'app.tagline': 'ویڈیو اصلیت رپورٹس',
+  'app.homeLabel': 'sachvideoai ہوم',
   'login.forgotPassword': 'پاس ورڈ بھول گئے؟',
   'login.rememberMe': 'مجھے یاد رکھیں',
   'login.showPassword': 'پاس ورڈ دکھائیں',
@@ -1274,9 +1274,9 @@ Object.assign(translations.ur, {
 })
 
 Object.assign(translations.ps, {
-  'app.name': 'AI ویډیو ډیټیکشن',
-  'app.tagline': 'د اصالت پوهه',
-  'app.homeLabel': 'AI ویډیو ډیټیکشن کور',
+  'app.name': 'sachvideoai',
+  'app.tagline': 'د ویډیو اصالت راپورونه',
+  'app.homeLabel': 'sachvideoai کور',
   'login.forgotPassword': 'پټ نوم مو هېر شوی؟',
   'login.rememberMe': 'ما په یاد وساته',
   'login.showPassword': 'پټ نوم ښکاره کړئ',

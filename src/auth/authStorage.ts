@@ -1,4 +1,5 @@
 import type { AuthResponse, UserProfile } from '../api/types'
+import { normalizeUserProfile } from './roleUtils'
 
 const accessTokenKey = 'ai-video.accessToken'
 const userKey = 'ai-video.user'
@@ -17,15 +18,15 @@ export const authStorage = {
   },
   getUser(): UserProfile | null {
     const raw = localStorage.getItem(userKey)
-    return raw ? (JSON.parse(raw) as UserProfile) : null
+    return raw ? normalizeUserProfile(JSON.parse(raw) as UserProfile) : null
   },
   setSession(session: AuthResponse) {
     localStorage.setItem(accessTokenKey, session.accessToken)
-    localStorage.setItem(userKey, JSON.stringify(session.user))
+    localStorage.setItem(userKey, JSON.stringify(normalizeUserProfile(session.user)))
     localStorage.setItem(expiresAtKey, session.expiresAt)
   },
   setUser(user: UserProfile) {
-    localStorage.setItem(userKey, JSON.stringify(user))
+    localStorage.setItem(userKey, JSON.stringify(normalizeUserProfile(user)))
   },
   clear() {
     localStorage.removeItem(accessTokenKey)

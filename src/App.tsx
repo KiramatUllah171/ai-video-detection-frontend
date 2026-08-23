@@ -1,6 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from './layouts/AppLayout'
+import { PublicLayout } from './layouts/PublicLayout'
+import { AdminRoute } from './routes/AdminRoute'
 import { ProtectedRoute } from './routes/ProtectedRoute'
+import { AdminDashboardPage } from './pages/AdminDashboardPage'
+import { AdminRequestsPage } from './pages/AdminRequestsPage'
+import { AdminUsersPage } from './pages/AdminUsersPage'
+import { AdminVideoDetailPage } from './pages/AdminVideoDetailPage'
+import { AdminVideosPage } from './pages/AdminVideosPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
@@ -10,6 +17,7 @@ import { ProcessingStatusPage } from './pages/ProcessingStatusPage'
 import { AnalysisResultPage } from './pages/AnalysisResultPage'
 import { SignupPage } from './pages/SignupPage'
 import { UploadVideoPage } from './pages/UploadVideoPage'
+import { AboutPage, ContactPage, HomePage, PrivacyPolicyPage, TermsAndConditionsPage } from './pages/PublicPages'
 import { AppErrorBoundary } from './components/ui/AppErrorBoundary'
 import './App.css'
 
@@ -17,6 +25,13 @@ function App() {
   return (
     <AppErrorBoundary>
       <Routes>
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
+        </Route>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -28,6 +43,13 @@ function App() {
             <Route path="/upload" element={<UploadVideoPage />} />
             <Route path="/processing/:videoId" element={<ProcessingStatusPage />} />
             <Route path="/analysis/:videoId" element={<AnalysisResultPage />} />
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/admin/users" element={<AdminUsersPage />} />
+              <Route path="/admin/videos" element={<AdminVideosPage />} />
+              <Route path="/admin/videos/:videoId" element={<AdminVideoDetailPage />} />
+              <Route path="/admin/requests" element={<AdminRequestsPage />} />
+            </Route>
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
