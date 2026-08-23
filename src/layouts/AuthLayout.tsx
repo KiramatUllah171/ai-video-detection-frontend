@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { AppLogo } from '../components/ui/AppLogo'
 import { AppCard } from '../components/ui/AppCard'
 import { ActivityIcon, FileVideoIcon, UploadIcon } from '../components/ui/icons'
@@ -20,7 +21,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
     <main className="auth-shell">
       <section className="auth-hero" aria-label={t('auth.productOverview')}>
         <div className="auth-hero-inner">
-          <AppLogo to="/login" />
+          <AppLogo to="/" />
           <div className="auth-hero-copy">
             <h1>
               <span>{t('auth.heroLineOne')}</span>
@@ -37,6 +38,11 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             ))}
           </div>
           <p className="auth-security-note">{t('auth.copyright')}</p>
+          <nav className="auth-legal-links" aria-label="Legal links">
+            <Link to="/">Home</Link>
+            <Link to="/privacy-policy">Privacy Policy</Link>
+            <Link to="/terms-and-conditions">Terms & Conditions</Link>
+          </nav>
         </div>
       </section>
       <section className="auth-form-panel">{children}</section>

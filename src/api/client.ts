@@ -1,5 +1,21 @@
 import axios, { AxiosError } from 'axios'
-import type { AnalysisResult, ApiResponse, AuthResponse, JobStatus, MetadataResult, SourceMatch, UploadVideoResponse } from './types'
+import type {
+  AdminDashboardSummary,
+  AdminJobListItem,
+  AdminProviderRequestListItem,
+  AdminProviderRequestUserSummary,
+  AdminUserListItem,
+  AdminVideoDetail,
+  AdminVideoListItem,
+  AnalysisResult,
+  ApiResponse,
+  AuthResponse,
+  JobStatus,
+  MetadataResult,
+  PagedResponse,
+  SourceMatch,
+  UploadVideoResponse,
+} from './types'
 import { authStorage } from '../auth/authStorage'
 import { isStrongPasswordErrorMessage } from '../auth/passwordPolicy'
 
@@ -272,5 +288,60 @@ export async function resendEmailConfirmation(email: string) {
   if (!response.data.success) {
     throw new Error(response.data.errors?.[0] ?? response.data.message)
   }
+  return response.data
+}
+
+export async function getAdminDashboardSummary() {
+  const response = await apiClient.get<ApiResponse<AdminDashboardSummary>>('/api/admin/dashboard/summary')
+  return unwrapApiResponse(response.data)
+}
+
+export async function getAdminUsers(params: { page?: number; pageSize?: number; search?: string; status?: string }) {
+  const response = await apiClient.get<ApiResponse<PagedResponse<AdminUserListItem>>>('/api/admin/users', { params })
+  return unwrapApiResponse(response.data)
+}
+
+export async function updateAdminUserStatus(userId: string | number, isActive: boolean) {
+  const response = await apiClient.patch<ApiResponse<AdminUserListItem>>(`/api/admin/users/${userId}/status`, { isActive })
+  return unwrapApiResponse(response.data)
+}
+
+export async function getAdminVideos(params: { page?: number; pageSize?: number; search?: string; status?: string }) {
+  const response = await apiClient.get<ApiResponse<PagedResponse<AdminVideoListItem>>>('/api/admin/videos', { params })
+  return unwrapApiResponse(response.data)
+}
+
+export async function getAdminVideoDetail(videoId: string | number) {
+  const response = await apiClient.get<ApiResponse<AdminVideoDetail>>(`/api/admin/videos/${videoId}`)
+  return unwrapApiResponse(response.data)
+}
+
+export async function getAdminVideoFile(videoId: string | number) {
+  const response = await apiClient.get<Blob>(`/api/admin/videos/${videoId}/file`, {
+    responseType: 'blob',
+  })
+  return response.data
+}
+
+export async function getAdminJobs(params: { page?: number; pageSize?: number; status?: string }) {
+  const response = await apiClient.get<ApiResponse<PagedResponse<AdminJobListItem>>>('/api/admin/jobs', { params })
+  return unwrapApiResponse(response.data)
+}
+
+export async function getAdminProviderRequests(params: { page?: number; pageSize?: number; status?: string; userId?: number }) {
+  const response = await apiClient.get<ApiResponse<PagedResponse<AdminProviderRequestListItem>>>('/api/admin/provider-requests', { params })
+  return unwrapApiResponse(response.data)
+}
+
+export async function getAdminProviderRequestUsers(params: { page?: number; pageSize?: number; search?: string }) {
+  const response = await apiClient.get<ApiResponse<PagedResponse<AdminProviderRequestUserSummary>>>('/api/admin/provider-request-users', { params })
+  return unwrapApiResponse(response.data)
+}
+
+function unwrapApiResponse<T>(response: ApiResponse<T>) {
+  if (!response.success || response.data === undefined) {
+    throw new Error(response.errors?.[0] ?? response.message)
+  }
+
   return response.data
 }

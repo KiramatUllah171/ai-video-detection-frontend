@@ -4,6 +4,7 @@ import { apiClient } from '../api/client'
 import type { ApiResponse, AuthResponse, UserProfile } from '../api/types'
 import { authStorage } from './authStorage'
 import { AuthContext } from './AuthContext'
+import { normalizeUserProfile } from './roleUtils'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(() => authStorage.getUser())
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const refreshResponse = await apiClient.post<ApiResponse<AuthResponse>>('/api/auth/refresh', {})
           if (!cancelled && refreshResponse.data.success && refreshResponse.data.data) {
             authStorage.setSession(refreshResponse.data.data)
-            setUser(refreshResponse.data.data.user)
+            setUser(normalizeUserProfile(refreshResponse.data.data.user))
             setSessionExpiresAt(refreshResponse.data.data.expiresAt)
           }
         } catch {
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await apiClient.get<ApiResponse<UserProfile>>('/api/auth/me')
         if (!cancelled && response.data.success && response.data.data) {
           authStorage.setUser(response.data.data)
-          setUser(response.data.data)
+          setUser(normalizeUserProfile(response.data.data))
         }
       } catch {
         authStorage.clear()
@@ -96,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const applySession = useCallback((session: AuthResponse) => {
     authStorage.setSession(session)
-    setUser(session.user)
+    setUser(normalizeUserProfile(session.user))
     setSessionExpiresAt(session.expiresAt)
   }, [])
 

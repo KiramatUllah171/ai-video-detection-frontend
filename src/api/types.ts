@@ -170,3 +170,197 @@ export type MetadataResult = {
   warningsJson?: string
   createdAt: string
 }
+
+export type AdminMetric = {
+  key: string
+  label: string
+  value: number
+  tone: string
+}
+
+export type AdminStatusCount = {
+  status: string
+  count: number
+}
+
+export type AdminDailyActivity = {
+  date: string
+  count: number
+}
+
+export type AdminTopUser = {
+  userId: number
+  name: string
+  email: string
+  uploadCount: number
+}
+
+export type AdminRecentActivity = {
+  type: string
+  title: string
+  description: string
+  createdAt: string
+}
+
+export type AdminExternalRequestSummary = {
+  providerName: string
+  totalRequests: number
+  pendingRequests: number
+  completedRequests: number
+  failedRequests: number
+  monthlyQuotaLimit: number
+  monthlyUsed: number
+  monthlyRemaining: number
+  monthlySuccess: number
+  monthlyFailed: number
+}
+
+export type AdminDashboardSummary = {
+  metrics: AdminMetric[]
+  videoStatuses: AdminStatusCount[]
+  jobStatuses: AdminStatusCount[]
+  requestStatuses: AdminStatusCount[]
+  uploadActivity: AdminDailyActivity[]
+  analysisActivity: AdminDailyActivity[]
+  topUsers: AdminTopUser[]
+  recentActivity: AdminRecentActivity[]
+  externalRequests: AdminExternalRequestSummary
+}
+
+export type AdminUserListItem = {
+  userId: number
+  name: string
+  email: string
+  role: string | number
+  isActive: boolean
+  emailConfirmed: boolean
+  totalVideos: number
+  completedVideos: number
+  failedVideos: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type AdminVideoListItem = {
+  videoId: number
+  userId: number
+  ownerName: string
+  ownerEmail: string
+  originalName: string
+  fileSize: number
+  contentType?: string
+  status: string
+  createdAt: string
+  updatedAt: string
+  latestJobStatus?: string
+  latestJobProgress?: number
+  finalVerdict?: string
+  aiGeneratedProbability?: number
+  confidence?: number
+  externalVerificationUsed: boolean
+}
+
+export type AdminMetadataSummary = {
+  durationSeconds?: number
+  resolution?: string
+  fps?: number
+  codec?: string
+  audioCodec?: string
+  bitrate?: number
+  encoder?: string
+  creationTime?: string
+  hasMissingMetadata: boolean
+}
+
+export type AdminAnalysisSummary = {
+  aiResultId: number
+  label: string
+  finalScore: number
+  confidence: number
+  visualScore: number
+  metadataScore?: number
+  temporalScore?: number
+  summary?: string
+  provider: string
+  providerMode: string
+  finalDecisionSource: string
+  externalProviderName?: string
+  externalProviderStatus?: string
+  fallbackUsed: boolean
+  fallbackReason?: string
+  createdAt: string
+}
+
+export type AdminEvidenceItem = {
+  type: string
+  severity: string
+  title: string
+  description: string
+  scoreImpact?: number
+  timestampSeconds?: number
+}
+
+export type AdminSourceMatch = {
+  platform: string
+  title?: string
+  uploadDatetime?: string
+  similarityScore: number
+  confidence: string
+  rank: number
+}
+
+export type AdminJobListItem = {
+  jobId: number
+  videoId: number
+  videoName: string
+  userId: number
+  userEmail: string
+  status: string
+  progress: number
+  currentStep?: string
+  errorMessage?: string
+  errorCode?: string
+  retryCount: number
+  maxRetryCount: number
+  createdAt: string
+  updatedAt: string
+  startedAt?: string
+  completedAt?: string
+}
+
+export type AdminProviderRequestListItem = {
+  requestId: number
+  videoId: number
+  videoName: string
+  userId: number
+  userEmail: string
+  providerName: string
+  providerMode: string
+  status: string
+  httpStatusCode?: number
+  durationMs?: number
+  errorMessage?: string
+  requestStartedAt: string
+  requestCompletedAt?: string
+}
+
+export type AdminProviderRequestUserSummary = {
+  userId: number
+  name: string
+  email: string
+  totalRequests: number
+  pendingRequests: number
+  completedRequests: number
+  failedRequests: number
+  latestRequestAt?: string
+  latestVideoName?: string
+}
+
+export type AdminVideoDetail = {
+  video: AdminVideoListItem
+  metadata?: AdminMetadataSummary
+  analysis?: AdminAnalysisSummary
+  evidence: AdminEvidenceItem[]
+  originMatches: AdminSourceMatch[]
+  jobs: AdminJobListItem[]
+}

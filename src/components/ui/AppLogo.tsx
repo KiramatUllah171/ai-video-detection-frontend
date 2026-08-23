@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { useLanguage } from '../../i18n/LanguageContext'
-import { ShieldIcon } from './icons'
 
 type AppLogoProps = {
   compact?: boolean
@@ -9,21 +8,12 @@ type AppLogoProps = {
 
 export function AppLogo({ compact = false, to = '/dashboard' }: AppLogoProps) {
   const { t } = useLanguage()
-  const content = (
-    <>
-      <span className="app-logo-mark">
-        <ShieldIcon />
-      </span>
-      <span className="app-logo-text">
-        <strong>{t('app.name')}</strong>
-        {!compact && <small>{t('app.tagline')}</small>}
-      </span>
-    </>
-  )
 
   return (
-    <Link className="app-logo" to={to} aria-label={t('app.homeLabel')}>
-      {content}
+    <Link className={`app-logo app-logo-image-only ${compact ? 'app-logo-compact' : ''}`} to={to} aria-label={t('app.homeLabel')}>
+      <span className="app-logo-mark">
+        <img className="brand-logo-image" src="/sachvideoai-logo.png" alt="" aria-hidden="true" draggable={false} />
+      </span>
     </Link>
   )
 }

@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { getUserRoleName, isAdminRole } from '../auth/roleUtils'
 import { AppLogo } from '../components/ui/AppLogo'
-import { BarChartIcon, GlobeIcon, LogOutIcon, MoonIcon, SunIcon, UploadIcon } from '../components/ui/icons'
+import { ActivityIcon, BarChartIcon, GlobeIcon, LogOutIcon, MoonIcon, ShieldIcon, SunIcon, UploadIcon, UserIcon, VideoIcon } from '../components/ui/icons'
 import { useLanguage, type LanguageCode } from '../i18n/LanguageContext'
 
 const themeStorageKey = 'ai-video-detection-theme'
@@ -16,8 +17,12 @@ export function AppLayout() {
   const profileRef = useRef<HTMLDivElement | null>(null)
   const displayName = auth.user?.name || auth.user?.email || 'Account'
   const initial = displayName.trim().charAt(0).toUpperCase() || 'U'
+  const isAdmin = isAdminRole(auth.user?.role)
 
   async function handleLogout() {
+    setDarkMode(false)
+    document.documentElement.classList.remove('theme-dark')
+    localStorage.setItem(themeStorageKey, 'light')
     await auth.logout()
     navigate('/login', { replace: true })
   }
@@ -65,6 +70,26 @@ export function AppLayout() {
             <UploadIcon />
             {t('nav.uploadVideo')}
           </NavLink>
+          {isAdmin && (
+            <>
+              <NavLink to="/admin/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <ShieldIcon />
+                Admin
+              </NavLink>
+              <NavLink to="/admin/users" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <UserIcon />
+                Users
+              </NavLink>
+              <NavLink to="/admin/videos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <VideoIcon />
+                Videos
+              </NavLink>
+              <NavLink to="/admin/requests" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <ActivityIcon />
+                Requests
+              </NavLink>
+            </>
+          )}
         </nav>
         <div className="user-menu" ref={profileRef}>
           <button
@@ -117,7 +142,7 @@ export function AppLayout() {
                   </div>
                   <div className="profile-meta">
                     <span>{t('profile.accountType')}</span>
-                    <strong>{auth.user.role || t('profile.user')}</strong>
+                    <strong>{getUserRoleName(auth.user.role) || t('profile.user')}</strong>
                   </div>
                   <button type="button" className="profile-logout" role="menuitem" onClick={handleLogout}>
                     <LogOutIcon />
