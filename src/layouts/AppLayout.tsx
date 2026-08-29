@@ -15,7 +15,7 @@ export function AppLayout() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem(themeStorageKey) === 'dark')
   const profileRef = useRef<HTMLDivElement | null>(null)
-  const displayName = auth.user?.name || auth.user?.email || 'Account'
+  const displayName = auth.user?.name || auth.user?.email || t('profile.account')
   const initial = displayName.trim().charAt(0).toUpperCase() || 'U'
   const isAdmin = isAdminRole(auth.user?.role)
 
@@ -61,7 +61,7 @@ export function AppLayout() {
     <div className="app-layout">
       <header className="topbar">
         <AppLogo />
-        <nav className="topbar-nav" aria-label="Primary navigation">
+        <nav className="topbar-nav" aria-label={t('nav.primary')}>
           <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <BarChartIcon />
             {t('nav.dashboard')}
@@ -74,19 +74,19 @@ export function AppLayout() {
             <>
               <NavLink to="/admin/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <ShieldIcon />
-                Admin
+                {t('nav.admin')}
               </NavLink>
               <NavLink to="/admin/users" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <UserIcon />
-                Users
+                {t('nav.users')}
               </NavLink>
               <NavLink to="/admin/videos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <VideoIcon />
-                Videos
+                {t('nav.videos')}
               </NavLink>
               <NavLink to="/admin/requests" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <ActivityIcon />
-                Requests
+                {t('nav.requests')}
               </NavLink>
             </>
           )}
@@ -128,7 +128,7 @@ export function AppLayout() {
             <span>{displayName}</span>
           </button>
           {profileOpen && (
-            <div className="profile-dropdown" role="menu" aria-label="User profile">
+            <div className="profile-dropdown" role="menu" aria-label={t('profile.menu')}>
               {auth.isLoading ? (
                 <div className="profile-loading">{t('profile.loading')}</div>
               ) : auth.user ? (
@@ -142,7 +142,7 @@ export function AppLayout() {
                   </div>
                   <div className="profile-meta">
                     <span>{t('profile.accountType')}</span>
-                    <strong>{getUserRoleName(auth.user.role) || t('profile.user')}</strong>
+                    <strong>{localizeRoleName(getUserRoleName(auth.user.role), t)}</strong>
                   </div>
                   <button type="button" className="profile-logout" role="menuitem" onClick={handleLogout}>
                     <LogOutIcon />
@@ -159,4 +159,18 @@ export function AppLayout() {
       <Outlet />
     </div>
   )
+}
+
+function localizeRoleName(roleName: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = (roleName || 'User').toLowerCase()
+  if (normalized === 'admin') {
+    return t('role.admin')
+  }
+  if (normalized === 'reviewer') {
+    return t('role.reviewer')
+  }
+  if (normalized === 'enterpriseadmin') {
+    return t('role.enterpriseAdmin')
+  }
+  return t('role.user')
 }

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { AppCard } from '../components/ui/AppCard'
 import { buttonClassName } from '../components/ui/buttonStyles'
 import { ActivityIcon, BarChartIcon, FileVideoIcon, ShieldIcon, UploadIcon } from '../components/ui/icons'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const supportEmail = 'kiramatdev@gmail.com'
 const supportPhone = '+923145156620'
@@ -11,81 +12,80 @@ const supportPhoneLabel = '+92 3145156620'
 const capabilities = [
   {
     icon: <UploadIcon />,
-    title: 'Secure video upload',
-    text: 'Upload supported video files from your account and keep them inside a protected workspace.',
+    titleKey: 'public.home.capabilityUploadTitle',
+    textKey: 'public.home.capabilityUploadText',
   },
   {
     icon: <ActivityIcon />,
-    title: 'Authenticity analysis',
-    text: 'Get a clear probability-based result using available video, metadata, and confidence signals.',
+    titleKey: 'public.home.capabilityAnalysisTitle',
+    textKey: 'public.home.capabilityAnalysisText',
   },
   {
     icon: <BarChartIcon />,
-    title: 'Easy report view',
-    text: 'See the main result first, then open technical details only when you need more context.',
+    titleKey: 'public.home.capabilityReportTitle',
+    textKey: 'public.home.capabilityReportText',
   },
   {
     icon: <ShieldIcon />,
-    title: 'Private workspace',
-    text: 'Your uploaded videos are not public, and other users cannot view or review your files.',
+    titleKey: 'public.home.capabilityPrivateTitle',
+    textKey: 'public.home.capabilityPrivateText',
   },
 ]
 
 const reportDetails = [
-  'Final verdict and result confidence',
-  'AI/manipulated and likely-real probability balance',
-  'Metadata summary including codec, resolution, FPS, bitrate, encoder, and creation time when available',
-  'Evidence items such as missing metadata warnings or model confidence notes',
-  'Matching information when the system finds a related previous upload',
-  'Downloadable PDF authenticity report for your records',
+  'public.home.detailVerdict',
+  'public.home.detailBalance',
+  'public.home.detailMetadata',
+  'public.home.detailEvidence',
+  'public.home.detailMatching',
+  'public.home.detailPdf',
 ]
 
 export function HomePage() {
+  const { t } = useLanguage()
+
   return (
     <main className="public-page">
       <section className="public-hero">
         <div className="public-hero-copy">
-          <span className="hero-pill light"><ShieldIcon />Video Authenticity Reports</span>
-          <h1>AI video authenticity reports for safer review.</h1>
-          <p>
-            sachvideoai helps you upload videos, check authenticity signals, review clear results, and download
-            a professional PDF report from a secure account workspace.
-          </p>
+          <span className="hero-pill light"><ShieldIcon />{t('public.home.pill')}</span>
+          <h1>{t('public.home.title')}</h1>
+          <p>{t('public.home.subtitle')}</p>
           <div className="public-hero-actions">
-            <Link className={buttonClassName('primary')} to="/signup">Create account</Link>
-            <Link className={buttonClassName('outline')} to="/login">Sign in</Link>
+            <Link className={buttonClassName('primary')} to="/signup">{t('public.action.createAccount')}</Link>
+            <Link className={buttonClassName('outline')} to="/login">{t('public.action.signIn')}</Link>
           </div>
         </div>
         <AppCard className="public-hero-card">
           <div className="public-verdict-preview">
-            <span>Report preview</span>
-            <strong>Clear authenticity summary</strong>
-            <p>View AI risk, likely-real probability, confidence, metadata, evidence, and matching details in one report.</p>
+            <span>{t('public.home.previewLabel')}</span>
+            <strong>{t('public.home.previewTitle')}</strong>
+            <p>{t('public.home.previewText')}</p>
           </div>
           <div className="public-balance-bar" aria-hidden="true">
             <span className="real" style={{ width: '64%' }} />
             <span className="ai" style={{ width: '36%' }} />
           </div>
           <div className="public-mini-grid">
-            <span><strong>Secure</strong>Uploads</span>
-            <span><strong>Tracked</strong>Processing</span>
-            <span><strong>Exportable</strong>PDF reports</span>
+            <span><strong>{t('public.home.secure')}</strong>{t('public.home.uploads')}</span>
+            <span><strong>{t('public.home.tracked')}</strong>{t('public.home.processing')}</span>
+            <span><strong>{t('public.home.exportable')}</strong>{t('public.home.pdfReports')}</span>
           </div>
         </AppCard>
       </section>
 
       <section className="public-section">
         <div className="public-section-heading">
-          <span className="eyebrow">How it works</span>
-          <h2>A simple workflow for video checking</h2>
-          <p>Upload a video, wait for processing, then review the result and download your report.</p>
+          <span className="eyebrow">{t('public.home.workflowEyebrow')}</span>
+          <h2>{t('public.home.workflowTitle')}</h2>
+          <p>{t('public.home.workflowText')}</p>
         </div>
         <div className="public-card-grid">
           {capabilities.map((item) => (
-            <AppCard className="public-feature-card" key={item.title}>
+            <AppCard className="public-feature-card" key={item.titleKey}>
               <span className="public-feature-icon">{item.icon}</span>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
+              <h3>{t(item.titleKey)}</h3>
+              <p>{t(item.textKey)}</p>
             </AppCard>
           ))}
         </div>
@@ -93,31 +93,26 @@ export function HomePage() {
 
       <section className="public-section public-split">
         <AppCard className="public-info-card">
-          <span className="eyebrow">Reports</span>
-          <h2>Helpful results with the right level of caution.</h2>
-          <p>
-            Results are probability-based and should be used as guidance. They help you understand risk, but they should
-            not be treated as absolute proof on their own.
-          </p>
+          <span className="eyebrow">{t('public.home.reportsEyebrow')}</span>
+          <h2>{t('public.home.reportsTitle')}</h2>
+          <p>{t('public.home.reportsText')}</p>
         </AppCard>
         <AppCard className="public-info-card">
-          <span className="eyebrow">Account support</span>
-          <h2>Support is available for access, billing, and report questions.</h2>
-          <p>
-            If you need help with your account, payment questions, or a report issue, contact support with your registered email address.
-          </p>
+          <span className="eyebrow">{t('public.home.supportEyebrow')}</span>
+          <h2>{t('public.home.supportTitle')}</h2>
+          <p>{t('public.home.supportText')}</p>
         </AppCard>
       </section>
 
       <section className="public-section">
         <div className="public-section-heading">
-          <span className="eyebrow">Report details</span>
-          <h2>What a completed report can include</h2>
-          <p>Each report is based on the video you upload and the analysis results available for that file.</p>
+          <span className="eyebrow">{t('public.home.detailsEyebrow')}</span>
+          <h2>{t('public.home.detailsTitle')}</h2>
+          <p>{t('public.home.detailsText')}</p>
         </div>
         <AppCard className="public-report-list">
           {reportDetails.map((item) => (
-            <span key={item}><CheckMark />{item}</span>
+            <span key={item}><CheckMark />{t(item)}</span>
           ))}
         </AppCard>
       </section>
@@ -126,146 +121,122 @@ export function HomePage() {
 }
 
 export function AboutPage() {
+  const { t } = useLanguage()
+
   return (
     <PublicDocumentPage
-      eyebrow="About"
-      title="A secure way to check video authenticity."
-      subtitle="sachvideoai helps users understand whether a video shows signs of AI generation or manipulation."
+      eyebrow={t('public.about.eyebrow')}
+      title={t('public.about.title')}
+      subtitle={t('public.about.subtitle')}
     >
-      <PublicDocumentSection title="What we provide">
-        <p>
-          The platform supports secure video upload, processing status tracking, authenticity scoring, metadata review,
-          matching information when available, and downloadable PDF reports.
-        </p>
+      <PublicDocumentSection title={t('public.about.provideTitle')}>
+        <p>{t('public.about.provideText')}</p>
       </PublicDocumentSection>
-      <PublicDocumentSection title="How the review works">
+      <PublicDocumentSection title={t('public.about.reviewTitle')}>
         <ul>
-          <li>You upload a video and confirm that you have the right to submit it.</li>
-          <li>The system processes the file and prepares an authenticity result.</li>
-          <li>The result shows AI/manipulated probability, likely-real probability, confidence, evidence, and metadata details when available.</li>
-          <li>You can download a PDF report for your own records.</li>
+          <li>{t('public.about.stepUpload')}</li>
+          <li>{t('public.about.stepProcess')}</li>
+          <li>{t('public.about.stepResult')}</li>
+          <li>{t('public.about.stepPdf')}</li>
         </ul>
       </PublicDocumentSection>
-      <PublicDocumentSection title="Important limitation">
-        <p>
-          The service produces probability-based guidance. It does not guarantee authenticity, manipulation,
-          authorship, or legal responsibility.
-        </p>
+      <PublicDocumentSection title={t('public.about.limitationTitle')}>
+        <p>{t('public.about.limitationText')}</p>
       </PublicDocumentSection>
     </PublicDocumentPage>
   )
 }
 
 export function ContactPage() {
+  const { t } = useLanguage()
+
   return (
     <PublicDocumentPage
-      eyebrow="Contact"
-      title="Contact sachvideoai"
-      subtitle="For account, payment, report, or general support questions, contact us directly."
+      eyebrow={t('public.contact.eyebrow')}
+      title={t('public.contact.title')}
+      subtitle={t('public.contact.subtitle')}
     >
       <div className="public-contact-grid">
         <AppCard className="public-contact-card">
           <span className="public-feature-icon"><ShieldIcon /></span>
-          <h2>Email support</h2>
-          <p>Send your account, billing, or report question with your registered email address so we can identify your request.</p>
+          <h2>{t('public.contact.emailTitle')}</h2>
+          <p>{t('public.contact.emailText')}</p>
           <a className={buttonClassName('outline')} href={`mailto:${supportEmail}?subject=AI%20Video%20Detection%20support`}>{supportEmail}</a>
         </AppCard>
         <AppCard className="public-contact-card">
           <span className="public-feature-icon"><FileVideoIcon /></span>
-          <h2>Phone support</h2>
-          <p>For urgent account or payment questions, you can contact us by phone during normal support hours.</p>
+          <h2>{t('public.contact.phoneTitle')}</h2>
+          <p>{t('public.contact.phoneText')}</p>
           <a className={buttonClassName('outline')} href={`tel:${supportPhone}`}>{supportPhoneLabel}</a>
         </AppCard>
       </div>
-      <PublicDocumentSection title="Before sending video-related requests">
-        <p>
-          Please do not send sensitive video files through email or chat. Use the secure upload page inside your account
-          and share only the relevant report reference when asking for help.
-        </p>
+      <PublicDocumentSection title={t('public.contact.beforeTitle')}>
+        <p>{t('public.contact.beforeText')}</p>
       </PublicDocumentSection>
     </PublicDocumentPage>
   )
 }
 
 export function PrivacyPolicyPage() {
+  const { t } = useLanguage()
+
   return (
     <PublicDocumentPage
-      eyebrow="Privacy Policy"
-      title="Privacy Policy"
-      subtitle="This policy explains what information is used to provide your account, video analysis, and report features."
+      eyebrow={t('public.privacy.eyebrow')}
+      title={t('public.privacy.title')}
+      subtitle={t('public.privacy.subtitle')}
     >
-      <PublicDocumentSection title="Information we process">
+      <PublicDocumentSection title={t('public.privacy.infoTitle')}>
         <ul>
-          <li>Account information such as name, email address, secure login details, email confirmation state, and account status.</li>
-          <li>Uploaded video files and related file properties such as name, content type, size, format, duration, resolution, FPS, codec, bitrate, encoder, and creation time when available.</li>
-          <li>Analysis data such as AI/manipulated probability, likely-real probability, confidence, verdict, metadata warnings, evidence, matching details, processing status, and report data.</li>
-          <li>Security and account records such as login/session state, password reset requests, email confirmation requests, upload timestamps, and processing status.</li>
+          <li>{t('public.privacy.infoAccount')}</li>
+          <li>{t('public.privacy.infoVideo')}</li>
+          <li>{t('public.privacy.infoAnalysis')}</li>
+          <li>{t('public.privacy.infoSecurity')}</li>
         </ul>
       </PublicDocumentSection>
-      <PublicDocumentSection title="How information is used">
-        <p>
-          Information is used to create and secure accounts, process uploaded videos, produce authenticity reports,
-          prevent misuse, improve reliability, and provide customer support.
-        </p>
+      <PublicDocumentSection title={t('public.privacy.useTitle')}>
+        <p>{t('public.privacy.useText')}</p>
       </PublicDocumentSection>
-      <PublicDocumentSection title="Automated analysis services">
-        <p>
-          The service may use automated analysis tools to help check authenticity signals. These results are used to prepare
-          the report shown inside your account.
-        </p>
+      <PublicDocumentSection title={t('public.privacy.automatedTitle')}>
+        <p>{t('public.privacy.automatedText')}</p>
       </PublicDocumentSection>
-      <PublicDocumentSection title="Data protection">
-        <p>
-          Uploaded videos are kept inside protected application storage and are not publicly visible. Other users cannot
-          view, download, or review your uploaded videos.
-        </p>
+      <PublicDocumentSection title={t('public.privacy.protectionTitle')}>
+        <p>{t('public.privacy.protectionText')}</p>
       </PublicDocumentSection>
-      <PublicDocumentSection title="Your choices">
-        <p>
-          You can contact support for account, billing, or privacy questions. Account access may be restricted when required
-          for security, misuse prevention, or policy reasons.
-        </p>
+      <PublicDocumentSection title={t('public.privacy.choicesTitle')}>
+        <p>{t('public.privacy.choicesText')}</p>
       </PublicDocumentSection>
     </PublicDocumentPage>
   )
 }
 
 export function TermsAndConditionsPage() {
+  const { t } = useLanguage()
+
   return (
     <PublicDocumentPage
-      eyebrow="Terms & Conditions"
-      title="Terms & Conditions"
-      subtitle="These terms describe the expected use of sachvideoai and the limits of the authenticity reports."
+      eyebrow={t('public.terms.eyebrow')}
+      title={t('public.terms.title')}
+      subtitle={t('public.terms.subtitle')}
     >
-      <PublicDocumentSection title="Use of the service">
+      <PublicDocumentSection title={t('public.terms.useTitle')}>
         <ul>
-          <li>You must only upload videos that you have the right to submit for analysis.</li>
-          <li>You are responsible for using reports with proper context before relying on them.</li>
-          <li>You must not use the service to upload unlawful, infringing, abusive, or unauthorized content.</li>
+          <li>{t('public.terms.useUpload')}</li>
+          <li>{t('public.terms.useContext')}</li>
+          <li>{t('public.terms.useMisuse')}</li>
         </ul>
       </PublicDocumentSection>
-      <PublicDocumentSection title="Reports and analysis">
-        <p>
-          Authenticity results are probability-based guidance. They are not absolute proof that a video is real, AI-generated,
-          manipulated, authored by a specific person, or legally attributable to any party.
-        </p>
+      <PublicDocumentSection title={t('public.terms.reportsTitle')}>
+        <p>{t('public.terms.reportsText')}</p>
       </PublicDocumentSection>
-      <PublicDocumentSection title="Accounts and access">
-        <p>
-          Users must maintain accurate account information and protect their login credentials. The platform may require email confirmation,
-          strong passwords, session expiration, and access restrictions for security.
-        </p>
+      <PublicDocumentSection title={t('public.terms.accountsTitle')}>
+        <p>{t('public.terms.accountsText')}</p>
       </PublicDocumentSection>
-      <PublicDocumentSection title="Payments and subscriptions">
-        <p>
-          Paid access, subscription limits, credits, invoices, refunds, and billing support will be handled according to the
-          plan and checkout terms shown when paid plans are available.
-        </p>
+      <PublicDocumentSection title={t('public.terms.paymentsTitle')}>
+        <p>{t('public.terms.paymentsText')}</p>
       </PublicDocumentSection>
-      <PublicDocumentSection title="Service availability">
-        <p>
-          Processing time and result availability can vary based on video size, queue state, analysis workload, and system health.
-        </p>
+      <PublicDocumentSection title={t('public.terms.availabilityTitle')}>
+        <p>{t('public.terms.availabilityText')}</p>
       </PublicDocumentSection>
     </PublicDocumentPage>
   )

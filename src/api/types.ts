@@ -118,6 +118,7 @@ export type AnalysisResult = {
   warnings: string[]
   provider?: string
   providerMode?: string
+  scanMode?: string
   finalDecisionSource?: string
   externalProviderName?: string
   externalProviderStatus?: string

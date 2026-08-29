@@ -1,5 +1,5 @@
 import type { AxiosProgressEvent } from 'axios'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient, getApiErrorMessage } from '../api/client'
 import type { ApiResponse, UploadVideoResponse } from '../api/types'
@@ -14,8 +14,12 @@ import { FileVideoIcon, ShieldIcon, UploadIcon, XIcon } from '../components/ui/i
 import { useLanguage } from '../i18n/LanguageContext'
 import { toVideoRouteId } from '../routes/videoRouteId'
 
-const maxSizeLabel = '500 MB'
-const maxUploadSizeBytes = 524_288_000
+type Translate = (key: string, values?: Record<string, string | number>) => string
+
+const smartScanMaxSizeLabel = '200 MB'
+const detailedScanMaxSizeLabel = '500 MB'
+const smartScanMaxUploadSizeBytes = 209_715_200
+const detailedScanMaxUploadSizeBytes = 524_288_000
 const formats = ['MP4', 'MOV', 'AVI', 'MKV', 'WebM']
 
 export function UploadVideoPage() {
@@ -31,6 +35,24 @@ export function UploadVideoPage() {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [isStartingAnalysis, setIsStartingAnalysis] = useState(false)
+  const selectedMaxUploadSizeBytes = getMaxUploadSizeBytes(analysisMode)
+  const selectedMaxSizeLabel = getMaxSizeLabel(analysisMode)
+  const selectedScanLabel = analysisMode === 'Detailed' ? t('processing.scanTypeDetailed') : t('processing.scanTypeSmart')
+  const fileExceedsSelectedModeLimit = Boolean(file && file.size > selectedMaxUploadSizeBytes)
+
+  useEffect(() => {
+    if (!file || isStartingAnalysis) {
+      return
+    }
+
+    if (file.size > selectedMaxUploadSizeBytes) {
+      setError(getFileSizeError(selectedScanLabel, selectedMaxSizeLabel, t))
+      setProgress(0)
+      return
+    }
+
+    setError(null)
+  }, [file, isStartingAnalysis, selectedMaxSizeLabel, selectedMaxUploadSizeBytes, selectedScanLabel])
 
   function selectFile(nextFile?: File) {
     if (isStartingAnalysis) {
@@ -38,9 +60,9 @@ export function UploadVideoPage() {
     }
 
     if (nextFile) {
-      if (nextFile.size > maxUploadSizeBytes) {
+      if (nextFile.size > selectedMaxUploadSizeBytes) {
         setFile(null)
-        setError('The maximum allowed video size is 500 MB.')
+        setError(getFileSizeError(selectedScanLabel, selectedMaxSizeLabel, t))
         setProgress(0)
         return
       }
@@ -66,8 +88,28 @@ export function UploadVideoPage() {
     }
   }
 
+  function handleAnalysisModeChange(nextMode: string) {
+    if (isStartingAnalysis) {
+      return
+    }
+
+    setAnalysisMode(nextMode)
+    setFile(null)
+    setError(null)
+    setProgress(0)
+    if (inputRef.current) {
+      inputRef.current.value = ''
+    }
+  }
+
   async function handleUpload() {
     if (!file || !consentAccepted || !auth.isAuthenticated || isStartingAnalysis) {
+      return
+    }
+
+    if (file.size > selectedMaxUploadSizeBytes) {
+      setError(getFileSizeError(selectedScanLabel, selectedMaxSizeLabel, t))
+      setProgress(0)
       return
     }
 
@@ -175,7 +217,7 @@ export function UploadVideoPage() {
                 <span key={format}>{format}</span>
               ))}
             </div>
-            <span className="upload-limit">{t('upload.maxSize', { size: maxSizeLabel })}</span>
+            <span className="upload-limit">{t('upload.maxSize', { size: selectedMaxSizeLabel })}</span>
           </div>
           {file && (
             <div className="selected-file">
@@ -219,7 +261,7 @@ export function UploadVideoPage() {
                   name="analysisMode"
                   value={mode}
                   checked={analysisMode === mode}
-                  onChange={(event) => setAnalysisMode(event.target.value)}
+                  onChange={(event) => handleAnalysisModeChange(event.target.value)}
                 />
                 <strong>{label}</strong>
                 <span>{description}</span>
@@ -264,7 +306,7 @@ export function UploadVideoPage() {
             type="button"
             fullWidth
             loading={isStartingAnalysis}
-            disabled={!file || !consentAccepted || !auth.isAuthenticated || isStartingAnalysis}
+            disabled={!file || !consentAccepted || !auth.isAuthenticated || isStartingAnalysis || fileExceedsSelectedModeLimit}
             onClick={handleUpload}
             icon={<UploadIcon />}
           >
@@ -274,4 +316,16 @@ export function UploadVideoPage() {
       </div>
     </main>
   )
+}
+
+function getMaxUploadSizeBytes(analysisMode: string) {
+  return analysisMode === 'Detailed' ? detailedScanMaxUploadSizeBytes : smartScanMaxUploadSizeBytes
+}
+
+function getMaxSizeLabel(analysisMode: string) {
+  return analysisMode === 'Detailed' ? detailedScanMaxSizeLabel : smartScanMaxSizeLabel
+}
+
+function getFileSizeError(scanLabel: string, maxSizeLabel: string, t: Translate) {
+  return t('upload.maxSizeError', { scan: scanLabel, size: maxSizeLabel })
 }

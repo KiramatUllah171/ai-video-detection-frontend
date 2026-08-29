@@ -9,11 +9,14 @@ import { LoadingState } from '../components/ui/LoadingState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { UserIcon } from '../components/ui/icons'
+import { useLanguage } from '../i18n/LanguageContext'
+import { localizeRoleName } from '../i18n/localizeDynamicText'
 import { formatAdminDate } from './adminUtils'
 
 const pageSize = 20
 
 export function AdminUsersPage() {
+  const { language, t } = useLanguage()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -36,34 +39,34 @@ export function AdminUsersPage() {
   return (
     <main className="page admin-page">
       <PageHeader
-        eyebrow="Admin console"
-        title="User management"
-        subtitle="Review accounts, email confirmation, upload volume, and disable access when required."
-        action={<span className="hero-pill light"><UserIcon />{usersQuery.data?.totalCount.toLocaleString() ?? 0} users</span>}
+        eyebrow={t('admin.console')}
+        title={t('admin.users.title')}
+        subtitle={t('admin.users.subtitle')}
+        action={<span className="hero-pill light"><UserIcon />{t('admin.users.count', { count: usersQuery.data?.totalCount.toLocaleString() ?? 0 })}</span>}
       />
 
       <AppCard className="admin-section-card admin-table-card">
         <div className="card-header compact">
           <div>
-            <h2>Accounts</h2>
-            <p>Filter accounts and manage access status.</p>
+            <h2>{t('admin.users.accounts')}</h2>
+            <p>{t('admin.users.accountsSubtitle')}</p>
           </div>
         </div>
 
         <div className="admin-filter-grid two">
           <label>
-            <span>Search users</span>
+            <span>{t('admin.users.search')}</span>
             <input
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value)
                 setPage(1)
               }}
-              placeholder="Name or email"
+              placeholder={t('admin.users.searchPlaceholder')}
             />
           </label>
           <label>
-            <span>Status</span>
+            <span>{t('admin.users.status')}</span>
             <select
               value={status}
               onChange={(event) => {
@@ -71,30 +74,30 @@ export function AdminUsersPage() {
                 setPage(1)
               }}
             >
-              <option value="">All users</option>
-              <option value="active">Active</option>
-              <option value="disabled">Disabled</option>
-              <option value="unconfirmed">Email unconfirmed</option>
+              <option value="">{t('admin.users.all')}</option>
+              <option value="active">{t('status.active')}</option>
+              <option value="disabled">{t('status.disabled')}</option>
+              <option value="unconfirmed">{t('admin.users.emailUnconfirmed')}</option>
             </select>
           </label>
         </div>
 
-        {usersQuery.isLoading && <LoadingState text="Loading users..." />}
-        {usersQuery.error && <ErrorMessage message={getApiErrorMessage(usersQuery.error)} />}
-        {statusMutation.error && <ErrorMessage message={getApiErrorMessage(statusMutation.error)} />}
+        {usersQuery.isLoading && <LoadingState text={t('admin.users.loading')} />}
+        {usersQuery.error && <ErrorMessage message={getApiErrorMessage(usersQuery.error, t)} />}
+        {statusMutation.error && <ErrorMessage message={getApiErrorMessage(statusMutation.error, t)} />}
 
         {users.length > 0 && (
           <div className="table-shell">
             <table className="premium-table admin-table admin-table-relaxed">
               <thead>
                 <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th>Account</th>
-                  <th>Email</th>
-                  <th>Videos</th>
-                  <th>Created</th>
-                  <th>Action</th>
+                  <th>{t('admin.users.user')}</th>
+                  <th>{t('admin.users.role')}</th>
+                  <th>{t('admin.users.account')}</th>
+                  <th>{t('admin.users.email')}</th>
+                  <th>{t('admin.users.videos')}</th>
+                  <th>{t('admin.users.created')}</th>
+                  <th>{t('admin.users.action')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -109,17 +112,17 @@ export function AdminUsersPage() {
                         </div>
                       </div>
                     </td>
-                    <td>{user.role}</td>
+                    <td>{localizeRoleName(user.role, t)}</td>
                     <td><StatusBadge status={user.isActive ? 'Active' : 'Disabled'} /></td>
                     <td><StatusBadge status={user.emailConfirmed ? 'Confirmed' : 'Unconfirmed'} /></td>
                     <td>
                       <div className="admin-mini-counts">
-                        <span>{user.totalVideos} total</span>
-                        <span>{user.completedVideos} completed</span>
-                        <span>{user.failedVideos} failed</span>
+                        <span>{t('admin.users.totalVideos', { count: user.totalVideos })}</span>
+                        <span>{t('admin.users.completedVideos', { count: user.completedVideos })}</span>
+                        <span>{t('admin.users.failedVideos', { count: user.failedVideos })}</span>
                       </div>
                     </td>
-                    <td>{formatAdminDate(user.createdAt)}</td>
+                    <td>{formatAdminDate(user.createdAt, t('common.notAvailable'), language)}</td>
                     <td>
                       <UserStatusButton
                         user={user}
@@ -134,7 +137,7 @@ export function AdminUsersPage() {
           </div>
         )}
 
-        {!usersQuery.isLoading && users.length === 0 && <p className="muted-copy">No users matched this filter.</p>}
+        {!usersQuery.isLoading && users.length === 0 && <p className="muted-copy">{t('admin.users.empty')}</p>}
         <AdminPagination
           page={usersQuery.data?.page ?? page}
           totalPages={usersQuery.data?.totalPages ?? 1}
@@ -146,20 +149,23 @@ export function AdminUsersPage() {
 }
 
 function UserStatusButton({ user, busy, onToggle }: { user: AdminUserListItem; busy: boolean; onToggle: () => void }) {
-  const label = user.isActive ? 'Disable user' : 'Enable user'
+  const { t } = useLanguage()
+  const label = user.isActive ? t('admin.users.disable') : t('admin.users.enable')
   return (
     <button type="button" className={buttonClassName(user.isActive ? 'outline' : 'primary')} onClick={onToggle} disabled={busy}>
-      {busy ? 'Updating...' : label}
+      {busy ? t('admin.users.updating') : label}
     </button>
   )
 }
 
 function AdminPagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (page: number) => void }) {
+  const { t } = useLanguage()
+
   return (
     <div className="admin-pagination">
-      <button type="button" className={buttonClassName('outline')} disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Previous</button>
-      <span>Page {page} of {Math.max(1, totalPages)}</span>
-      <button type="button" className={buttonClassName('outline')} disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Next</button>
+      <button type="button" className={buttonClassName('outline')} disabled={page <= 1} onClick={() => onPageChange(page - 1)}>{t('common.previous')}</button>
+      <span>{t('common.pageOf', { page, totalPages: Math.max(1, totalPages) })}</span>
+      <button type="button" className={buttonClassName('outline')} disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>{t('common.next')}</button>
     </div>
   )
 }

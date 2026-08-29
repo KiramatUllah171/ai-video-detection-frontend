@@ -1,3 +1,5 @@
+import { useLanguage } from '../../i18n/LanguageContext'
+
 type ProgressBarProps = {
   value?: number | null
   status?: string | null
@@ -5,6 +7,7 @@ type ProgressBarProps = {
 }
 
 export function ProgressBar({ value = 0, status, showLabel = true }: ProgressBarProps) {
+  const { t } = useLanguage()
   const safeValue = Math.max(0, Math.min(100, value ?? 0))
   const normalized = status?.toLowerCase()
   const tone = normalized === 'failed'
@@ -18,7 +21,7 @@ export function ProgressBar({ value = 0, status, showLabel = true }: ProgressBar
           : 'info'
 
   return (
-    <div className="progress-wrap" aria-label={`Progress ${safeValue}%`}>
+    <div className="progress-wrap" aria-label={t('common.progressPercent', { value: safeValue })}>
       <div className="progress-track">
         <div className={`progress-fill progress-${tone}`} style={{ width: `${safeValue}%` }} />
       </div>

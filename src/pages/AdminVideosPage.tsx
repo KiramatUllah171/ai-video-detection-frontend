@@ -10,12 +10,15 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { FileVideoIcon, VideoIcon } from '../components/ui/icons'
+import { useLanguage } from '../i18n/LanguageContext'
+import { localizeVerdict } from '../i18n/localizeDynamicText'
 import { toVideoRouteId } from '../routes/videoRouteId'
 import { formatAdminDate, formatFileSize, formatNullable } from './adminUtils'
 
 const pageSize = 20
 
 export function AdminVideosPage() {
+  const { language, t } = useLanguage()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
@@ -31,34 +34,34 @@ export function AdminVideosPage() {
   return (
     <main className="page admin-page">
       <PageHeader
-        eyebrow="Admin console"
-        title="Video review"
-        subtitle="Open any uploaded video, inspect owner details, playback, processing jobs, detection output, evidence, and origin matches."
-        action={<span className="hero-pill light"><VideoIcon />{videosQuery.data?.totalCount.toLocaleString() ?? 0} videos</span>}
+        eyebrow={t('admin.console')}
+        title={t('admin.videos.title')}
+        subtitle={t('admin.videos.subtitle')}
+        action={<span className="hero-pill light"><VideoIcon />{t('admin.videos.count', { count: videosQuery.data?.totalCount.toLocaleString() ?? 0 })}</span>}
       />
 
       <AppCard className="admin-section-card admin-table-card">
         <div className="card-header compact">
           <div>
-            <h2>Uploaded videos</h2>
-            <p>Search all uploaded media and open an admin review when required.</p>
+            <h2>{t('admin.videos.uploaded')}</h2>
+            <p>{t('admin.videos.uploadedSubtitle')}</p>
           </div>
         </div>
 
         <div className="admin-filter-grid two">
           <label>
-            <span>Search videos</span>
+            <span>{t('admin.videos.search')}</span>
             <input
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value)
                 setPage(1)
               }}
-              placeholder="File name, owner, or email"
+              placeholder={t('admin.videos.searchPlaceholder')}
             />
           </label>
           <label>
-            <span>Status</span>
+            <span>{t('admin.users.status')}</span>
             <select
               value={status}
               onChange={(event) => {
@@ -66,30 +69,30 @@ export function AdminVideosPage() {
                 setPage(1)
               }}
             >
-              <option value="">All videos</option>
-              <option value="Queued">Queued</option>
-              <option value="Processing">Processing</option>
-              <option value="Completed">Completed</option>
-              <option value="Failed">Failed</option>
+              <option value="">{t('admin.videos.all')}</option>
+              <option value="Queued">{t('status.queued')}</option>
+              <option value="Processing">{t('status.processing')}</option>
+              <option value="Completed">{t('status.completed')}</option>
+              <option value="Failed">{t('status.failed')}</option>
             </select>
           </label>
         </div>
 
-        {videosQuery.isLoading && <LoadingState text="Loading videos..." />}
-        {videosQuery.error && <ErrorMessage message={getApiErrorMessage(videosQuery.error)} />}
+        {videosQuery.isLoading && <LoadingState text={t('admin.videos.loading')} />}
+        {videosQuery.error && <ErrorMessage message={getApiErrorMessage(videosQuery.error, t)} />}
 
         {videos.length > 0 && (
           <div className="table-shell">
             <table className="premium-table admin-table admin-table-relaxed">
               <thead>
                 <tr>
-                  <th>Video</th>
-                  <th>Owner</th>
-                  <th>Status</th>
-                  <th>Job</th>
-                  <th>Result</th>
-                  <th>Uploaded</th>
-                  <th>Action</th>
+                  <th>{t('admin.videos.video')}</th>
+                  <th>{t('admin.videos.owner')}</th>
+                  <th>{t('admin.users.status')}</th>
+                  <th>{t('admin.videos.job')}</th>
+                  <th>{t('admin.videos.result')}</th>
+                  <th>{t('admin.videos.uploadedAt')}</th>
+                  <th>{t('admin.users.action')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -100,7 +103,7 @@ export function AdminVideosPage() {
                         <span className="file-icon"><FileVideoIcon /></span>
                         <div>
                           <strong>{video.originalName}</strong>
-                          <span>{formatFileSize(video.fileSize)} • {formatNullable(video.contentType)}</span>
+                          <span>{formatFileSize(video.fileSize, t('common.notAvailable'))} - {formatNullable(video.contentType, t('common.notAvailable'))}</span>
                         </div>
                       </div>
                     </td>
@@ -117,14 +120,14 @@ export function AdminVideosPage() {
                     </td>
                     <td>
                       <div className="admin-mini-counts">
-                        <span>{video.finalVerdict ?? 'Not available'}</span>
-                        <span>{video.aiGeneratedProbability !== undefined ? `${video.aiGeneratedProbability.toFixed(1)}% AI` : 'No score'}</span>
+                        <span>{localizeVerdict(video.finalVerdict, t)}</span>
+                        <span>{isFiniteNumber(video.aiGeneratedProbability) ? `${video.aiGeneratedProbability.toFixed(1)}% ${t('admin.videos.aiSuffix')}` : t('admin.videos.noScore')}</span>
                       </div>
                     </td>
-                    <td>{formatAdminDate(video.createdAt)}</td>
+                    <td>{formatAdminDate(video.createdAt, t('common.notAvailable'), language)}</td>
                     <td>
                       <Link className={buttonClassName('primary')} to={`/admin/videos/${toVideoRouteId(video.videoId)}`}>
-                        Review
+                        {t('admin.videos.review')}
                       </Link>
                     </td>
                   </tr>
@@ -134,13 +137,17 @@ export function AdminVideosPage() {
           </div>
         )}
 
-        {!videosQuery.isLoading && videos.length === 0 && <p className="muted-copy">No videos matched this filter.</p>}
+        {!videosQuery.isLoading && videos.length === 0 && <p className="muted-copy">{t('admin.videos.empty')}</p>}
         <div className="admin-pagination">
-          <button type="button" className={buttonClassName('outline')} disabled={(videosQuery.data?.page ?? page) <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-          <span>Page {videosQuery.data?.page ?? page} of {Math.max(1, videosQuery.data?.totalPages ?? 1)}</span>
-          <button type="button" className={buttonClassName('outline')} disabled={(videosQuery.data?.page ?? page) >= (videosQuery.data?.totalPages ?? 1)} onClick={() => setPage(page + 1)}>Next</button>
+          <button type="button" className={buttonClassName('outline')} disabled={(videosQuery.data?.page ?? page) <= 1} onClick={() => setPage(page - 1)}>{t('common.previous')}</button>
+          <span>{t('common.pageOf', { page: videosQuery.data?.page ?? page, totalPages: Math.max(1, videosQuery.data?.totalPages ?? 1) })}</span>
+          <button type="button" className={buttonClassName('outline')} disabled={(videosQuery.data?.page ?? page) >= (videosQuery.data?.totalPages ?? 1)} onClick={() => setPage(page + 1)}>{t('common.next')}</button>
         </div>
       </AppCard>
     </main>
   )
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
 }
