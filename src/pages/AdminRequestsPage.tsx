@@ -10,12 +10,14 @@ import { LoadingState } from '../components/ui/LoadingState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon } from '../components/ui/icons'
+import { useLanguage } from '../i18n/LanguageContext'
 import { toVideoRouteId } from '../routes/videoRouteId'
 import { formatAdminDate } from './adminUtils'
 
 const pageSize = 15
 
 export function AdminRequestsPage() {
+  const { language, t } = useLanguage()
   const [page, setPage] = useState(1)
   const [detailsPage, setDetailsPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -54,50 +56,50 @@ export function AdminRequestsPage() {
   return (
     <main className="page admin-page">
       <PageHeader
-        eyebrow="Admin console"
-        title="External requests"
-        subtitle="Review request usage by user first, then open complete request history only when needed."
-        action={<span className="hero-pill light"><ActivityIcon />Request monitor</span>}
+        eyebrow={t('admin.console')}
+        title={t('admin.requests.title')}
+        subtitle={t('admin.requests.subtitle')}
+        action={<span className="hero-pill light"><ActivityIcon />{t('admin.requests.monitor')}</span>}
       />
 
       <AppCard className="admin-section-card admin-table-card">
         <div className="card-header compact">
           <div>
-            <h2>Users with external requests</h2>
-            <p>Only user-level request summaries are loaded here.</p>
+            <h2>{t('admin.requests.usersTitle')}</h2>
+            <p>{t('admin.requests.usersSubtitle')}</p>
           </div>
         </div>
 
         <div className="admin-filter-grid">
           <label>
-            <span>Search users</span>
+            <span>{t('admin.users.search')}</span>
             <input
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value)
                 setPage(1)
               }}
-              placeholder="Name or email"
+              placeholder={t('admin.users.searchPlaceholder')}
             />
           </label>
         </div>
 
-        {usersQuery.isLoading && <LoadingState text="Loading request users..." />}
-        {usersQuery.error && <ErrorMessage message={getApiErrorMessage(usersQuery.error)} />}
+        {usersQuery.isLoading && <LoadingState text={t('admin.requests.loadingUsers')} />}
+        {usersQuery.error && <ErrorMessage message={getApiErrorMessage(usersQuery.error, t)} />}
 
         {users.length > 0 && (
           <div className="table-shell">
             <table className="premium-table admin-table admin-table-relaxed">
               <thead>
                 <tr>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Total</th>
-                  <th>Pending</th>
-                  <th>Completed</th>
-                  <th>Failed</th>
-                  <th>Latest request</th>
-                  <th>Action</th>
+                  <th>{t('admin.users.user')}</th>
+                  <th>{t('admin.users.email')}</th>
+                  <th>{t('common.total')}</th>
+                  <th>{t('common.pending')}</th>
+                  <th>{t('common.completed')}</th>
+                  <th>{t('common.failed')}</th>
+                  <th>{t('admin.requests.latest')}</th>
+                  <th>{t('admin.users.action')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -106,7 +108,7 @@ export function AdminRequestsPage() {
                     <td>
                       <div className="admin-user-cell">
                         <span className="avatar-initial" aria-hidden="true">{(user.name || user.email).charAt(0).toUpperCase()}</span>
-                        <strong>{user.name || 'Not available'}</strong>
+                        <strong>{user.name || t('common.notAvailable')}</strong>
                       </div>
                     </td>
                     <td>{user.email}</td>
@@ -116,13 +118,13 @@ export function AdminRequestsPage() {
                     <td>{user.failedRequests.toLocaleString()}</td>
                     <td>
                       <div className="admin-mini-counts">
-                        <span>{formatAdminDate(user.latestRequestAt)}</span>
-                        <span>{user.latestVideoName ?? 'No video name'}</span>
+                        <span>{formatAdminDate(user.latestRequestAt, t('common.notAvailable'), language)}</span>
+                        <span>{user.latestVideoName ?? t('admin.requests.noVideoName')}</span>
                       </div>
                     </td>
                     <td>
                       <button type="button" className={buttonClassName('primary')} onClick={() => selectUser(user)}>
-                        Review complete requests
+                        {t('admin.requests.reviewComplete')}
                       </button>
                     </td>
                   </tr>
@@ -132,7 +134,7 @@ export function AdminRequestsPage() {
           </div>
         )}
 
-        {!usersQuery.isLoading && users.length === 0 && <p className="muted-copy">No external request activity found.</p>}
+        {!usersQuery.isLoading && users.length === 0 && <p className="muted-copy">{t('admin.requests.emptyUsers')}</p>}
         <Pagination page={usersQuery.data?.page ?? page} totalPages={usersQuery.data?.totalPages ?? 1} onPageChange={setPage} />
       </AppCard>
 
@@ -141,14 +143,14 @@ export function AdminRequestsPage() {
           <div className="card-header compact admin-detail-header">
             <div>
               <h2>{selectedUser.name}</h2>
-              <p>{selectedUser.email} request history.</p>
+              <p>{t('admin.requests.history', { email: selectedUser.email })}</p>
             </div>
-            <button type="button" className={buttonClassName('outline')} onClick={() => setSelectedUser(null)}>Close details</button>
+            <button type="button" className={buttonClassName('outline')} onClick={() => setSelectedUser(null)}>{t('admin.requests.closeDetails')}</button>
           </div>
 
           <div className="admin-filter-grid two admin-request-detail-controls">
             <label>
-              <span>Status</span>
+              <span>{t('admin.users.status')}</span>
               <select
                 value={requestStatus}
                 onChange={(event) => {
@@ -156,36 +158,36 @@ export function AdminRequestsPage() {
                   setDetailsPage(1)
                 }}
               >
-                <option value="">All requests</option>
-                <option value="pending">Pending</option>
-                <option value="success">Success</option>
-                <option value="failed">Failed</option>
+                <option value="">{t('admin.requests.all')}</option>
+                <option value="pending">{t('common.pending')}</option>
+                <option value="success">{t('status.success')}</option>
+                <option value="failed">{t('common.failed')}</option>
               </select>
             </label>
             <div className="admin-request-summary-strip">
-              <span><strong>{selectedUser.totalRequests}</strong>Total</span>
-              <span><strong>{selectedUser.pendingRequests}</strong>Pending</span>
-              <span><strong>{selectedUser.completedRequests}</strong>Completed</span>
-              <span><strong>{selectedUser.failedRequests}</strong>Failed</span>
+              <span><strong>{selectedUser.totalRequests}</strong>{t('common.total')}</span>
+              <span><strong>{selectedUser.pendingRequests}</strong>{t('common.pending')}</span>
+              <span><strong>{selectedUser.completedRequests}</strong>{t('common.completed')}</span>
+              <span><strong>{selectedUser.failedRequests}</strong>{t('common.failed')}</span>
             </div>
           </div>
 
-          {requestsQuery.isLoading && <LoadingState text="Loading complete request history..." />}
-          {requestsQuery.error && <ErrorMessage message={getApiErrorMessage(requestsQuery.error)} />}
+          {requestsQuery.isLoading && <LoadingState text={t('admin.requests.loadingHistory')} />}
+          {requestsQuery.error && <ErrorMessage message={getApiErrorMessage(requestsQuery.error, t)} />}
 
           {requests.length > 0 && (
             <div className="table-shell">
               <table className="premium-table admin-table admin-table-relaxed">
                 <thead>
                   <tr>
-                    <th>Provider</th>
-                    <th>Video</th>
-                    <th>Status</th>
-                    <th>HTTP</th>
-                    <th>Duration</th>
-                    <th>Started</th>
-                    <th>Completed</th>
-                    <th>Action</th>
+                    <th>{t('admin.requests.provider')}</th>
+                    <th>{t('admin.videos.video')}</th>
+                    <th>{t('admin.users.status')}</th>
+                    <th>{t('admin.requests.http')}</th>
+                    <th>{t('admin.requests.duration')}</th>
+                    <th>{t('admin.requests.started')}</th>
+                    <th>{t('admin.requests.completedAt')}</th>
+                    <th>{t('admin.users.action')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -199,13 +201,13 @@ export function AdminRequestsPage() {
                       </td>
                       <td>{request.videoName}</td>
                       <td><StatusBadge status={request.status} /></td>
-                      <td>{request.httpStatusCode ?? 'Not available'}</td>
-                      <td>{request.durationMs ? `${request.durationMs} ms` : 'Not available'}</td>
-                      <td>{formatAdminDate(request.requestStartedAt)}</td>
-                      <td>{formatAdminDate(request.requestCompletedAt)}</td>
+                      <td>{request.httpStatusCode ?? t('common.notAvailable')}</td>
+                      <td>{request.durationMs ? t('common.ms', { value: request.durationMs }) : t('common.notAvailable')}</td>
+                      <td>{formatAdminDate(request.requestStartedAt, t('common.notAvailable'), language)}</td>
+                      <td>{formatAdminDate(request.requestCompletedAt, t('common.notAvailable'), language)}</td>
                       <td>
                         <Link className={buttonClassName('outline')} to={`/admin/videos/${toVideoRouteId(request.videoId)}`}>
-                          Review video
+                          {t('admin.requests.reviewVideo')}
                         </Link>
                       </td>
                     </tr>
@@ -215,7 +217,7 @@ export function AdminRequestsPage() {
             </div>
           )}
 
-          {!requestsQuery.isLoading && requests.length === 0 && <p className="muted-copy">No request records matched this filter.</p>}
+          {!requestsQuery.isLoading && requests.length === 0 && <p className="muted-copy">{t('admin.requests.emptyRecords')}</p>}
           <Pagination page={requestsQuery.data?.page ?? detailsPage} totalPages={requestsQuery.data?.totalPages ?? 1} onPageChange={setDetailsPage} />
         </AppCard>
       )}
@@ -224,11 +226,13 @@ export function AdminRequestsPage() {
 }
 
 function Pagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (page: number) => void }) {
+  const { t } = useLanguage()
+
   return (
     <div className="admin-pagination">
-      <button type="button" className={buttonClassName('outline')} disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Previous</button>
-      <span>Page {page} of {Math.max(1, totalPages)}</span>
-      <button type="button" className={buttonClassName('outline')} disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Next</button>
+      <button type="button" className={buttonClassName('outline')} disabled={page <= 1} onClick={() => onPageChange(page - 1)}>{t('common.previous')}</button>
+      <span>{t('common.pageOf', { page, totalPages: Math.max(1, totalPages) })}</span>
+      <button type="button" className={buttonClassName('outline')} disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>{t('common.next')}</button>
     </div>
   )
 }

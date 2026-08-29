@@ -1,16 +1,17 @@
-import dayjs from 'dayjs'
+import type { LanguageCode } from '../i18n/LanguageContext'
+import { formatLocalizedDateShort, formatLocalizedDateTime } from '../i18n/formatDate'
 
-export function formatAdminDate(value?: string) {
-  return value ? dayjs(value).format('MMM D, YYYY h:mm A') : 'Not available'
+export function formatAdminDate(value?: string, fallback = 'Not available', language: LanguageCode = 'en') {
+  return formatLocalizedDateTime(value, language, fallback)
 }
 
-export function formatAdminDateShort(value?: string) {
-  return value ? dayjs(value).format('MMM D, YYYY') : 'Not available'
+export function formatAdminDateShort(value?: string, fallback = 'Not available', language: LanguageCode = 'en') {
+  return formatLocalizedDateShort(value, language, fallback)
 }
 
-export function formatFileSize(bytes: number) {
+export function formatFileSize(bytes: number, fallback = 'Not available') {
   if (!Number.isFinite(bytes)) {
-    return 'Not available'
+    return fallback
   }
 
   if (bytes < 1024 * 1024) {
@@ -24,17 +25,17 @@ export function formatFileSize(bytes: number) {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
-export function formatPercent(value?: number, scale = 1) {
+export function formatPercent(value?: number, scale = 1, fallback = 'Not available') {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return 'Not available'
+    return fallback
   }
 
   return `${(value * scale).toFixed(1)}%`
 }
 
-export function formatNullable(value?: string | number | null) {
+export function formatNullable(value?: string | number | null, fallback = 'Not available') {
   if (value === undefined || value === null || value === '') {
-    return 'Not available'
+    return fallback
   }
 
   return String(value)

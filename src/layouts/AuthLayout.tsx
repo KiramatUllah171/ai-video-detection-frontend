@@ -38,10 +38,10 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             ))}
           </div>
           <p className="auth-security-note">{t('auth.copyright')}</p>
-          <nav className="auth-legal-links" aria-label="Legal links">
-            <Link to="/">Home</Link>
-            <Link to="/privacy-policy">Privacy Policy</Link>
-            <Link to="/terms-and-conditions">Terms & Conditions</Link>
+          <nav className="auth-legal-links" aria-label={t('auth.legalLinks')}>
+            <Link to="/">{t('public.nav.home')}</Link>
+            <Link to="/privacy-policy">{t('public.nav.privacy')}</Link>
+            <Link to="/terms-and-conditions">{t('public.nav.terms')}</Link>
           </nav>
         </div>
       </section>

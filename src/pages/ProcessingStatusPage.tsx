@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import dayjs from 'dayjs'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiClient, cancelAnalysis, getAnalysisResult, getApiErrorMessage, pauseAnalysis, reanalyzeVideo, resumeAnalysis, retryAnalysis } from '../api/client'
@@ -14,7 +13,9 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon, AlertCircleIcon, CheckCircleIcon, ClockIcon, FileVideoIcon } from '../components/ui/icons'
-import { useLanguage } from '../i18n/LanguageContext'
+import { useLanguage, type LanguageCode } from '../i18n/LanguageContext'
+import { formatLocalizedDateTime } from '../i18n/formatDate'
+import { localizeDisplayMessage } from '../i18n/localizeDynamicText'
 import { fromVideoRouteId, toVideoRouteId } from '../routes/videoRouteId'
 
 export function ProcessingStatusPage() {
@@ -22,7 +23,7 @@ export function ProcessingStatusPage() {
   const videoId = fromVideoRouteId(routeVideoId)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { t } = useLanguage()
+  const { language, t } = useLanguage()
   const redirectStartedRef = useRef(false)
   const [retryLockedJobId, setRetryLockedJobId] = useState<number | null>(null)
   const [cancelError, setCancelError] = useState<string | null>(null)
@@ -62,7 +63,9 @@ export function ProcessingStatusPage() {
   const canPause = statusName ? ['queued', 'preparing', 'processing', 'retrying', 'finalizing'].includes(statusName) : false
   const canResume = isPaused
   const canCancel = statusName ? ['queued', 'preparing', 'processing', 'retrying', 'finalizing', 'pauserequested', 'paused', 'resumerequested'].includes(statusName) : false
-  const safeErrorMessage = status?.userMessage ?? status?.errorMessage ?? t('processing.defaultError')
+  const safeErrorMessage = status
+    ? localizeDisplayMessage(status.userMessage ?? status.errorMessage ?? t('processing.defaultError'), t)
+    : t('processing.defaultError')
   const scanType = formatScanMode(status?.scanMode, t)
   const originalName = status?.originalName?.trim() || t('processing.notAvailable')
   const retryMutation = useMutation({
@@ -146,7 +149,7 @@ export function ProcessingStatusPage() {
       await statusQuery.refetch()
     },
     onError: (error) => {
-      setCancelError(getApiErrorMessage(error, t) || "We couldn't confirm that processing was cancelled. Please try again. Your video is still safe.")
+      setCancelError(getApiErrorMessage(error, t) || t('processing.cancelUnconfirmedDescription'))
     },
   })
 
@@ -229,8 +232,8 @@ export function ProcessingStatusPage() {
             <DetailItem label={t('processing.scanType')} value={scanType} icon={<ActivityIcon />} />
             <DetailItem label={t('processing.currentStep')} value={formatSafeStatusText(status.currentStep, t)} icon={<ClockIcon />} />
             <DetailItem label={t('processing.retryAttempt')} value={t('processing.attempt', { current: Math.min(status.retryCount + 1, status.maxRetryCount), max: status.maxRetryCount })} icon={<AlertCircleIcon />} />
-            <DetailItem label={t('processing.created')} value={dayjs(status.createdAt).format('MMM D, YYYY h:mm A')} icon={<ClockIcon />} />
-            <DetailItem label={t('processing.lastUpdated')} value={formatLastUpdated(status, t)} icon={<ActivityIcon />} />
+            <DetailItem label={t('processing.created')} value={formatLocalizedDateTime(status.createdAt, language, t('processing.notAvailable'))} icon={<ClockIcon />} />
+            <DetailItem label={t('processing.lastUpdated')} value={formatLastUpdated(status, language, t)} icon={<ActivityIcon />} />
           </div>
           {cancelError && (
             <div className="failed-panel" role="alert">
@@ -664,10 +667,10 @@ function getStatusIcon(status?: string) {
   }
 }
 
-function formatLastUpdated(status: JobStatus, t: ReturnType<typeof useLanguage>['t']) {
+function formatLastUpdated(status: JobStatus, language: LanguageCode, t: ReturnType<typeof useLanguage>['t']) {
   const updatedAt = status.lastActivityAt ?? status.lastUpdatedAt ?? status.completedAt
   if (updatedAt) {
-    return dayjs(updatedAt).format('MMM D, YYYY h:mm A')
+    return formatLocalizedDateTime(updatedAt, language, t('processing.notAvailable'))
   }
 
   const statusName = status.status.toLowerCase()
@@ -690,9 +693,20 @@ function formatSafeStatusText(value: string | undefined, t: ReturnType<typeof us
     return t('processing.waitingWorker')
   }
 
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'preparing video') {
+    return t('processing.stepPreparingVideo')
+  }
+  if (normalized === 'analysis completed') {
+    return t('dynamic.analysisCompleted')
+  }
+  if (normalized === 'waiting for processing worker') {
+    return t('processing.waitingWorker')
+  }
+
   return value
-    .replace(/External\s+BitMind\s+verification/gi, 'External verification')
-    .replace(/BitMind/gi, 'external verification')
+    .replace(/External\s+BitMind\s+verification/gi, t('analysis.externalVerification'))
+    .replace(/BitMind/gi, t('analysis.externalVerification'))
 }
 
 function formatScanMode(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {

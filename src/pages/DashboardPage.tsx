@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import dayjs from 'dayjs'
 import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { apiClient } from '../api/client'
@@ -15,11 +14,12 @@ import { ProgressBar } from '../components/ui/ProgressBar'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon, AlertCircleIcon, CheckCircleIcon, ClockIcon, UploadIcon, VideoIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
+import { formatLocalizedDateTime } from '../i18n/formatDate'
 import { toVideoRouteId } from '../routes/videoRouteId'
 
 export function DashboardPage() {
   const auth = useAuth()
-  const { t } = useLanguage()
+  const { language, t } = useLanguage()
   const historyQuery = useQuery<PagedResponse<VideoHistoryItem>, Error>({
     queryKey: ['video-history'],
     refetchInterval: (query) => {
@@ -163,7 +163,7 @@ export function DashboardPage() {
                     <td>
                       <ProgressBar value={item.latestJobProgress ?? 0} status={item.latestJobStatus} />
                     </td>
-                    <td>{dayjs(item.createdAt).format('MMM D, YYYY h:mm A')}</td>
+                    <td>{formatLocalizedDateTime(item.createdAt, language, t('common.notAvailable'))}</td>
                     <td>
                       <Link className={buttonClassName('outline')} to={getEffectiveStatus(item) === 'completed' ? `/analysis/${toVideoRouteId(item.videoId)}` : `/processing/${toVideoRouteId(item.videoId)}`}>
                         {getEffectiveStatus(item) === 'completed' ? t('dashboard.viewResult') : t('dashboard.viewStatus')}

@@ -31,6 +31,12 @@ export const apiClient = axios.create({
 })
 
 apiClient.interceptors.request.use((config) => {
+  const selectedLanguage = localStorage.getItem('ai-video-detection-language')
+  if (selectedLanguage) {
+    config.headers = config.headers ?? {}
+    config.headers['Accept-Language'] = selectedLanguage
+  }
+
   if (authStorage.isSessionExpired()) {
     authStorage.clear()
     return config
@@ -83,18 +89,18 @@ type Translate = (key: string, values?: Record<string, string | number>) => stri
 export function getApiErrorMessage(error: unknown, t?: Translate) {
   if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
     if (error.code === 'ERR_NETWORK') {
-      return t ? t('processing.defaultError') : 'Network error while contacting the API. For large uploads, confirm the backend is running and allows the selected file size.'
+      return t ? t('api.networkError') : 'Network error while contacting the API. For large uploads, confirm the backend is running and allows the selected file size.'
     }
 
     if (error.code === 'ECONNABORTED') {
-      return t ? t('processing.defaultError') : 'The request timed out. Please try again or use a smaller file.'
+      return t ? t('api.timeoutError') : 'The request timed out. Please try again or use a smaller file.'
     }
 
     const response = error.response?.data
     return localizeApiError(response?.errors?.[0] ?? response?.message ?? error.message, t)
   }
 
-  return localizeApiError(error instanceof Error ? error.message : 'Request failed.', t)
+  return localizeApiError(error instanceof Error ? error.message : t ? t('api.requestFailed') : 'Request failed.', t)
 }
 
 function localizeApiError(message: string, t?: Translate) {

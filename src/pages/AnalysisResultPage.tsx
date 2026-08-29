@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import dayjs from 'dayjs'
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { downloadAnalysisReport, getAnalysisResult, getApiErrorMessage, getOriginMatches, getVideoMetadata } from '../api/client'
@@ -13,12 +12,13 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon, AlertCircleIcon, BarChartIcon, FileVideoIcon, ShieldIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
+import { formatLocalizedDateShort, formatLocalizedDateTime } from '../i18n/formatDate'
 import { fromVideoRouteId } from '../routes/videoRouteId'
 
 export function AnalysisResultPage() {
   const { videoId: routeVideoId } = useParams()
   const videoId = fromVideoRouteId(routeVideoId)
-  const { t } = useLanguage()
+  const { language, t } = useLanguage()
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false)
   const [downloadError, setDownloadError] = useState('')
   const [isDownloadingReport, setIsDownloadingReport] = useState(false)
@@ -105,7 +105,7 @@ export function AnalysisResultPage() {
               <div className="analysis-meta">
                 <span>{mode}</span>
                 <strong>{formatModelDisplay(analysis.modelVersion, t)}</strong>
-                <small>{t('analysis.resultGeneratedAt', { date: dayjs(analysis.createdAt).format('MMM D, YYYY h:mm A') })}</small>
+                <small>{t('analysis.resultGeneratedAt', { date: formatLocalizedDateTime(analysis.createdAt, language, t('analysis.dateUnavailable')) })}</small>
               </div>
             </div>
             {analysis.isMock && (
@@ -131,12 +131,6 @@ export function AnalysisResultPage() {
             )}
             {showAdvancedDetails && analysis.label === 'Inconclusive' && (
               <WarningPanel message={t('analysis.inconclusiveWarning')} subtle />
-            )}
-            {showAdvancedDetails && analysis.fallbackUsed && (
-              <WarningPanel message={t('analysis.fallbackWarning')} />
-            )}
-            {showAdvancedDetails && isExternalVerificationProvider(analysis.provider) && analysis.label === 'Suspicious' && (
-              <WarningPanel message={t('analysis.suspiciousWarning')} />
             )}
             <WarningPanel message={t('analysis.proofWarning')} subtle />
           </AppCard>
@@ -187,41 +181,17 @@ export function AnalysisResultPage() {
           <AppCard className="analysis-section">
             <div className="card-header compact">
               <div>
-                <h2>{t('analysis.detectionSource')}</h2>
-                <p>{formatProviderDisplay(analysis.finalDecisionSource ?? analysis.provider, t)}</p>
+                <h2>{t('processing.scanType')}</h2>
+                <p>{formatScanModeDisplay(analysis.scanMode ?? analysis.providerMode, t)}</p>
               </div>
             </div>
             <div className="detector-breakdown">
               <div className="detector-card">
-                <span>{t('analysis.finalSource')}</span>
-                <strong>{formatProviderDisplay(analysis.finalDecisionSource, t)}</strong>
-                <small>{t('analysis.mode', { mode: formatModeDisplay(analysis.providerMode, t) })}</small>
-                <small>{t('analysis.provider', { provider: formatProviderDisplay(analysis.provider, t) })}</small>
+                <span>{t('processing.scanType')}</span>
+                <strong>{formatScanModeDisplay(analysis.scanMode ?? analysis.providerMode, t)}</strong>
+                <small>{getScanModeDescription(analysis.scanMode ?? analysis.providerMode, t)}</small>
               </div>
-              <div className="detector-card">
-                <span>{t('analysis.externalVerification')}</span>
-                <strong>{analysis.externalProviderName ? formatProviderDisplay(analysis.externalProviderName, t) : t('analysis.notUsed')}</strong>
-                <small>{t('analysis.statusLine', { status: localizeStatusValue(analysis.externalProviderStatus, t) ?? t('analysis.skipped') })}</small>
-                {analysis.externalLabel && <small>{t('analysis.labelLine', { label: localizeLabel(analysis.externalLabel, t) })}</small>}
-                <small>{t('analysis.scoreLine', { score: isFiniteNumber(analysis.externalScore) ? `${formatPercent(analysis.externalScore * 100)}% ${t('analysis.aiSuffix')}` : t('analysis.scoreNotProvided') })}</small>
-                <small>{t('analysis.confidenceLine', { confidence: isFiniteNumber(analysis.externalConfidence) ? `${formatPercent(analysis.externalConfidence * 100)}%` : t('analysis.unavailable') })}</small>
-                {analysis.warnings.some((warning) => warning.toLowerCase().includes('compressed analysis copy')) && (
-                  <small>{t('analysis.compressedCopy')}</small>
-                )}
-                {analysis.providerCompletedAt && <small>{t('analysis.completedAt', { date: dayjs(analysis.providerCompletedAt).format('MMM D, YYYY h:mm A') })}</small>}
-                {!analysis.externalProviderName && <small>{t('analysis.providerSkippedReason')}</small>}
-              </div>
-              {(analysis.providerMode ?? '').toLowerCase() === 'hybrid' && (
-                <div className="detector-card detector-card-combined">
-                  <span>{t('analysis.hybridBreakdown')}</span>
-                  <strong>{formatWords(analysis.label)}</strong>
-                  {analysis.localAnalysisSummary && <small>{localizeKnownMessage(analysis.localAnalysisSummary, t)}</small>}
-                  {analysis.externalAnalysisSummary && <small>{localizeKnownMessage(analysis.externalAnalysisSummary, t)}</small>}
-                  {analysis.hybridDecisionSummary && <small>{localizeKnownMessage(analysis.hybridDecisionSummary, t)}</small>}
-                </div>
-              )}
             </div>
-            {analysis.fallbackUsed && <WarningPanel message={t('analysis.fallbackUsed', { reason: formatSafeFallbackReason(analysis.fallbackReason) })} subtle />}
           </AppCard>
           )}
 
@@ -523,7 +493,7 @@ function MetadataSummary({ metadata }: { metadata?: MetadataResult }) {
 }
 
 function OriginMatches({ matches, loading }: { matches: SourceMatch[]; loading: boolean }) {
-  const { t } = useLanguage()
+  const { language, t } = useLanguage()
   if (loading) {
     return <LoadingState text={t('analysis.checkingMatches')} />
   }
@@ -542,7 +512,7 @@ function OriginMatches({ matches, loading }: { matches: SourceMatch[]; loading: 
           </div>
           <div>
             <strong>{formatPercent(match.similarityScore * 100)}%</strong>
-            <span>{match.uploadDatetime ? dayjs(match.uploadDatetime).format('MMM D, YYYY') : t('analysis.dateUnavailable')}</span>
+            <span>{formatLocalizedDateShort(match.uploadDatetime, language, t('analysis.dateUnavailable'))}</span>
           </div>
         </div>
       ))}
@@ -664,6 +634,7 @@ function normalizeAnalysis(analysis: AnalysisResult): AnalysisResult {
     warnings: Array.isArray(analysis.warnings) ? analysis.warnings : [],
     provider: analysis.provider ?? 'Local',
     providerMode: analysis.providerMode ?? 'local',
+    scanMode: analysis.scanMode,
     finalDecisionSource: analysis.finalDecisionSource ?? 'Local',
     fallbackUsed: Boolean(analysis.fallbackUsed),
     providerWarnings: Array.isArray(analysis.providerWarnings) ? analysis.providerWarnings : [],
@@ -749,11 +720,6 @@ function localizeLabel(label: string | undefined, t: ReturnType<typeof useLangua
   return key ? t(key) : formatLabel(label || 'Inconclusive')
 }
 
-function localizeStatusValue(status: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
-  if (!status) return undefined
-  return localizeLabel(status, t)
-}
-
 function localizeAnalysisSummary(analysis: AnalysisResult, t: ReturnType<typeof useLanguage>['t']) {
   const summary = analysis.summary?.trim()
   if (!summary) {
@@ -766,7 +732,7 @@ function localizeAnalysisSummary(analysis: AnalysisResult, t: ReturnType<typeof 
     normalizedSummary.includes('metadata is shown separately') ||
     normalizedSummary.includes('external ai detection provider')
   ) {
-    return t('analysis.bitmindSummary')
+    return t('analysis.defaultSummary')
   }
 
   return localizeKnownMessage(summary, t)
@@ -782,7 +748,7 @@ function localizeEvidenceTitle(title: string, isMock: boolean, t: ReturnType<typ
   if (normalized === 'unreadable metadata') return t('analysis.metadataUnavailable')
   if (normalized === 'detector disagreement') return t('analysis.disagreementWarning')
   if (normalized === 'low confidence result') return t('analysis.lowConfidenceWarning')
-  if (normalized === 'external provider notice') return t('analysis.externalVerification')
+  if (normalized === 'external provider notice') return t('analysis.defaultSummary')
   if (isMock && normalized === 'high ai indicator frame') return `${t('analysis.mock')} ${t('status.high')}`
   if (isMock && normalized === 'moderate ai indicator frame') return `${t('analysis.mock')} ${t('status.medium')}`
   if (isMock && normalized === 'ai frame indicator') return t('analysis.mockFrameGroup')
@@ -798,24 +764,30 @@ function localizeKnownMessage(message: string, t: ReturnType<typeof useLanguage>
 
   const sentences = trimmed.match(/[^.!?]+[.!?]+|[^.!?]+$/g)
   if (!sentences || sentences.length <= 1) {
-    return sanitizeDisplayMessage(message)
+    return sanitizeDisplayMessage(message, t)
   }
 
   return sentences
     .map((sentence) => {
       const cleanSentence = sentence.trim()
-      return localizeKnownSentence(cleanSentence, t) ?? sanitizeDisplayMessage(cleanSentence)
+      return localizeKnownSentence(cleanSentence, t) ?? sanitizeDisplayMessage(cleanSentence, t)
     })
     .join(' ')
 }
 
 function localizeKnownSentence(message: string, t: ReturnType<typeof useLanguage>['t']) {
-  const normalized = message.trim().toLowerCase()
+  const normalized = message.trim().toLowerCase().replace(/[.!؟]+$/g, '')
   if (normalized.includes('provider authentication failed')) {
-    return t('analysis.fallbackWarning')
+    return t('analysis.defaultSummary')
   }
-  if (normalized === 'this video may be processed by an external ai detection provider for analysis.') {
-    return t('analysis.externalProviderNotice')
+  if (normalized === 'this video may be processed by an external ai detection provider for analysis') {
+    return t('analysis.defaultSummary')
+  }
+  if (normalized === 'the video metadata does not include a creation timestamp') {
+    return t('analysis.missingCreationTimeDescription')
+  }
+  if (normalized === 'the video metadata does not identify the encoder') {
+    return t('analysis.missingEncoderDescription')
   }
   if (normalized.includes('this result is probability-based and generated using the current ai service output')) {
     return t('analysis.defaultSummary')
@@ -863,7 +835,7 @@ function localizeKnownSentence(message: string, t: ReturnType<typeof useLanguage
     normalized.includes('only one detector model was available') ||
     normalized.includes('no detector model is available')
   ) {
-    return t('analysis.fallbackWarning')
+    return t('analysis.defaultSummary')
   }
   if (normalized.includes('local and bitmind providers disagree')) {
     return t('analysis.disagreementWarning')
@@ -872,7 +844,7 @@ function localizeKnownSentence(message: string, t: ReturnType<typeof useLanguage
     return t('analysis.suspiciousWarning')
   }
   if (normalized.includes('compressed analysis copy') && normalized.includes('bitmind')) {
-    return t('analysis.compressedCopy')
+    return t('analysis.defaultSummary')
   }
   if (
     normalized.includes('calibration report has too few samples') ||
@@ -930,37 +902,22 @@ function formatWords(value?: string) {
   return sanitizeDisplayMessage(value || 'Unknown').replace(/_/g, ' ')
 }
 
-function isExternalVerificationProvider(value?: string) {
-  return (value ?? '').toLowerCase().includes('bitmind')
+function formatScanModeDisplay(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = (value ?? '').toLowerCase().replace(/[\s_-]+/g, '')
+  if (normalized.includes('detailed') || normalized.includes('detail')) {
+    return t('processing.scanTypeDetailed')
+  }
+  if (normalized.includes('smart') || normalized === 'basic') {
+    return t('processing.scanTypeSmart')
+  }
+  return t('processing.scanTypeSmart')
 }
 
-function formatProviderDisplay(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
-  if (!value) {
-    return t('analysis.internalVerification')
-  }
-
-  const normalized = value.toLowerCase().replace(/\s+/g, '')
-  if (normalized.includes('bitmind') || normalized.includes('externalprovider')) {
-    return t('analysis.externalVerification')
-  }
-  if (normalized === 'fallbacklocal' || normalized === 'local') {
-    return t('analysis.internalVerification')
-  }
-  return formatWords(value)
-}
-
-function formatModeDisplay(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
-  const normalized = (value ?? 'local').toLowerCase()
-  if (normalized === 'bitmind') {
-    return t('analysis.externalVerification')
-  }
-  if (normalized === 'hybrid') {
-    return t('analysis.hybridBreakdown')
-  }
-  if (normalized === 'local') {
-    return t('analysis.internalVerification')
-  }
-  return formatWords(value)
+function getScanModeDescription(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = (value ?? '').toLowerCase().replace(/[\s_-]+/g, '')
+  return normalized.includes('detailed') || normalized.includes('detail')
+    ? t('upload.detailedDescription')
+    : t('upload.smartScanDescription')
 }
 
 function formatModelDisplay(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
@@ -969,25 +926,15 @@ function formatModelDisplay(value: string | undefined, t: ReturnType<typeof useL
   }
 
   return value.toLowerCase().includes('bitmind')
-    ? t('analysis.externalVerificationModel')
+    ? t('analysis.unknownModel')
     : value
 }
 
-function formatSafeFallbackReason(reason?: string) {
-  if (!reason) {
-    return 'external provider unavailable'
-  }
-
-  const technicalPattern = /(http\s*\d{3}|bitmind|api key|token|exception|stack|trace|[a-z]:\\|\/tmp\/|raw response)/i
-  return technicalPattern.test(reason)
-    ? 'external provider unavailable'
-    : reason
-}
-
-function sanitizeDisplayMessage(value: string) {
+function sanitizeDisplayMessage(value: string, t?: ReturnType<typeof useLanguage>['t']) {
+  const genericModelLabel = t ? t('analysis.modelAi') : 'AI model'
   return value
-    .replace(/bitmind-oracle-v1-sn34/gi, 'external-verification-model')
-    .replace(/bitmind-subnet-34/gi, 'external-verification-model')
-    .replace(/External\s+BitMind\s+verification/gi, 'External verification')
-    .replace(/BitMind/gi, 'external verification')
+    .replace(/bitmind-oracle-v1-sn34/gi, genericModelLabel)
+    .replace(/bitmind-subnet-34/gi, genericModelLabel)
+    .replace(/External\s+BitMind\s+verification/gi, genericModelLabel)
+    .replace(/BitMind/gi, genericModelLabel)
 }

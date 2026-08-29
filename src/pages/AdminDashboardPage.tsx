@@ -8,9 +8,13 @@ import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { LoadingState } from '../components/ui/LoadingState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ActivityIcon, BarChartIcon, UserIcon, VideoIcon } from '../components/ui/icons'
+import { useLanguage } from '../i18n/LanguageContext'
+import { formatLocalizedDay } from '../i18n/formatDate'
+import { localizeDisplayMessage } from '../i18n/localizeDynamicText'
 import { formatAdminDateShort } from './adminUtils'
 
 export function AdminDashboardPage() {
+  const { language, t } = useLanguage()
   const summaryQuery = useQuery({
     queryKey: ['admin-dashboard-summary'],
     queryFn: getAdminDashboardSummary,
@@ -26,29 +30,29 @@ export function AdminDashboardPage() {
   return (
     <main className="page admin-page">
       <PageHeader
-        eyebrow="Admin console"
-        title="Activity dashboard"
-        subtitle="Monitor users, uploads, analysis jobs, external verification usage, and recent system activity."
+        eyebrow={t('admin.console')}
+        title={t('admin.dashboard.title')}
+        subtitle={t('admin.dashboard.subtitle')}
         action={(
           <div className="analysis-header-actions">
             <Link className={buttonClassName('outline')} to="/admin/videos">
               <VideoIcon />
-              Review videos
+              {t('admin.dashboard.reviewVideos')}
             </Link>
             <Link className={buttonClassName('primary')} to="/admin/users">
               <UserIcon />
-              Manage users
+              {t('admin.dashboard.manageUsers')}
             </Link>
           </div>
         )}
       />
 
-      {summaryQuery.isLoading && <LoadingState text="Loading admin dashboard..." />}
-      {summaryQuery.error && <ErrorMessage message={getApiErrorMessage(summaryQuery.error)} />}
+      {summaryQuery.isLoading && <LoadingState text={t('admin.loadingDashboard')} />}
+      {summaryQuery.error && <ErrorMessage message={getApiErrorMessage(summaryQuery.error, t)} />}
 
       {summary && (
         <>
-          <section className="admin-metric-grid" aria-label="Admin metric summary">
+          <section className="admin-metric-grid" aria-label={t('admin.metricSummary')}>
             {summary.metrics.map((metric) => (
               <AdminMetricCard key={metric.key} metric={metric} />
             ))}
@@ -58,8 +62,8 @@ export function AdminDashboardPage() {
             <AppCard className="admin-section-card">
               <div className="card-header compact">
                 <div>
-                  <h2>Upload and analysis activity</h2>
-                  <p>Last 14 days across the full platform.</p>
+                  <h2>{t('admin.activity.title')}</h2>
+                  <p>{t('admin.activity.subtitle')}</p>
                 </div>
               </div>
               <ActivityChart uploads={summary.uploadActivity} analyses={summary.analysisActivity} />
@@ -68,8 +72,8 @@ export function AdminDashboardPage() {
             <AppCard className="admin-section-card">
               <div className="card-header compact">
                 <div>
-                  <h2>Video status distribution</h2>
-                  <p>Current state of all non-deleted videos.</p>
+                  <h2>{t('admin.statusDistribution.title')}</h2>
+                  <p>{t('admin.statusDistribution.subtitle')}</p>
                 </div>
               </div>
               <StatusDistribution items={summary.videoStatuses} />
@@ -80,27 +84,27 @@ export function AdminDashboardPage() {
             <AppCard className="admin-section-card">
               <div className="card-header compact">
                 <div>
-                  <h2>{bitmind?.providerName ?? 'External verification'} usage</h2>
-                  <p>Monthly quota and request state.</p>
+                  <h2>{t('admin.bitmind.usage', { provider: bitmind?.providerName ?? t('admin.bitmind.externalVerification') })}</h2>
+                  <p>{t('admin.bitmind.subtitle')}</p>
                 </div>
               </div>
               {bitmind && (
                 <div className="admin-quota-panel">
                   <div className="admin-quota-number">
-                    <span>Monthly used</span>
+                    <span>{t('admin.bitmind.monthlyUsed')}</span>
                     <strong>{bitmind.monthlyUsed.toLocaleString()}</strong>
-                    <small>{bitmind.monthlyQuotaLimit > 0 ? `${bitmind.monthlyRemaining.toLocaleString()} remaining` : 'Quota limit not configured'}</small>
+                    <small>{bitmind.monthlyQuotaLimit > 0 ? t('admin.bitmind.remaining', { count: bitmind.monthlyRemaining.toLocaleString() }) : t('admin.bitmind.quotaNotConfigured')}</small>
                   </div>
-                  <div className="admin-quota-bar" aria-label={`${quotaPercent.toFixed(1)} percent used`}>
+                  <div className="admin-quota-bar" aria-label={t('admin.bitmind.percentUsed', { percent: quotaPercent.toFixed(1) })}>
                     <span style={{ width: `${quotaPercent}%` }} />
                   </div>
                   <div className="admin-compact-stats">
-                    <span><strong>{bitmind.totalRequests.toLocaleString()}</strong>Total</span>
-                    <span><strong>{bitmind.pendingRequests.toLocaleString()}</strong>Pending</span>
-                    <span><strong>{bitmind.completedRequests.toLocaleString()}</strong>Completed</span>
-                    <span><strong>{bitmind.failedRequests.toLocaleString()}</strong>Failed</span>
+                    <span><strong>{bitmind.totalRequests.toLocaleString()}</strong>{t('common.total')}</span>
+                    <span><strong>{bitmind.pendingRequests.toLocaleString()}</strong>{t('common.pending')}</span>
+                    <span><strong>{bitmind.completedRequests.toLocaleString()}</strong>{t('common.completed')}</span>
+                    <span><strong>{bitmind.failedRequests.toLocaleString()}</strong>{t('common.failed')}</span>
                   </div>
-                  <Link className={buttonClassName('outline')} to="/admin/requests">View external requests</Link>
+                  <Link className={buttonClassName('outline')} to="/admin/requests">{t('admin.bitmind.viewRequests')}</Link>
                 </div>
               )}
             </AppCard>
@@ -108,13 +112,13 @@ export function AdminDashboardPage() {
             <AppCard className="admin-section-card">
               <div className="card-header compact">
                 <div>
-                  <h2>Job and request health</h2>
-                  <p>Processing queue and provider request status.</p>
+                  <h2>{t('admin.health.title')}</h2>
+                  <p>{t('admin.health.subtitle')}</p>
                 </div>
               </div>
               <div className="admin-status-columns">
-                <StatusList title="Jobs" items={summary.jobStatuses} />
-                <StatusList title="External requests" items={summary.requestStatuses} />
+                <StatusList title={t('admin.health.jobs')} items={summary.jobStatuses} />
+                <StatusList title={t('admin.health.externalRequests')} items={summary.requestStatuses} />
               </div>
             </AppCard>
           </section>
@@ -123,12 +127,12 @@ export function AdminDashboardPage() {
             <AppCard className="admin-section-card">
               <div className="card-header compact">
                 <div>
-                  <h2>Top uploaders</h2>
-                  <p>Users with the highest upload volume.</p>
+                  <h2>{t('admin.topUploaders.title')}</h2>
+                  <p>{t('admin.topUploaders.subtitle')}</p>
                 </div>
               </div>
               <div className="admin-list-stack admin-scroll-list admin-scroll-list-rows">
-                {summary.topUsers.length === 0 && <p className="muted-copy">No upload activity yet.</p>}
+                {summary.topUsers.length === 0 && <p className="muted-copy">{t('admin.topUploaders.empty')}</p>}
                 {summary.topUsers.map((user) => (
                   <div className="admin-list-row" key={user.email}>
                     <div>
@@ -144,20 +148,20 @@ export function AdminDashboardPage() {
             <AppCard className="admin-section-card">
               <div className="card-header compact">
                 <div>
-                  <h2>Recent activity</h2>
-                  <p>Latest uploads and failures.</p>
+                  <h2>{t('admin.recent.title')}</h2>
+                  <p>{t('admin.recent.subtitle')}</p>
                 </div>
               </div>
               <div className="admin-list-stack admin-scroll-list admin-scroll-list-rows">
-                {summary.recentActivity.length === 0 && <p className="muted-copy">No recent activity found.</p>}
+                {summary.recentActivity.length === 0 && <p className="muted-copy">{t('admin.recent.empty')}</p>}
                 {summary.recentActivity.map((activity) => (
                   <div className="admin-list-row admin-activity-row" key={`${activity.type}-${activity.title}-${activity.createdAt}`}>
                     <span className={`admin-dot admin-dot-${activity.type.toLowerCase()}`} />
                     <div>
                       <strong>{activity.title}</strong>
-                      <span>{activity.description}</span>
+                      <span>{localizeDisplayMessage(activity.description, t)}</span>
                     </div>
-                    <small>{formatAdminDateShort(activity.createdAt)}</small>
+                    <small>{formatAdminDateShort(activity.createdAt, t('common.notAvailable'), language)}</small>
                   </div>
                 ))}
               </div>
@@ -170,6 +174,8 @@ export function AdminDashboardPage() {
 }
 
 function AdminMetricCard({ metric }: { metric: AdminMetric }) {
+  const { t } = useLanguage()
+
   return (
     <AppCard className={`admin-metric admin-tone-${metric.tone}`}>
       <span className="admin-metric-icon">
@@ -177,13 +183,14 @@ function AdminMetricCard({ metric }: { metric: AdminMetric }) {
       </span>
       <div>
         <strong>{metric.value.toLocaleString()}</strong>
-        <span>{metric.label}</span>
+        <span>{localizeMetricLabel(metric, t)}</span>
       </div>
     </AppCard>
   )
 }
 
 function ActivityChart({ uploads, analyses }: { uploads: AdminDailyActivity[]; analyses: AdminDailyActivity[] }) {
+  const { language, t } = useLanguage()
   const rows = uploads.map((item, index) => ({
     date: item.date,
     uploads: item.count,
@@ -192,59 +199,74 @@ function ActivityChart({ uploads, analyses }: { uploads: AdminDailyActivity[]; a
   const max = Math.max(1, ...rows.flatMap((item) => [item.uploads, item.analyses]))
 
   return (
-    <div className="admin-chart" aria-label="Upload and analysis activity chart">
+    <div className="admin-chart" aria-label={t('admin.activity.chartLabel')}>
       {rows.map((item) => (
-        <div className="admin-chart-day" key={item.date} title={`${item.date}: ${item.uploads} uploads, ${item.analyses} analyses`}>
+        <div className="admin-chart-day" key={item.date} title={`${item.date}: ${item.uploads} ${t('admin.activity.uploads').toLowerCase()}, ${item.analyses} ${t('admin.activity.analyses').toLowerCase()}`}>
           <div className="admin-chart-bars">
             <span className="admin-chart-upload" style={{ height: `${Math.max(4, (item.uploads / max) * 100)}%` }} />
             <span className="admin-chart-analysis" style={{ height: `${Math.max(4, (item.analyses / max) * 100)}%` }} />
           </div>
-          <small>{formatAdminDateShort(item.date).split(' ')[1]}</small>
+          <small>{formatLocalizedDay(item.date, language, t('common.notAvailable'))}</small>
         </div>
       ))}
       <div className="admin-chart-legend">
-        <span><i className="admin-chart-upload" />Uploads</span>
-        <span><i className="admin-chart-analysis" />Analyses</span>
+        <span><i className="admin-chart-upload" />{t('admin.activity.uploads')}</span>
+        <span><i className="admin-chart-analysis" />{t('admin.activity.analyses')}</span>
       </div>
     </div>
   )
 }
 
 function StatusDistribution({ items }: { items: AdminStatusCount[] }) {
+  const { t } = useLanguage()
   const total = items.reduce((sum, item) => sum + item.count, 0)
 
   if (total === 0) {
-    return <p className="muted-copy">No status data available.</p>
+    return <p className="muted-copy">{t('admin.statusDistribution.noData')}</p>
   }
 
   return (
     <div className="admin-status-distribution">
-      <div className="admin-segment-bar" aria-label="Video statuses">
+      <div className="admin-segment-bar" aria-label={t('admin.statusDistribution.videoStatuses')}>
         {items.map((item) => (
           <span
             key={item.status}
             className={`admin-segment admin-segment-${item.status.toLowerCase()}`}
             style={{ width: `${Math.max(2, (item.count / total) * 100)}%` }}
-            title={`${item.status}: ${item.count}`}
+            title={`${localizeStatusLabel(item.status, t)}: ${item.count}`}
           />
         ))}
       </div>
-      <StatusList title="Videos" items={items} />
+      <StatusList title={t('admin.health.videos')} items={items} />
     </div>
   )
 }
 
 function StatusList({ title, items }: { title: string; items: AdminStatusCount[] }) {
+  const { t } = useLanguage()
+
   return (
     <div className="admin-status-list">
       <h3>{title}</h3>
-      {items.length === 0 && <p className="muted-copy">No data available.</p>}
+      {items.length === 0 && <p className="muted-copy">{t('admin.noData')}</p>}
       {items.map((item) => (
         <div className="admin-status-row" key={`${title}-${item.status}`}>
-          <span><BarChartIcon />{item.status}</span>
+          <span><BarChartIcon />{localizeStatusLabel(item.status, t)}</span>
           <strong>{item.count.toLocaleString()}</strong>
         </div>
       ))}
     </div>
   )
+}
+
+function localizeMetricLabel(metric: AdminMetric, t: ReturnType<typeof useLanguage>['t']) {
+  const key = `admin.metric.${metric.key}`
+  const label = t(key)
+  return label === key ? metric.label : label
+}
+
+function localizeStatusLabel(status: string, t: ReturnType<typeof useLanguage>['t']) {
+  const key = `status.${status.toLowerCase().replace(/\s+/g, '')}`
+  const label = t(key)
+  return label === key ? status : label
 }

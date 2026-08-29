@@ -1,23 +1,26 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { AppLogo } from '../components/ui/AppLogo'
 import { buttonClassName } from '../components/ui/buttonStyles'
+import { GlobeIcon } from '../components/ui/icons'
+import { useLanguage, type LanguageCode } from '../i18n/LanguageContext'
 
 const publicLinks = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/about', label: 'About' },
-  { to: '/contact', label: 'Contact' },
-  { to: '/privacy-policy', label: 'Privacy Policy' },
-  { to: '/terms-and-conditions', label: 'Terms & Conditions' },
+  { to: '/', labelKey: 'public.nav.home', end: true },
+  { to: '/about', labelKey: 'public.nav.about' },
+  { to: '/contact', labelKey: 'public.nav.contact' },
+  { to: '/privacy-policy', labelKey: 'public.nav.privacy' },
+  { to: '/terms-and-conditions', labelKey: 'public.nav.terms' },
 ]
 
 export function PublicLayout() {
+  const { language, languages, setLanguage, t } = useLanguage()
   const currentYear = new Date().getFullYear()
 
   return (
     <div className="public-layout">
       <header className="public-topbar">
         <AppLogo to="/" />
-        <nav className="public-nav" aria-label="Public navigation">
+        <nav className="public-nav" aria-label={t('public.nav.label')}>
           {publicLinks.map((link) => (
             <NavLink
               key={link.to}
@@ -25,13 +28,28 @@ export function PublicLayout() {
               end={link.end}
               className={({ isActive }) => `public-nav-link ${isActive ? 'active' : ''}`}
             >
-              {link.label}
+              {t(link.labelKey)}
             </NavLink>
           ))}
         </nav>
         <div className="public-actions">
-          <Link className={buttonClassName('outline')} to="/login">Sign in</Link>
-          <Link className={buttonClassName('primary')} to="/signup">Create account</Link>
+          <label className="language-control public-language-control">
+            <GlobeIcon />
+            <span className="sr-only">{t('language.label')}</span>
+            <select
+              aria-label={t('language.label')}
+              value={language}
+              onChange={(event) => setLanguage(event.target.value as LanguageCode)}
+            >
+              {languages.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Link className={buttonClassName('outline')} to="/login">{t('public.action.signIn')}</Link>
+          <Link className={buttonClassName('primary')} to="/signup">{t('public.action.createAccount')}</Link>
         </div>
       </header>
 
@@ -40,16 +58,16 @@ export function PublicLayout() {
       <footer className="public-footer">
         <div>
           <AppLogo to="/" compact />
-          <p>Probability-based AI video authenticity, metadata, and origin review for accountable media workflows.</p>
+          <p>{t('public.footer.description')}</p>
         </div>
-        <nav aria-label="Footer navigation">
+        <nav aria-label={t('public.nav.footer')}>
           {publicLinks.map((link) => (
-            <Link key={link.to} to={link.to}>{link.label}</Link>
+            <Link key={link.to} to={link.to}>{t(link.labelKey)}</Link>
           ))}
         </nav>
         <div className="public-footer-bottom">
-          <span>&copy; {currentYear} sachvideoai. All rights reserved.</span>
-          <span>Secure video authenticity reports for registered users.</span>
+          <span>{t('public.footer.copyright', { year: currentYear })}</span>
+          <span>{t('public.footer.secureReports')}</span>
         </div>
       </footer>
     </div>
