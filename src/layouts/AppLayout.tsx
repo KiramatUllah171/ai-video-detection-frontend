@@ -88,6 +88,10 @@ export function AppLayout() {
                 <ActivityIcon />
                 {t('nav.requests')}
               </NavLink>
+              <NavLink to="/admin/logs" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <ActivityIcon />
+                {t('nav.logs')}
+              </NavLink>
             </>
           )}
         </nav>

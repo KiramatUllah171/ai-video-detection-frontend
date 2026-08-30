@@ -235,6 +235,15 @@ export function ProcessingStatusPage() {
             <DetailItem label={t('processing.created')} value={formatLocalizedDateTime(status.createdAt, language, t('processing.notAvailable'))} icon={<ClockIcon />} />
             <DetailItem label={t('processing.lastUpdated')} value={formatLastUpdated(status, language, t)} icon={<ActivityIcon />} />
           </div>
+          <div className="retention-panel">
+            <span className="retention-panel-icon">
+              <ClockIcon />
+            </span>
+            <div>
+              <strong>{t('retention.videoWindowTitle')}</strong>
+              <p>{t('retention.processingNotice')}</p>
+            </div>
+          </div>
           {cancelError && (
             <div className="failed-panel" role="alert">
               <div>

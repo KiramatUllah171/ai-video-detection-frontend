@@ -1307,6 +1307,56 @@
   color: #065f46;
 }
 
+.retention-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, 0.92), rgba(240, 253, 250, 0.78)),
+    #ffffff;
+}
+
+.retention-panel-compact {
+  margin-top: 12px;
+}
+
+.retention-panel-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--primary-blue);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.retention-panel-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.retention-panel strong,
+.retention-panel p {
+  display: block;
+}
+
+.retention-panel strong {
+  color: var(--slate-900);
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.retention-panel p {
+  margin: 4px 0 0;
+  color: var(--slate-600);
+  line-height: 1.55;
+}
+
 .status-actions {
   margin-top: 20px;
   display: flex;
@@ -4522,6 +4572,26 @@ html.theme-dark .mode-card.selected {
 html.theme-dark .selected-file {
   background: rgba(5, 150, 105, 0.12);
   border-color: rgba(52, 211, 153, 0.32);
+}
+
+html.theme-dark .retention-panel {
+  background:
+    linear-gradient(135deg, rgba(30, 64, 175, 0.22), rgba(8, 145, 178, 0.12)),
+    rgba(15, 27, 46, 0.86);
+  border-color: rgba(109, 140, 255, 0.28);
+}
+
+html.theme-dark .retention-panel-icon {
+  color: #93c5fd;
+  background: rgba(109, 140, 255, 0.16);
+}
+
+html.theme-dark .retention-panel strong {
+  color: var(--dark-text-primary);
+}
+
+html.theme-dark .retention-panel p {
+  color: var(--dark-text-secondary);
 }
 
 html.theme-dark .status-hero {
@@ -7788,6 +7858,97 @@ html.theme-dark .admin-kv-list {
   }
 }
 
+.admin-log-filter-grid {
+  grid-template-columns: minmax(220px, 1.4fr) repeat(4, minmax(130px, 1fr));
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.admin-log-filter-grid label {
+  gap: 0.35rem;
+}
+
+.admin-log-filter-grid input,
+.admin-log-filter-grid select {
+  min-height: 42px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.admin-logs-table td {
+  vertical-align: top;
+}
+
+.admin-logs-table {
+  min-width: 760px;
+  table-layout: fixed;
+}
+
+.admin-logs-table th,
+.admin-logs-table td {
+  text-align: start;
+}
+
+.admin-logs-user-col {
+  width: 24%;
+}
+
+.admin-logs-event-col {
+  width: 46%;
+}
+
+.admin-logs-resource-col {
+  width: 30%;
+}
+
+.admin-logs-table .admin-mini-counts,
+.admin-logs-table .admin-log-event {
+  align-items: start;
+}
+
+.admin-log-event {
+  display: grid;
+  gap: 0.28rem;
+  min-width: 220px;
+}
+
+.admin-log-event strong {
+  color: var(--text-primary);
+  font-weight: 850;
+}
+
+.admin-log-event span,
+.admin-log-event small {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.admin-log-event small {
+  font-weight: 750;
+}
+
+html.theme-dark .admin-log-event strong {
+  color: var(--dark-text);
+}
+
+html.theme-dark .admin-log-event span,
+html.theme-dark .admin-log-event small {
+  color: var(--dark-text-secondary);
+}
+
+@media (max-width: 1200px) {
+  .admin-log-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-log-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .admin-request-summary-strip {
     grid-template-columns: 1fr;
@@ -8107,6 +8268,33 @@ html.theme-dark .admin-kv-list {
   gap: 1rem;
 }
 
+.public-retention-card {
+  padding: 1.2rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  border-radius: 18px;
+}
+
+.public-retention-card h2,
+.public-retention-card p {
+  margin: 0;
+}
+
+.public-retention-card h2 {
+  margin-top: 0.25rem;
+  color: var(--text-strong);
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  line-height: 1.24;
+}
+
+.public-retention-card p {
+  margin-top: 0.55rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
 .public-report-list {
   padding: 1.1rem;
   display: grid;
@@ -8323,4 +8511,59 @@ html.theme-dark .app-logo-mark .brand-logo-image {
   .public-footer-bottom {
     justify-content: flex-start;
   }
+}
+
+.premium-table tbody tr.history-row-video-expired td {
+  background: rgba(254, 242, 242, 0.72);
+  border-bottom-color: rgba(248, 113, 113, 0.24);
+}
+
+.premium-table tbody tr.history-row-video-expired:hover td {
+  background: rgba(254, 226, 226, 0.86);
+}
+
+.history-cell-muted {
+  filter: blur(0.65px);
+  opacity: 0.58;
+  pointer-events: none;
+  user-select: none;
+}
+
+.history-expired-message {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  color: #b91c1c;
+  background: rgba(254, 226, 226, 0.9);
+  border: 1px solid rgba(248, 113, 113, 0.36);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.history-expired-message svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+html.theme-dark .premium-table tbody tr.history-row-video-expired td {
+  background: rgba(127, 29, 29, 0.18);
+  border-bottom-color: rgba(248, 113, 113, 0.24);
+}
+
+html.theme-dark .premium-table tbody tr.history-row-video-expired:hover td {
+  background: rgba(127, 29, 29, 0.25);
+}
+
+html.theme-dark .history-expired-message {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.36);
+  border-color: rgba(248, 113, 113, 0.34);
 }

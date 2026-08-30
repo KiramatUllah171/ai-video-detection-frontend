@@ -37,6 +37,8 @@ export type VideoHistoryItem = {
   fileExtension?: string
   status: string
   createdAt: string
+  isOriginalVideoAvailable?: boolean
+  isReportAvailable?: boolean
   latestJobId?: number
   latestJobStatus?: string
   latestJobProgress?: number
@@ -364,4 +366,24 @@ export type AdminVideoDetail = {
   evidence: AdminEvidenceItem[]
   originMatches: AdminSourceMatch[]
   jobs: AdminJobListItem[]
+}
+
+export type AdminAuditLog = {
+  id: number
+  userId?: number
+  userName?: string
+  userEmail?: string
+  category: string
+  action: string
+  severity: string
+  message: string
+  resourceType?: string
+  resourceId?: string
+  httpMethod?: string
+  path?: string
+  statusCode?: number
+  ipAddress?: string
+  userAgent?: string
+  detailsJson?: string
+  createdAt: string
 }

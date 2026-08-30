@@ -10,7 +10,7 @@ import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { AppTextarea, FormField } from '../components/ui/FormField'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ProgressBar } from '../components/ui/ProgressBar'
-import { FileVideoIcon, ShieldIcon, UploadIcon, XIcon } from '../components/ui/icons'
+import { ClockIcon, FileVideoIcon, ShieldIcon, UploadIcon, XIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
 import { toVideoRouteId } from '../routes/videoRouteId'
 
@@ -271,6 +271,15 @@ export function UploadVideoPage() {
           <p className="form-helper">
             {t('upload.scanModeNotice')}
           </p>
+          <div className="retention-panel retention-panel-compact">
+            <span className="retention-panel-icon">
+              <ClockIcon />
+            </span>
+            <div>
+              <strong>{t('retention.videoWindowTitle')}</strong>
+              <p>{t('retention.uploadNotice')}</p>
+            </div>
+          </div>
           {file && file.size > 50 * 1024 * 1024 && (
             <div className="success-panel">
               <div>

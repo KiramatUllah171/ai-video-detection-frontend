@@ -5,7 +5,7 @@ import { getApiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { isStrongPassword } from '../auth/passwordPolicy'
 import { AppButton } from '../components/ui/AppButton'
-import { AlertCircleIcon, CheckCircleIcon, EyeIcon, EyeOffIcon } from '../components/ui/icons'
+import { AlertCircleIcon, CheckCircleIcon, ClockIcon, EyeIcon, EyeOffIcon } from '../components/ui/icons'
 import { AuthCard, AuthLayout } from '../layouts/AuthLayout'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -200,6 +200,15 @@ export function SignupPage() {
                   >
                     {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
+                </div>
+              </div>
+              <div className="retention-panel retention-panel-compact">
+                <span className="retention-panel-icon">
+                  <ClockIcon />
+                </span>
+                <div>
+                  <strong>{t('retention.videoWindowTitle')}</strong>
+                  <p>{t('retention.publicBody')}</p>
                 </div>
               </div>
               <AppButton type="submit" loading={loading} fullWidth>

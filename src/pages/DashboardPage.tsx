@@ -113,6 +113,15 @@ export function DashboardPage() {
             <p>{t('dashboard.recentSubtitle')}</p>
           </div>
         </div>
+        <div className="retention-panel retention-panel-compact">
+          <span className="retention-panel-icon">
+            <ClockIcon />
+          </span>
+          <div>
+            <strong>{t('retention.videoWindowTitle')}</strong>
+            <p>{t('retention.dashboardNotice')}</p>
+          </div>
+        </div>
         {historyQuery.isLoading && !historyQuery.data && <LoadingState text={t('dashboard.loadingHistory')} />}
         {historyQuery.error && !historyQuery.data && <ErrorMessage message={t('dashboard.historyError')} />}
         {!historyQuery.isLoading && !historyQuery.error && items.length === 0 && (
@@ -141,36 +150,65 @@ export function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
-                  <tr key={item.videoId}>
-                    <td>
-                      <div className="video-cell">
-                        <span className="file-icon">
-                          <VideoIcon />
-                        </span>
-                        <div>
-                          <strong>{item.originalName}</strong>
-                          <span>{formatFileSize(item.fileSize)}</span>
+                {items.map((item) => {
+                  const isVideoExpiredWithReport = item.isOriginalVideoAvailable === false && item.isReportAvailable === true
+                  const effectiveStatus = getEffectiveStatus(item)
+                  const actionPath = effectiveStatus === 'completed' || isVideoExpiredWithReport
+                    ? `/analysis/${toVideoRouteId(item.videoId)}`
+                    : `/processing/${toVideoRouteId(item.videoId)}`
+                  const actionLabel = isVideoExpiredWithReport
+                    ? t('dashboard.viewReport')
+                    : effectiveStatus === 'completed'
+                      ? t('dashboard.viewResult')
+                      : t('dashboard.viewStatus')
+
+                  return (
+                    <tr className={isVideoExpiredWithReport ? 'history-row-video-expired' : undefined} key={item.videoId}>
+                      <td>
+                        <div className={`video-cell ${isVideoExpiredWithReport ? 'history-cell-muted' : ''}`}>
+                          <span className="file-icon">
+                            <VideoIcon />
+                          </span>
+                          <div>
+                            <strong>{item.originalName}</strong>
+                            <span>{formatFileSize(item.fileSize)}</span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <StatusBadge status={item.status} />
-                    </td>
-                    <td>
-                      <StatusBadge status={item.latestJobStatus ?? 'Queued'} />
-                    </td>
-                    <td>
-                      <ProgressBar value={item.latestJobProgress ?? 0} status={item.latestJobStatus} />
-                    </td>
-                    <td>{formatLocalizedDateTime(item.createdAt, language, t('common.notAvailable'))}</td>
-                    <td>
-                      <Link className={buttonClassName('outline')} to={getEffectiveStatus(item) === 'completed' ? `/analysis/${toVideoRouteId(item.videoId)}` : `/processing/${toVideoRouteId(item.videoId)}`}>
-                        {getEffectiveStatus(item) === 'completed' ? t('dashboard.viewResult') : t('dashboard.viewStatus')}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                        {isVideoExpiredWithReport && (
+                          <div className="history-expired-message">
+                            <AlertCircleIcon />
+                            <span>{t('dashboard.videoExpiredReportAvailable')}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <div className={isVideoExpiredWithReport ? 'history-cell-muted' : undefined}>
+                          <StatusBadge status={item.status} />
+                        </div>
+                      </td>
+                      <td>
+                        <div className={isVideoExpiredWithReport ? 'history-cell-muted' : undefined}>
+                          <StatusBadge status={item.latestJobStatus ?? 'Queued'} />
+                        </div>
+                      </td>
+                      <td>
+                        <div className={isVideoExpiredWithReport ? 'history-cell-muted' : undefined}>
+                          <ProgressBar value={item.latestJobProgress ?? 0} status={item.latestJobStatus} />
+                        </div>
+                      </td>
+                      <td>
+                        <span className={isVideoExpiredWithReport ? 'history-cell-muted' : undefined}>
+                          {formatLocalizedDateTime(item.createdAt, language, t('common.notAvailable'))}
+                        </span>
+                      </td>
+                      <td>
+                        <Link className={buttonClassName(isVideoExpiredWithReport ? 'primary' : 'outline')} to={actionPath}>
+                          {actionLabel}
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
