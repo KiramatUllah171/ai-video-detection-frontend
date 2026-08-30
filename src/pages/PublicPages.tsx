@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { AppCard } from '../components/ui/AppCard'
 import { buttonClassName } from '../components/ui/buttonStyles'
-import { ActivityIcon, BarChartIcon, FileVideoIcon, ShieldIcon, UploadIcon } from '../components/ui/icons'
+import { ActivityIcon, BarChartIcon, ClockIcon, FileVideoIcon, ShieldIcon, UploadIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const supportEmail = 'kiramatdev@gmail.com'
@@ -105,6 +105,17 @@ export function HomePage() {
       </section>
 
       <section className="public-section">
+        <AppCard className="public-retention-card">
+          <span className="public-feature-icon"><ClockIcon /></span>
+          <div>
+            <span className="eyebrow">{t('retention.publicEyebrow')}</span>
+            <h2>{t('retention.publicTitle')}</h2>
+            <p>{t('retention.publicBody')}</p>
+          </div>
+        </AppCard>
+      </section>
+
+      <section className="public-section">
         <div className="public-section-heading">
           <span className="eyebrow">{t('public.home.detailsEyebrow')}</span>
           <h2>{t('public.home.detailsTitle')}</h2>
@@ -203,6 +214,9 @@ export function PrivacyPolicyPage() {
       <PublicDocumentSection title={t('public.privacy.protectionTitle')}>
         <p>{t('public.privacy.protectionText')}</p>
       </PublicDocumentSection>
+      <PublicDocumentSection title={t('retention.privacyTitle')}>
+        <p>{t('retention.privacyBody')}</p>
+      </PublicDocumentSection>
       <PublicDocumentSection title={t('public.privacy.choicesTitle')}>
         <p>{t('public.privacy.choicesText')}</p>
       </PublicDocumentSection>
@@ -237,6 +251,9 @@ export function TermsAndConditionsPage() {
       </PublicDocumentSection>
       <PublicDocumentSection title={t('public.terms.availabilityTitle')}>
         <p>{t('public.terms.availabilityText')}</p>
+      </PublicDocumentSection>
+      <PublicDocumentSection title={t('retention.termsTitle')}>
+        <p>{t('retention.termsBody')}</p>
       </PublicDocumentSection>
     </PublicDocumentPage>
   )

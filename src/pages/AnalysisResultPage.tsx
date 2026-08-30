@@ -10,7 +10,7 @@ import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { LoadingState } from '../components/ui/LoadingState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
-import { ActivityIcon, AlertCircleIcon, BarChartIcon, FileVideoIcon, ShieldIcon } from '../components/ui/icons'
+import { ActivityIcon, AlertCircleIcon, BarChartIcon, ClockIcon, FileVideoIcon, ShieldIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
 import { formatLocalizedDateShort, formatLocalizedDateTime } from '../i18n/formatDate'
 import { fromVideoRouteId } from '../routes/videoRouteId'
@@ -133,6 +133,15 @@ export function AnalysisResultPage() {
               <WarningPanel message={t('analysis.inconclusiveWarning')} subtle />
             )}
             <WarningPanel message={t('analysis.proofWarning')} subtle />
+            <div className="retention-panel retention-panel-compact">
+              <span className="retention-panel-icon">
+                <ClockIcon />
+              </span>
+              <div>
+                <strong>{t('retention.reportWindowTitle')}</strong>
+                <p>{t('retention.analysisNotice')}</p>
+              </div>
+            </div>
           </AppCard>
 
           <section className="result-grid">
@@ -148,7 +157,7 @@ export function AnalysisResultPage() {
             <button type="button" className={`${buttonClassName('outline')} technical-details-pulse ${getTechnicalDetailsPulseClass(analysis)}`} onClick={() => setShowAdvancedDetails((current) => !current)}>
               {showAdvancedDetails ? t('analysis.hideTechnicalDetails') : t('analysis.showTechnicalDetails')}
             </button>
-            <p>{t('analysis.technicalDetailsHelper')}</p>
+            <p>{t('analysis.technicalDetailsHelper')} {t('retention.technicalNotice')}</p>
           </section>
 
           {showAdvancedDetails && detectorBreakdown && (

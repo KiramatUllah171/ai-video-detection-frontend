@@ -4,6 +4,7 @@ import { PublicLayout } from './layouts/PublicLayout'
 import { AdminRoute } from './routes/AdminRoute'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
+import { AdminLogsPage } from './pages/AdminLogsPage'
 import { AdminRequestsPage } from './pages/AdminRequestsPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
 import { AdminVideoDetailPage } from './pages/AdminVideoDetailPage'
@@ -49,6 +50,7 @@ function App() {
               <Route path="/admin/videos" element={<AdminVideosPage />} />
               <Route path="/admin/videos/:videoId" element={<AdminVideoDetailPage />} />
               <Route path="/admin/requests" element={<AdminRequestsPage />} />
+              <Route path="/admin/logs" element={<AdminLogsPage />} />
             </Route>
           </Route>
         </Route>

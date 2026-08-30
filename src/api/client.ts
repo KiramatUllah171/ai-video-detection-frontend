@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import type {
   AdminDashboardSummary,
+  AdminAuditLog,
   AdminJobListItem,
   AdminProviderRequestListItem,
   AdminProviderRequestUserSummary,
@@ -85,6 +86,7 @@ apiClient.interceptors.response.use(
 )
 
 type Translate = (key: string, values?: Record<string, string | number>) => string
+const REPORT_EXPIRED_ERROR_CODE = 'REPORT_EXPIRED'
 
 export function getApiErrorMessage(error: unknown, t?: Translate) {
   if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
@@ -109,11 +111,23 @@ function localizeApiError(message: string, t?: Translate) {
   }
 
   const normalized = message.trim().toLowerCase()
+  if (normalized === REPORT_EXPIRED_ERROR_CODE.toLowerCase()) {
+    return t('retention.reportExpiredError')
+  }
   if (normalized.includes('email is already registered') || normalized.includes('email address is already registered')) {
     return t('signup.emailAlreadyRegistered')
   }
   if (isStrongPasswordErrorMessage(normalized)) {
     return t('signup.strongPasswordRequirement')
+  }
+  if (normalized.includes('report retention period has ended') || normalized.includes('report is no longer available')) {
+    return t('retention.reportExpiredError')
+  }
+  if (
+    normalized.includes('original video file is no longer available') ||
+    normalized.includes('video availability period has ended')
+  ) {
+    return t('retention.videoExpiredError')
   }
   if (normalized.includes('confirm your email address') || normalized.includes('email address has not been confirmed')) {
     return t('login.emailNotConfirmed')
@@ -215,12 +229,73 @@ export async function getVideoMetadata(videoId: string | number) {
 export async function downloadAnalysisReport(videoId: string | number) {
   const response = await apiClient.get<Blob>(`/api/videos/${videoId}/report/pdf`, {
     responseType: 'blob',
+  }).catch(async (error: unknown) => {
+    const message = await getBlobApiErrorMessage(error)
+    throw new Error(message)
   })
 
   return {
     blob: new Blob([response.data], { type: 'application/pdf' }),
     fileName: getDownloadFileName(response.headers['content-disposition']),
   }
+}
+
+async function getBlobApiErrorMessage(error: unknown) {
+  if (!axios.isAxiosError<ApiResponse<unknown> | Blob>(error)) {
+    return error instanceof Error ? error.message : 'Request failed.'
+  }
+
+  const data = error.response?.data
+  if (data && typeof data === 'object' && 'success' in data) {
+    const message = data.errors?.[0] ?? data.message ?? error.message
+    return getReportDownloadErrorMessage(error.response?.status, message) ?? message
+  }
+
+  if (!data || typeof (data as Blob).text !== 'function') {
+    return getReportDownloadErrorMessage(error.response?.status, error.message) ?? error.message
+  }
+
+  const text = await (data as Blob).text()
+  if (!text.trim()) {
+    return getReportDownloadErrorMessage(error.response?.status, error.message) ?? error.message
+  }
+
+  try {
+    const response = JSON.parse(text) as ApiResponse<unknown>
+    const message = response.errors?.[0] ?? response.message ?? error.message
+    return getReportDownloadErrorMessage(error.response?.status, message) ?? message
+  } catch {
+    return getReportDownloadErrorMessage(error.response?.status, text) ?? text
+  }
+}
+
+function getReportDownloadErrorMessage(status: number | undefined, message: string) {
+  const normalized = message.trim().toLowerCase()
+  if (
+    normalized.includes('analysis report is not available yet') ||
+    normalized.includes('report is not available yet') ||
+    normalized.includes('video was not found')
+  ) {
+    return undefined
+  }
+
+  if (
+    status === 406 ||
+    status === 410 ||
+    normalized === REPORT_EXPIRED_ERROR_CODE.toLowerCase() ||
+    normalized.includes('report retention period has ended') ||
+    normalized.includes('report availability period has ended') ||
+    normalized.includes('report is no longer available') ||
+    (status === 404 && (
+      normalized.includes('request failed') ||
+      normalized.includes("couldn't complete the analysis") ||
+      normalized.includes('could not complete the analysis')
+    ))
+  ) {
+    return REPORT_EXPIRED_ERROR_CODE
+  }
+
+  return undefined
 }
 
 function getDownloadFileName(contentDisposition?: string) {
@@ -341,6 +416,19 @@ export async function getAdminProviderRequests(params: { page?: number; pageSize
 
 export async function getAdminProviderRequestUsers(params: { page?: number; pageSize?: number; search?: string }) {
   const response = await apiClient.get<ApiResponse<PagedResponse<AdminProviderRequestUserSummary>>>('/api/admin/provider-request-users', { params })
+  return unwrapApiResponse(response.data)
+}
+
+export async function getAdminAuditLogs(params: {
+  page?: number
+  pageSize?: number
+  search?: string
+  from?: string
+  to?: string
+  severity?: string
+  category?: string
+}) {
+  const response = await apiClient.get<ApiResponse<PagedResponse<AdminAuditLog>>>('/api/admin/logs', { params })
   return unwrapApiResponse(response.data)
 }
 
