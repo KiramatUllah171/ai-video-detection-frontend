@@ -95,6 +95,14 @@ export function AdminDashboardPage() {
                     <strong>{bitmind.monthlyUsed.toLocaleString()}</strong>
                     <small>{bitmind.monthlyQuotaLimit > 0 ? t('admin.bitmind.remaining', { count: bitmind.monthlyRemaining.toLocaleString() }) : t('admin.bitmind.quotaNotConfigured')}</small>
                   </div>
+                  <div className={`admin-provider-health ${bitmind.circuitOpen ? 'is-paused' : 'is-available'}`}>
+                    <span>{bitmind.circuitOpen ? t('admin.bitmind.healthPaused') : t('admin.bitmind.healthAvailable')}</span>
+                    <small>
+                      {bitmind.circuitOpen
+                        ? t('admin.bitmind.circuitFailures', { count: bitmind.circuitConsecutiveFailures.toLocaleString() })
+                        : t('admin.bitmind.providerReady')}
+                    </small>
+                  </div>
                   <div className="admin-quota-bar" aria-label={t('admin.bitmind.percentUsed', { percent: quotaPercent.toFixed(1) })}>
                     <span style={{ width: `${quotaPercent}%` }} />
                   </div>
@@ -119,6 +127,32 @@ export function AdminDashboardPage() {
               <div className="admin-status-columns">
                 <StatusList title={t('admin.health.jobs')} items={summary.jobStatuses} />
                 <StatusList title={t('admin.health.externalRequests')} items={summary.requestStatuses} />
+              </div>
+            </AppCard>
+
+            <AppCard className="admin-section-card">
+              <div className="card-header compact">
+                <div>
+                  <h2>{t('admin.cleanup.title')}</h2>
+                  <p>{t('admin.cleanup.subtitle')}</p>
+                </div>
+              </div>
+              <div className="admin-cleanup-panel">
+                <div className={`admin-provider-health ${summary.retentionCleanup.failuresLast24Hours > 0 ? 'is-paused' : 'is-available'}`}>
+                  <span>{localizeStatusLabel(summary.retentionCleanup.lastStatus, t)}</span>
+                  <small>
+                    {summary.retentionCleanup.lastRunAt
+                      ? formatAdminDateShort(summary.retentionCleanup.lastRunAt, t('common.notAvailable'), language)
+                      : t('admin.cleanup.notRun')}
+                  </small>
+                </div>
+                <div className="admin-compact-stats">
+                  <span><strong>{summary.retentionCleanup.runsLast24Hours.toLocaleString()}</strong>{t('admin.cleanup.runs24h')}</span>
+                  <span><strong>{summary.retentionCleanup.failuresLast24Hours.toLocaleString()}</strong>{t('admin.cleanup.failures24h')}</span>
+                  <span><strong>{summary.retentionCleanup.pendingOriginalVideoCleanup.toLocaleString()}</strong>{t('admin.cleanup.pendingVideos')}</span>
+                  <span><strong>{summary.retentionCleanup.pendingDetailedPayloadCleanup.toLocaleString()}</strong>{t('admin.cleanup.pendingDetails')}</span>
+                </div>
+                <p className="muted-copy">{t('admin.cleanup.pendingFrames', { count: summary.retentionCleanup.pendingTemporaryFrameCleanup.toLocaleString() })}</p>
               </div>
             </AppCard>
           </section>

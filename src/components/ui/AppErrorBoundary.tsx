@@ -22,7 +22,9 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Application render failed.', error, errorInfo)
+    if (import.meta.env.DEV) {
+      console.error('Application render failed.', error, errorInfo)
+    }
   }
 
   render() {

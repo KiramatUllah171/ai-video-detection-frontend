@@ -3,6 +3,7 @@ export type ApiResponse<T> = {
   message: string
   data?: T
   errors: string[]
+  correlationId?: string
 }
 
 export type UserProfile = {
@@ -216,6 +217,22 @@ export type AdminExternalRequestSummary = {
   monthlyRemaining: number
   monthlySuccess: number
   monthlyFailed: number
+  healthStatus: string
+  circuitOpen: boolean
+  circuitConsecutiveFailures: number
+  circuitOpenUntil?: string
+}
+
+export type AdminCleanupSummary = {
+  lastRunAt?: string
+  lastStatus: string
+  lastDurationMs: number
+  lastFailureCount: number
+  runsLast24Hours: number
+  failuresLast24Hours: number
+  pendingTemporaryFrameCleanup: number
+  pendingOriginalVideoCleanup: number
+  pendingDetailedPayloadCleanup: number
 }
 
 export type AdminDashboardSummary = {
@@ -228,6 +245,7 @@ export type AdminDashboardSummary = {
   topUsers: AdminTopUser[]
   recentActivity: AdminRecentActivity[]
   externalRequests: AdminExternalRequestSummary
+  retentionCleanup: AdminCleanupSummary
 }
 
 export type AdminUserListItem = {
@@ -385,5 +403,6 @@ export type AdminAuditLog = {
   ipAddress?: string
   userAgent?: string
   detailsJson?: string
+  correlationId?: string
   createdAt: string
 }

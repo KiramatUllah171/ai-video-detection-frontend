@@ -1,7 +1,7 @@
 import type { AxiosProgressEvent } from 'axios'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiClient, getApiErrorMessage } from '../api/client'
+import { ApiRequestError, apiClient, getApiErrorMessage } from '../api/client'
 import type { ApiResponse, UploadVideoResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { AppButton } from '../components/ui/AppButton'
@@ -39,20 +39,6 @@ export function UploadVideoPage() {
   const selectedMaxSizeLabel = getMaxSizeLabel(analysisMode)
   const selectedScanLabel = analysisMode === 'Detailed' ? t('processing.scanTypeDetailed') : t('processing.scanTypeSmart')
   const fileExceedsSelectedModeLimit = Boolean(file && file.size > selectedMaxUploadSizeBytes)
-
-  useEffect(() => {
-    if (!file || isStartingAnalysis) {
-      return
-    }
-
-    if (file.size > selectedMaxUploadSizeBytes) {
-      setError(getFileSizeError(selectedScanLabel, selectedMaxSizeLabel, t))
-      setProgress(0)
-      return
-    }
-
-    setError(null)
-  }, [file, isStartingAnalysis, selectedMaxSizeLabel, selectedMaxUploadSizeBytes, selectedScanLabel])
 
   function selectFile(nextFile?: File) {
     if (isStartingAnalysis) {
@@ -134,7 +120,10 @@ export function UploadVideoPage() {
       })
 
       if (!response.data.success || !response.data.data) {
-        throw new Error(response.data.errors[0] ?? response.data.message)
+        throw new ApiRequestError(response.data.errors[0] ?? response.data.message, {
+          correlationId: response.data.correlationId,
+          status: response.status,
+        })
       }
 
       navigate(`/processing/${toVideoRouteId(response.data.data.videoId)}`, {

@@ -6998,6 +6998,35 @@ html.theme-dark .auth-alert-neutral {
   font-weight: 700;
 }
 
+.admin-provider-health {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: rgba(15, 118, 110, 0.06);
+}
+
+.admin-provider-health span {
+  color: var(--text-strong);
+  font-weight: 900;
+}
+
+.admin-provider-health small {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.admin-provider-health.is-paused {
+  border-color: rgba(239, 68, 68, 0.32);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.admin-cleanup-panel {
+  display: grid;
+  gap: 1rem;
+}
+
 .admin-quota-bar,
 .admin-probability-line div {
   height: 12px;
