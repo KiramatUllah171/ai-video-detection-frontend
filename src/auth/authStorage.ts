@@ -4,6 +4,7 @@ import { normalizeUserProfile } from './roleUtils'
 const accessTokenKey = 'ai-video.accessToken'
 const userKey = 'ai-video.user'
 const expiresAtKey = 'ai-video.expiresAt'
+export const authSessionClearedEvent = 'ai-video.auth-session-cleared'
 
 export const authStorage = {
   getAccessToken() {
@@ -18,7 +19,16 @@ export const authStorage = {
   },
   getUser(): UserProfile | null {
     const raw = localStorage.getItem(userKey)
-    return raw ? normalizeUserProfile(JSON.parse(raw) as UserProfile) : null
+    if (!raw) {
+      return null
+    }
+
+    try {
+      return normalizeUserProfile(JSON.parse(raw) as UserProfile)
+    } catch {
+      this.clear()
+      return null
+    }
   },
   setSession(session: AuthResponse) {
     localStorage.setItem(accessTokenKey, session.accessToken)
@@ -32,5 +42,6 @@ export const authStorage = {
     localStorage.removeItem(accessTokenKey)
     localStorage.removeItem(userKey)
     localStorage.removeItem(expiresAtKey)
+    window.dispatchEvent(new Event(authSessionClearedEvent))
   },
 }

@@ -88,7 +88,23 @@ apiClient.interceptors.response.use(
 type Translate = (key: string, values?: Record<string, string | number>) => string
 const REPORT_EXPIRED_ERROR_CODE = 'REPORT_EXPIRED'
 
+export class ApiRequestError extends Error {
+  correlationId?: string
+  status?: number
+
+  constructor(message: string, options?: { correlationId?: string; status?: number }) {
+    super(message)
+    this.name = 'ApiRequestError'
+    this.correlationId = options?.correlationId
+    this.status = options?.status
+  }
+}
+
 export function getApiErrorMessage(error: unknown, t?: Translate) {
+  if (error instanceof ApiRequestError) {
+    return appendCorrelationId(localizeApiError(error.message, t, error.status), error.correlationId, t)
+  }
+
   if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
     if (error.code === 'ERR_NETWORK') {
       return t ? t('api.networkError') : 'Network error while contacting the API. For large uploads, confirm the backend is running and allows the selected file size.'
@@ -99,13 +115,23 @@ export function getApiErrorMessage(error: unknown, t?: Translate) {
     }
 
     const response = error.response?.data
-    return localizeApiError(response?.errors?.[0] ?? response?.message ?? error.message, t)
+    const message = localizeApiError(response?.errors?.[0] ?? response?.message ?? error.message, t, error.response?.status)
+    return appendCorrelationId(message, response?.correlationId, t)
   }
 
   return localizeApiError(error instanceof Error ? error.message : t ? t('api.requestFailed') : 'Request failed.', t)
 }
 
-function localizeApiError(message: string, t?: Translate) {
+function appendCorrelationId(message: string, correlationId: string | undefined, t?: Translate) {
+  if (!correlationId) {
+    return message
+  }
+
+  const reference = t ? t('api.correlationReference', { correlationId }) : `Reference ID: ${correlationId}`
+  return `${message} ${reference}`
+}
+
+function localizeApiError(message: string, t?: Translate, status?: number) {
   if (!t) {
     return message
   }
@@ -120,6 +146,19 @@ function localizeApiError(message: string, t?: Translate) {
   if (isStrongPasswordErrorMessage(normalized)) {
     return t('signup.strongPasswordRequirement')
   }
+  if (
+    normalized.includes('too many requests') ||
+    normalized.includes('too many failed sign-in attempts') ||
+    status === 429
+  ) {
+    return t('api.tooManyRequests')
+  }
+  if (status === 401 || normalized.includes('unauthorized') || normalized.includes('invalid refresh token')) {
+    return t('api.unauthorized')
+  }
+  if (status === 403 || normalized.includes('forbidden') || normalized.includes('not authorized')) {
+    return t('api.forbidden')
+  }
   if (normalized.includes('report retention period has ended') || normalized.includes('report is no longer available')) {
     return t('retention.reportExpiredError')
   }
@@ -132,14 +171,8 @@ function localizeApiError(message: string, t?: Translate) {
   if (normalized.includes('confirm your email address') || normalized.includes('email address has not been confirmed')) {
     return t('login.emailNotConfirmed')
   }
-  if (
-    normalized.includes('unauthorized') ||
-    normalized.includes('invalid email or password') ||
-    normalized.includes('invalid refresh token') ||
-    normalized.includes('user account is inactive') ||
-    normalized.includes('user was not found')
-  ) {
-    return t('profile.unavailable')
+  if (normalized.includes('user account is inactive')) {
+    return t('api.accountInactive')
   }
   if (
     normalized.includes('not found') ||
@@ -152,20 +185,46 @@ function localizeApiError(message: string, t?: Translate) {
   if (
     normalized.includes('only failed') ||
     normalized.includes('maximum retry') ||
-    normalized.includes('no failed analysis job')
+    normalized.includes('no failed analysis job') ||
+    normalized.includes('cannot be paused') ||
+    normalized.includes('cannot be resumed') ||
+    normalized.includes('analysis was cancelled') ||
+    normalized.includes('analysis has already completed')
   ) {
     return t('processing.defaultError')
   }
-  if (normalized.includes('request failed')) {
-    return t('processing.defaultError')
+  if (
+    normalized.includes('video file is required') ||
+    normalized.includes('uploaded file is empty') ||
+    normalized.includes('file extension is not supported') ||
+    normalized.includes('filename is invalid') ||
+    normalized.includes('content type is not supported') ||
+    normalized.includes('right to upload')
+  ) {
+    return t('api.validationError')
   }
-  return message
+  if (
+    status !== undefined && status >= 500 ||
+    normalized.includes('request failed') ||
+    normalized.includes('server error') ||
+    normalized.includes('unexpected error')
+  ) {
+    return t('api.serverError')
+  }
+  return t('api.requestFailed')
+}
+
+function createApiRequestError<T>(response: ApiResponse<T>, status?: number) {
+  return new ApiRequestError(response.errors?.[0] ?? response.message ?? 'Request failed.', {
+    correlationId: response.correlationId,
+    status,
+  })
 }
 
 export async function getAnalysisResult(videoId: string | number) {
   const response = await apiClient.get<ApiResponse<AnalysisResult>>(`/api/videos/${videoId}/analysis`)
   if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data.data
 }
@@ -173,7 +232,7 @@ export async function getAnalysisResult(videoId: string | number) {
 export async function retryAnalysis(videoId: string | number) {
   const response = await apiClient.post<ApiResponse<UploadVideoResponse>>(`/api/videos/${videoId}/retry-analysis`)
   if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data.data
 }
@@ -181,7 +240,7 @@ export async function retryAnalysis(videoId: string | number) {
 export async function reanalyzeVideo(videoId: string | number) {
   const response = await apiClient.post<ApiResponse<UploadVideoResponse>>(`/api/videos/${videoId}/reanalyze`)
   if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data.data
 }
@@ -189,7 +248,7 @@ export async function reanalyzeVideo(videoId: string | number) {
 export async function cancelAnalysis(videoId: string | number) {
   const response = await apiClient.post<ApiResponse<JobStatus>>(`/api/videos/${videoId}/cancel-analysis`)
   if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data.data
 }
@@ -197,7 +256,7 @@ export async function cancelAnalysis(videoId: string | number) {
 export async function pauseAnalysis(videoId: string | number) {
   const response = await apiClient.post<ApiResponse<JobStatus>>(`/api/videos/${videoId}/pause-analysis`)
   if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data.data
 }
@@ -205,7 +264,7 @@ export async function pauseAnalysis(videoId: string | number) {
 export async function resumeAnalysis(videoId: string | number) {
   const response = await apiClient.post<ApiResponse<JobStatus>>(`/api/videos/${videoId}/resume-analysis`)
   if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data.data
 }
@@ -213,7 +272,7 @@ export async function resumeAnalysis(videoId: string | number) {
 export async function getOriginMatches(videoId: string | number) {
   const response = await apiClient.get<ApiResponse<SourceMatch[]>>(`/api/videos/${videoId}/origin-matches`)
   if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data.data
 }
@@ -230,8 +289,7 @@ export async function downloadAnalysisReport(videoId: string | number) {
   const response = await apiClient.get<Blob>(`/api/videos/${videoId}/report/pdf`, {
     responseType: 'blob',
   }).catch(async (error: unknown) => {
-    const message = await getBlobApiErrorMessage(error)
-    throw new Error(message)
+    throw await getBlobApiError(error)
   })
 
   return {
@@ -240,32 +298,46 @@ export async function downloadAnalysisReport(videoId: string | number) {
   }
 }
 
-async function getBlobApiErrorMessage(error: unknown) {
+async function getBlobApiError(error: unknown) {
   if (!axios.isAxiosError<ApiResponse<unknown> | Blob>(error)) {
-    return error instanceof Error ? error.message : 'Request failed.'
+    return error instanceof Error ? error : new ApiRequestError('Request failed.')
   }
 
   const data = error.response?.data
   if (data && typeof data === 'object' && 'success' in data) {
     const message = data.errors?.[0] ?? data.message ?? error.message
-    return getReportDownloadErrorMessage(error.response?.status, message) ?? message
+    const normalizedMessage = getReportDownloadErrorMessage(error.response?.status, message) ?? message
+    return new ApiRequestError(normalizedMessage, {
+      correlationId: data.correlationId,
+      status: error.response?.status,
+    })
   }
 
   if (!data || typeof (data as Blob).text !== 'function') {
-    return getReportDownloadErrorMessage(error.response?.status, error.message) ?? error.message
+    return new ApiRequestError(getReportDownloadErrorMessage(error.response?.status, error.message) ?? error.message, {
+      status: error.response?.status,
+    })
   }
 
   const text = await (data as Blob).text()
   if (!text.trim()) {
-    return getReportDownloadErrorMessage(error.response?.status, error.message) ?? error.message
+    return new ApiRequestError(getReportDownloadErrorMessage(error.response?.status, error.message) ?? error.message, {
+      status: error.response?.status,
+    })
   }
 
   try {
     const response = JSON.parse(text) as ApiResponse<unknown>
     const message = response.errors?.[0] ?? response.message ?? error.message
-    return getReportDownloadErrorMessage(error.response?.status, message) ?? message
+    const normalizedMessage = getReportDownloadErrorMessage(error.response?.status, message) ?? message
+    return new ApiRequestError(normalizedMessage, {
+      correlationId: response.correlationId,
+      status: error.response?.status,
+    })
   } catch {
-    return getReportDownloadErrorMessage(error.response?.status, text) ?? text
+    return new ApiRequestError(getReportDownloadErrorMessage(error.response?.status, text) ?? text, {
+      status: error.response?.status,
+    })
   }
 }
 
@@ -315,7 +387,7 @@ function getDownloadFileName(contentDisposition?: string) {
 export async function requestPasswordReset(email: string) {
   const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/forgot-password', { email })
   if (!response.data.success) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data
 }
@@ -327,7 +399,7 @@ export async function resetPassword(token: string, password: string, confirmPass
     confirmPassword,
   })
   if (!response.data.success) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data
 }
@@ -335,7 +407,7 @@ export async function resetPassword(token: string, password: string, confirmPass
 export async function checkPasswordReset(token: string) {
   const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/check-password-reset', { token })
   if (!response.data.success) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data
 }
@@ -343,7 +415,7 @@ export async function checkPasswordReset(token: string) {
 export async function confirmEmail(token: string) {
   const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/confirm-email', { token })
   if (!response.data.success) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data
 }
@@ -351,7 +423,7 @@ export async function confirmEmail(token: string) {
 export async function checkEmailConfirmation(token: string) {
   const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/check-email-confirmation', { token })
   if (!response.data.success) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data
 }
@@ -359,7 +431,7 @@ export async function checkEmailConfirmation(token: string) {
 export async function declineEmailConfirmation(token: string) {
   const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/decline-email-confirmation', { token })
   if (!response.data.success) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data
 }
@@ -367,7 +439,7 @@ export async function declineEmailConfirmation(token: string) {
 export async function resendEmailConfirmation(email: string) {
   const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/resend-confirmation-email', { email })
   if (!response.data.success) {
-    throw new Error(response.data.errors?.[0] ?? response.data.message)
+    throw createApiRequestError(response.data, response.status)
   }
   return response.data
 }
@@ -434,7 +506,7 @@ export async function getAdminAuditLogs(params: {
 
 function unwrapApiResponse<T>(response: ApiResponse<T>) {
   if (!response.success || response.data === undefined) {
-    throw new Error(response.errors?.[0] ?? response.message)
+    throw createApiRequestError(response)
   }
 
   return response.data

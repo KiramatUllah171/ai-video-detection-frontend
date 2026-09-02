@@ -1,15 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../api/client'
 import type { ApiResponse, AuthResponse, UserProfile } from '../api/types'
-import { authStorage } from './authStorage'
+import { authSessionClearedEvent, authStorage } from './authStorage'
 import { AuthContext } from './AuthContext'
 import { normalizeUserProfile } from './roleUtils'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<UserProfile | null>(() => authStorage.getUser())
   const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(() => authStorage.getExpiresAt())
   const [isLoading, setIsLoading] = useState(true)
+
+  const clearFrontendSession = useCallback(() => {
+    setUser(null)
+    setSessionExpiresAt(null)
+    queryClient.clear()
+  }, [queryClient])
+
+  useEffect(() => {
+    window.addEventListener(authSessionClearedEvent, clearFrontendSession)
+    return () => window.removeEventListener(authSessionClearedEvent, clearFrontendSession)
+  }, [clearFrontendSession])
 
   useEffect(() => {
     let cancelled = false
@@ -20,8 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (storedAccessToken && (!storedExpiresAt || authStorage.isSessionExpired())) {
         authStorage.clear()
-        setUser(null)
-        setSessionExpiresAt(null)
         setIsLoading(false)
         return
       }
@@ -36,10 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch {
           authStorage.clear()
-          if (!cancelled) {
-            setUser(null)
-            setSessionExpiresAt(null)
-          }
         } finally {
           if (!cancelled) {
             setIsLoading(false)
@@ -56,10 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         authStorage.clear()
-        if (!cancelled) {
-          setUser(null)
-          setSessionExpiresAt(null)
-        }
       } finally {
         if (!cancelled) {
           setIsLoading(false)
@@ -81,15 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const expiresInMs = Date.parse(sessionExpiresAt) - Date.now()
     if (expiresInMs <= 0) {
       authStorage.clear()
-      setUser(null)
-      setSessionExpiresAt(null)
       return
     }
 
     const timeoutId = window.setTimeout(() => {
       authStorage.clear()
-      setUser(null)
-      setSessionExpiresAt(null)
     }, expiresInMs)
 
     return () => window.clearTimeout(timeoutId)
@@ -132,8 +131,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiClient.post('/api/auth/logout', {})
     } finally {
       authStorage.clear()
-      setUser(null)
-      setSessionExpiresAt(null)
     }
   }, [])
 

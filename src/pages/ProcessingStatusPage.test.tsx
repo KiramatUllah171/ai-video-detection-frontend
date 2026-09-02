@@ -112,7 +112,7 @@ describe('ProcessingStatusPage', () => {
     renderWithProviders(<ProcessingStatusPage />)
 
     expect(await screen.findAllByText('Analysis cancelled')).toHaveLength(4)
-    expect(screen.getByText('Processing was stopped. Your uploaded video is still available. Use Start analysis again to run a new analysis on the same file.')).toBeInTheDocument()
+    expect(screen.getByText('Processing was stopped. You can start analysis again while the 3-day video availability period is active.')).toBeInTheDocument()
     expect(screen.getByText('Processing stopped after 5 of 8 parts.')).toBeInTheDocument()
     expect(screen.getByText('very-long-uploaded-file-name-for-review.mp4')).toBeInTheDocument()
     expect(screen.getByText('Detailed Scan')).toBeInTheDocument()
@@ -177,7 +177,7 @@ describe('ProcessingStatusPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: /cancel analysis/i }))
 
     expect(screen.getByRole('dialog', { name: 'Cancel analysis?' })).toBeInTheDocument()
-    expect(screen.getByText(/Processing will stop, but your uploaded video will remain available/)).toBeInTheDocument()
+    expect(screen.getByText(/Are you sure you want to cancel this analysis\? Processing will stop/)).toBeInTheDocument()
     expect(confirmSpy).not.toHaveBeenCalled()
 
     const keepAnalyzingButton = screen.getByRole('button', { name: /keep analyzing/i })
@@ -265,7 +265,7 @@ describe('ProcessingStatusPage', () => {
     renderWithProviders(<ProcessingStatusPage />)
 
     expect(await screen.findAllByText('Analysis paused')).toHaveLength(3)
-    expect(screen.getByText('Processing is paused. Your uploaded video and completed analysis progress have been preserved.')).toBeInTheDocument()
+    expect(screen.getByText('Processing is paused. Completed progress is preserved, and the video can be resumed while the 3-day video availability period is active.')).toBeInTheDocument()
     expect(screen.getByText('Analysis paused after 5 of 8 parts.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /pause analysis/i })).not.toBeInTheDocument()
 
@@ -315,7 +315,7 @@ describe('ProcessingStatusPage', () => {
     const pauseButtons = screen.getAllByRole('button', { name: /pause analysis/i })
     await userEvent.click(pauseButtons[pauseButtons.length - 1])
 
-    expect(await screen.findAllByText('This analysis cannot be paused in its current state.')).toHaveLength(2)
+    expect(await screen.findAllByText("We couldn't complete the analysis. Please retry.")).toHaveLength(2)
     unmount()
 
     vi.clearAllMocks()
@@ -324,7 +324,7 @@ describe('ProcessingStatusPage', () => {
     renderWithProviders(<ProcessingStatusPage />)
     await userEvent.click(await screen.findByRole('button', { name: /resume analysis/i }))
 
-    expect(await screen.findByText('The analysis was cancelled before it could be resumed.')).toBeInTheDocument()
+    expect(await screen.findByText("We couldn't complete the analysis. Please retry.")).toBeInTheDocument()
   })
 })
 

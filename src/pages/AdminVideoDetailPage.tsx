@@ -28,8 +28,9 @@ export function AdminVideoDetailPage() {
   const { language, t } = useLanguage()
   const { videoId: routeVideoId } = useParams()
   const videoId = fromVideoRouteId(routeVideoId)
-  const [videoUrl, setVideoUrl] = useState('')
-  const [videoError, setVideoError] = useState('')
+  const [videoState, setVideoState] = useState({ videoId: '', url: '', error: '' })
+  const videoUrl = videoState.videoId === videoId ? videoState.url : ''
+  const videoError = videoState.videoId === videoId ? videoState.error : ''
   const detailQuery = useQuery({
     queryKey: ['admin-video-detail', videoId],
     enabled: Boolean(videoId),
@@ -43,8 +44,6 @@ export function AdminVideoDetailPage() {
 
     let isMounted = true
     let objectUrl = ''
-    setVideoError('')
-    setVideoUrl('')
     getAdminVideoFile(videoId)
       .then((blob) => {
         if (!isMounted) {
@@ -52,11 +51,11 @@ export function AdminVideoDetailPage() {
         }
 
         objectUrl = URL.createObjectURL(blob)
-        setVideoUrl(objectUrl)
+        setVideoState({ videoId, url: objectUrl, error: '' })
       })
       .catch((error) => {
         if (isMounted) {
-          setVideoError(getApiErrorMessage(error, t))
+          setVideoState({ videoId, url: '', error: getApiErrorMessage(error, t) })
         }
       })
 

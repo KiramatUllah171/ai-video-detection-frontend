@@ -166,6 +166,7 @@ export function AdminLogsPage() {
                       <div className="admin-log-event">
                         <strong>{localizeAuditAction(log.action, t)}</strong>
                         <span>{localizeAuditMessage(log.action, log.message, t)}</span>
+                        {log.correlationId && <small>{t('admin.logs.reference', { correlationId: log.correlationId })}</small>}
                         <small>{formatAdminDate(log.createdAt, t('common.notAvailable'), language)}</small>
                       </div>
                     </td>
