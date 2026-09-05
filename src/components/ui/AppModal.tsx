@@ -5,6 +5,7 @@ type AppModalProps = {
   open: boolean
   title: string
   children: ReactNode
+  className?: string
   icon?: ReactNode
   busy?: boolean
   closeOnBackdrop?: boolean
@@ -25,6 +26,7 @@ export function AppModal({
   open,
   title,
   children,
+  className = '',
   icon,
   busy = false,
   closeOnBackdrop = true,
@@ -108,7 +110,7 @@ export function AppModal({
     >
       <div
         ref={dialogRef}
-        className="app-modal"
+        className={`app-modal ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

@@ -1,25 +1,28 @@
 import type { AxiosProgressEvent } from 'axios'
-import { useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ApiRequestError, apiClient, getApiErrorMessage } from '../api/client'
+import { ApiRequestError, apiClient, getApiErrorMessage, getSubscriptionStatus } from '../api/client'
 import type { ApiResponse, UploadVideoResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
+import { isAdminRole } from '../auth/roleUtils'
+import { SubscriptionStatusPanel } from '../components/subscriptions/SubscriptionStatusPanel'
+import { SubscriptionUpgradeModal } from '../components/subscriptions/SubscriptionUpgradeModal'
 import { AppButton } from '../components/ui/AppButton'
 import { AppCard } from '../components/ui/AppCard'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { AppTextarea, FormField } from '../components/ui/FormField'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ProgressBar } from '../components/ui/ProgressBar'
-import { ClockIcon, FileVideoIcon, ShieldIcon, UploadIcon, XIcon } from '../components/ui/icons'
+import { FileVideoIcon, ShieldIcon, UploadIcon, XIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
 import { toVideoRouteId } from '../routes/videoRouteId'
+import { getSubscriptionUpgradeErrorCode, shouldShowSubscriptionUpgrade, subscriptionStatusQueryKey } from '../subscriptions/subscriptionErrors'
 
-type Translate = (key: string, values?: Record<string, string | number>) => string
-
-const smartScanMaxSizeLabel = '200 MB'
-const detailedScanMaxSizeLabel = '500 MB'
-const smartScanMaxUploadSizeBytes = 209_715_200
-const detailedScanMaxUploadSizeBytes = 524_288_000
+const smartScanMaxSizeLabel = 'plan limit, up to 300 MB'
+const detailedScanMaxSizeLabel = '300 MB'
+const absoluteMaxUploadSizeBytes = 314_572_800
+const uploadRequestTimeoutMs = 20 * 60 * 1000
 const formats = ['MP4', 'MOV', 'AVI', 'MKV', 'WebM']
 
 export function UploadVideoPage() {
@@ -27,6 +30,7 @@ export function UploadVideoPage() {
   const { t } = useLanguage()
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const uploadInFlightRef = useRef(false)
   const [file, setFile] = useState<File | null>(null)
   const [consentAccepted, setConsentAccepted] = useState(false)
   const [analysisMode, setAnalysisMode] = useState('Basic')
@@ -34,21 +38,53 @@ export function UploadVideoPage() {
   const [isDragging, setIsDragging] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false)
+  const [subscriptionReasonCode, setSubscriptionReasonCode] = useState<string | undefined>()
   const [isStartingAnalysis, setIsStartingAnalysis] = useState(false)
-  const selectedMaxUploadSizeBytes = getMaxUploadSizeBytes(analysisMode)
+  const isAdmin = isAdminRole(auth.user?.role)
+  const subscriptionStatusQuery = useQuery({
+    queryKey: subscriptionStatusQueryKey,
+    queryFn: getSubscriptionStatus,
+    enabled: auth.isAuthenticated,
+    staleTime: 30_000,
+  })
+  const freeTrialUsedUp = isFreeTrialUsedUp(subscriptionStatusQuery.data)
+  const uploadDropzoneDisabled = isStartingAnalysis || freeTrialUsedUp
+  const selectedMaxUploadSizeBytes = absoluteMaxUploadSizeBytes
   const selectedMaxSizeLabel = getMaxSizeLabel(analysisMode)
-  const selectedScanLabel = analysisMode === 'Detailed' ? t('processing.scanTypeDetailed') : t('processing.scanTypeSmart')
   const fileExceedsSelectedModeLimit = Boolean(file && file.size > selectedMaxUploadSizeBytes)
 
+  useEffect(() => {
+    if (!freeTrialUsedUp) {
+      return
+    }
+
+    setFile(null)
+    setProgress(0)
+    setIsDragging(false)
+    if (inputRef.current) {
+      inputRef.current.value = ''
+    }
+  }, [freeTrialUsedUp])
+
   function selectFile(nextFile?: File) {
-    if (isStartingAnalysis) {
+    if (uploadDropzoneDisabled) {
       return
     }
 
     if (nextFile) {
-      if (nextFile.size > selectedMaxUploadSizeBytes) {
+      const preflight = validateFileSizePreflight(nextFile.size, subscriptionStatusQuery.data, isAdmin)
+      if (preflight === 'absolute') {
         setFile(null)
-        setError(getFileSizeError(selectedScanLabel, selectedMaxSizeLabel, t))
+        setError(t('upload.absoluteMaxSizeError'))
+        setProgress(0)
+        return
+      }
+      if (preflight === 'plan') {
+        setFile(null)
+        setSubscriptionReasonCode('VIDEO_SIZE_LIMIT_EXCEEDED')
+        setSubscriptionModalOpen(true)
+        setError(t('subscriptions.videoTooLargeForPlan'))
         setProgress(0)
         return
       }
@@ -89,12 +125,24 @@ export function UploadVideoPage() {
   }
 
   async function handleUpload() {
-    if (!file || !consentAccepted || !auth.isAuthenticated || isStartingAnalysis) {
+    if (uploadInFlightRef.current) {
       return
     }
 
-    if (file.size > selectedMaxUploadSizeBytes) {
-      setError(getFileSizeError(selectedScanLabel, selectedMaxSizeLabel, t))
+    if (!file || !consentAccepted || !auth.isAuthenticated || uploadDropzoneDisabled) {
+      return
+    }
+
+    const preflight = validateFileSizePreflight(file.size, subscriptionStatusQuery.data, isAdmin)
+    if (preflight === 'absolute') {
+      setError(t('upload.absoluteMaxSizeError'))
+      setProgress(0)
+      return
+    }
+    if (preflight === 'plan') {
+      setSubscriptionReasonCode('VIDEO_SIZE_LIMIT_EXCEEDED')
+      setSubscriptionModalOpen(true)
+      setError(t('subscriptions.videoTooLargeForPlan'))
       setProgress(0)
       return
     }
@@ -108,10 +156,11 @@ export function UploadVideoPage() {
     }
 
     setIsStartingAnalysis(true)
+    uploadInFlightRef.current = true
     setError(null)
     try {
       const response = await apiClient.post<ApiResponse<UploadVideoResponse>>('/api/videos/upload', formData, {
-        timeout: 10 * 60 * 1000,
+        timeout: uploadRequestTimeoutMs,
         onUploadProgress(event: AxiosProgressEvent) {
           if (event.total) {
             setProgress(Math.round((event.loaded / event.total) * 100))
@@ -122,6 +171,7 @@ export function UploadVideoPage() {
       if (!response.data.success || !response.data.data) {
         throw new ApiRequestError(response.data.errors[0] ?? response.data.message, {
           correlationId: response.data.correlationId,
+          errorCode: response.data.errorCode,
           status: response.status,
         })
       }
@@ -130,8 +180,15 @@ export function UploadVideoPage() {
         state: { jobId: response.data.data.jobId },
       })
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, t))
+      if (shouldShowSubscriptionUpgrade(requestError, isAdmin)) {
+        setSubscriptionReasonCode(getSubscriptionUpgradeErrorCode(requestError))
+        setSubscriptionModalOpen(true)
+        setError(null)
+      } else {
+        setError(getApiErrorMessage(requestError, t))
+      }
       setIsStartingAnalysis(false)
+      uploadInFlightRef.current = false
     }
   }
 
@@ -146,13 +203,13 @@ export function UploadVideoPage() {
         <AppCard className="span-8 upload-card">
           {error && <ErrorMessage message={error} />}
           <div
-            className={`upload-dropzone ${isDragging ? 'active' : ''}`}
+            className={`upload-dropzone ${isDragging ? 'active' : ''} ${freeTrialUsedUp ? 'exhausted' : ''}`}
             role="button"
-            tabIndex={0}
-            aria-disabled={isStartingAnalysis}
+            tabIndex={freeTrialUsedUp ? -1 : 0}
+            aria-disabled={uploadDropzoneDisabled}
             onDragOver={(event) => {
               event.preventDefault()
-              if (isStartingAnalysis) {
+              if (uploadDropzoneDisabled) {
                 return
               }
               setIsDragging(true)
@@ -161,13 +218,13 @@ export function UploadVideoPage() {
             onDrop={(event) => {
               event.preventDefault()
               setIsDragging(false)
-              if (isStartingAnalysis) {
+              if (uploadDropzoneDisabled) {
                 return
               }
               selectFile(event.dataTransfer.files[0])
             }}
             onKeyDown={(event) => {
-              if (isStartingAnalysis) {
+              if (uploadDropzoneDisabled) {
                 return
               }
               if (event.key === 'Enter' || event.key === ' ') {
@@ -176,37 +233,62 @@ export function UploadVideoPage() {
               }
             }}
           >
-            <span className="upload-icon">
-              <UploadIcon />
-            </span>
-            <h2>{t('upload.dropTitle')}</h2>
-            <p>{t('upload.dropSubtitle')}</p>
-            <AppButton
-              type="button"
-              variant="outline"
-              disabled={isStartingAnalysis}
-              onClick={() => {
-                if (!isStartingAnalysis) {
-                  inputRef.current?.click()
-                }
-              }}
-            >
-              {t('upload.browse')}
-            </AppButton>
+            {freeTrialUsedUp ? (
+              <>
+                <span className="upload-icon upload-icon-danger">
+                  <ShieldIcon />
+                </span>
+                <h2>Free trial scans used up</h2>
+                <p>Your 2 free video analyses are complete. Upgrade your plan to upload and analyze more videos.</p>
+                <AppButton
+                  type="button"
+                  onClick={() => {
+                    setSubscriptionReasonCode('FREE_TRIAL_EXHAUSTED')
+                    setSubscriptionModalOpen(true)
+                  }}
+                >
+                  Upgrade Plan
+                </AppButton>
+              </>
+            ) : (
+              <>
+                <span className="upload-icon">
+                  <UploadIcon />
+                </span>
+                <h2>{t('upload.dropTitle')}</h2>
+                <p>{t('upload.dropSubtitle')}</p>
+                <AppButton
+                  type="button"
+                  variant="outline"
+                  disabled={isStartingAnalysis}
+                  onClick={() => {
+                    if (!isStartingAnalysis) {
+                      inputRef.current?.click()
+                    }
+                  }}
+                >
+                  {t('upload.browse')}
+                </AppButton>
+              </>
+            )}
             <input
               ref={inputRef}
               type="file"
               accept=".mp4,.mov,.avi,.mkv,.webm,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm"
               hidden
-              disabled={isStartingAnalysis}
+              disabled={uploadDropzoneDisabled}
               onChange={(event) => selectFile(event.target.files?.[0])}
             />
-            <div className="format-chips" aria-label={t('upload.supportedFormats')}>
-              {formats.map((format) => (
-                <span key={format}>{format}</span>
-              ))}
-            </div>
-            <span className="upload-limit">{t('upload.maxSize', { size: selectedMaxSizeLabel })}</span>
+            {!freeTrialUsedUp && (
+              <>
+                <div className="format-chips" aria-label={t('upload.supportedFormats')}>
+                  {formats.map((format) => (
+                    <span key={format}>{format}</span>
+                  ))}
+                </div>
+                <span className="upload-limit">{t('upload.maxSize', { size: selectedMaxSizeLabel })}</span>
+              </>
+            )}
           </div>
           {file && (
             <div className="selected-file">
@@ -239,6 +321,14 @@ export function UploadVideoPage() {
               <p>{t('upload.optionsSubtitle')}</p>
             </div>
           </div>
+          {auth.isAuthenticated && (
+            <SubscriptionStatusPanel
+              onUpgradeClick={() => {
+                setSubscriptionReasonCode(undefined)
+                setSubscriptionModalOpen(true)
+              }}
+            />
+          )}
           <div className="mode-grid">
             {[
               ['Basic', t('upload.smartScan'), t('upload.smartScanDescription')],
@@ -260,15 +350,6 @@ export function UploadVideoPage() {
           <p className="form-helper">
             {t('upload.scanModeNotice')}
           </p>
-          <div className="retention-panel retention-panel-compact">
-            <span className="retention-panel-icon">
-              <ClockIcon />
-            </span>
-            <div>
-              <strong>{t('retention.videoWindowTitle')}</strong>
-              <p>{t('retention.uploadNotice')}</p>
-            </div>
-          </div>
           {file && file.size > 50 * 1024 * 1024 && (
             <div className="success-panel">
               <div>
@@ -304,7 +385,7 @@ export function UploadVideoPage() {
             type="button"
             fullWidth
             loading={isStartingAnalysis}
-            disabled={!file || !consentAccepted || !auth.isAuthenticated || isStartingAnalysis || fileExceedsSelectedModeLimit}
+            disabled={!file || !consentAccepted || !auth.isAuthenticated || uploadDropzoneDisabled || fileExceedsSelectedModeLimit}
             onClick={handleUpload}
             icon={<UploadIcon />}
           >
@@ -312,18 +393,46 @@ export function UploadVideoPage() {
           </AppButton>
         </AppCard>
       </div>
+      <SubscriptionUpgradeModal
+        open={subscriptionModalOpen}
+        reasonCode={subscriptionReasonCode}
+        onClose={() => setSubscriptionModalOpen(false)}
+      />
     </main>
   )
-}
-
-function getMaxUploadSizeBytes(analysisMode: string) {
-  return analysisMode === 'Detailed' ? detailedScanMaxUploadSizeBytes : smartScanMaxUploadSizeBytes
 }
 
 function getMaxSizeLabel(analysisMode: string) {
   return analysisMode === 'Detailed' ? detailedScanMaxSizeLabel : smartScanMaxSizeLabel
 }
 
-function getFileSizeError(scanLabel: string, maxSizeLabel: string, t: Translate) {
-  return t('upload.maxSizeError', { scan: scanLabel, size: maxSizeLabel })
+function isFreeTrialUsedUp(
+  status: { isAdmin: boolean; isPaid: boolean; planCode: string; remainingScans?: number | null; freeTrial?: { effectiveRemainingScans: number } | null } | undefined,
+) {
+  if (!status || status.isAdmin || status.isPaid || status.planCode.toUpperCase() !== 'FREE') {
+    return false
+  }
+
+  return (status.freeTrial?.effectiveRemainingScans ?? status.remainingScans ?? 0) <= 0
+}
+
+function validateFileSizePreflight(
+  fileSize: number,
+  status: { isAdmin: boolean; maxVideoSizeBytes?: number | null } | undefined,
+  isAdmin: boolean,
+) {
+  if (fileSize > absoluteMaxUploadSizeBytes) {
+    return 'absolute'
+  }
+
+  if (isAdmin || status?.isAdmin) {
+    return null
+  }
+
+  const planMax = status?.maxVideoSizeBytes
+  if (planMax && fileSize > Math.min(planMax, absoluteMaxUploadSizeBytes)) {
+    return 'plan'
+  }
+
+  return null
 }

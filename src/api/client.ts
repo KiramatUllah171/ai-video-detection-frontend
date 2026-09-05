@@ -12,9 +12,13 @@ import type {
   ApiResponse,
   AuthResponse,
   JobStatus,
+  MockPaymentCompletionRequest,
   MetadataResult,
   PagedResponse,
+  PaymentInitiationResponse,
+  PaymentStatusResponse,
   SourceMatch,
+  SubscriptionStatusResponse,
   UploadVideoResponse,
 } from './types'
 import { authStorage } from '../auth/authStorage'
@@ -32,10 +36,16 @@ export const apiClient = axios.create({
 })
 
 apiClient.interceptors.request.use((config) => {
+  config.headers = config.headers ?? {}
+
   const selectedLanguage = localStorage.getItem('ai-video-detection-language')
   if (selectedLanguage) {
-    config.headers = config.headers ?? {}
     config.headers['Accept-Language'] = selectedLanguage
+  }
+
+  const deviceFingerprint = getDeviceFingerprint()
+  if (deviceFingerprint) {
+    config.headers['X-SachAI-Device-Fingerprint'] = deviceFingerprint
   }
 
   if (authStorage.isSessionExpired()) {
@@ -90,18 +100,25 @@ const REPORT_EXPIRED_ERROR_CODE = 'REPORT_EXPIRED'
 
 export class ApiRequestError extends Error {
   correlationId?: string
+  errorCode?: string
   status?: number
 
-  constructor(message: string, options?: { correlationId?: string; status?: number }) {
+  constructor(message: string, options?: { correlationId?: string; errorCode?: string; status?: number }) {
     super(message)
     this.name = 'ApiRequestError'
     this.correlationId = options?.correlationId
+    this.errorCode = options?.errorCode
     this.status = options?.status
   }
 }
 
 export function getApiErrorMessage(error: unknown, t?: Translate) {
   if (error instanceof ApiRequestError) {
+    const codedMessage = localizeApiErrorCode(error.errorCode, t)
+    if (codedMessage) {
+      return appendCorrelationId(codedMessage, error.correlationId, t)
+    }
+
     return appendCorrelationId(localizeApiError(error.message, t, error.status), error.correlationId, t)
   }
 
@@ -111,10 +128,15 @@ export function getApiErrorMessage(error: unknown, t?: Translate) {
     }
 
     if (error.code === 'ECONNABORTED') {
-      return t ? t('api.timeoutError') : 'The request timed out. Please try again or use a smaller file.'
+      return t ? t('api.timeoutError') : 'The upload timed out. Please check your connection and try again.'
     }
 
     const response = error.response?.data
+    const codedMessage = localizeApiErrorCode(response?.errorCode, t)
+    if (codedMessage) {
+      return appendCorrelationId(codedMessage, response?.correlationId, t)
+    }
+
     const message = localizeApiError(response?.errors?.[0] ?? response?.message ?? error.message, t, error.response?.status)
     return appendCorrelationId(message, response?.correlationId, t)
   }
@@ -129,6 +151,49 @@ function appendCorrelationId(message: string, correlationId: string | undefined,
 
   const reference = t ? t('api.correlationReference', { correlationId }) : `Reference ID: ${correlationId}`
   return `${message} ${reference}`
+}
+
+function localizeApiErrorCode(errorCode?: string, t?: Translate) {
+  if (!errorCode) {
+    return undefined
+  }
+
+  const fallback = (() => {
+    switch (errorCode) {
+      case 'SERVER_STORAGE_CAPACITY_LOW':
+        return 'The server is temporarily unable to accept this video. Please try again later.'
+      case 'UPLOAD_CONCURRENCY_LIMIT_REACHED':
+        return 'The upload service is busy. Please try again shortly.'
+      case 'ANALYSIS_QUEUE_UNAVAILABLE':
+        return 'Analysis queue is temporarily unavailable. Please try again shortly.'
+      default:
+        return undefined
+    }
+  })()
+
+  if (!fallback || !t) {
+    return fallback
+  }
+
+  const key = (() => {
+    switch (errorCode) {
+    case 'SERVER_STORAGE_CAPACITY_LOW':
+      return 'api.serverStorageCapacityLow'
+    case 'UPLOAD_CONCURRENCY_LIMIT_REACHED':
+      return 'api.uploadBusy'
+    case 'ANALYSIS_QUEUE_UNAVAILABLE':
+      return 'api.analysisQueueUnavailable'
+    default:
+      return undefined
+    }
+  })()
+
+  if (!key) {
+    return fallback
+  }
+
+  const translated = t(key)
+  return translated === key ? fallback : translated
 }
 
 function localizeApiError(message: string, t?: Translate, status?: number) {
@@ -217,8 +282,21 @@ function localizeApiError(message: string, t?: Translate, status?: number) {
 function createApiRequestError<T>(response: ApiResponse<T>, status?: number) {
   return new ApiRequestError(response.errors?.[0] ?? response.message ?? 'Request failed.', {
     correlationId: response.correlationId,
+    errorCode: response.errorCode,
     status,
   })
+}
+
+export function getApiErrorCode(error: unknown) {
+  if (error instanceof ApiRequestError) {
+    return error.errorCode
+  }
+
+  if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
+    return error.response?.data?.errorCode
+  }
+
+  return undefined
 }
 
 export async function getAnalysisResult(videoId: string | number) {
@@ -283,6 +361,29 @@ export async function getVideoMetadata(videoId: string | number) {
     return undefined
   }
   return response.data.data
+}
+
+export async function getSubscriptionStatus() {
+  const response = await apiClient.get<ApiResponse<SubscriptionStatusResponse>>('/api/subscriptions/status')
+  return unwrapApiResponse(response.data, response.status)
+}
+
+export async function initiatePayment(planCode: string) {
+  const response = await apiClient.post<ApiResponse<PaymentInitiationResponse>>('/api/payments/checkout', { planCode })
+  return unwrapApiResponse(response.data, response.status)
+}
+
+export async function getPaymentStatus(orderId: string) {
+  const response = await apiClient.get<ApiResponse<PaymentStatusResponse>>(`/api/payments/${encodeURIComponent(orderId)}`)
+  return unwrapApiResponse(response.data, response.status)
+}
+
+export async function completeMockPayment(orderId: string, request: MockPaymentCompletionRequest) {
+  const response = await apiClient.post<ApiResponse<PaymentStatusResponse>>(
+    `/api/payments/mock/${encodeURIComponent(orderId)}/complete`,
+    request,
+  )
+  return unwrapApiResponse(response.data, response.status)
 }
 
 export async function downloadAnalysisReport(videoId: string | number) {
@@ -504,10 +605,45 @@ export async function getAdminAuditLogs(params: {
   return unwrapApiResponse(response.data)
 }
 
-function unwrapApiResponse<T>(response: ApiResponse<T>) {
+function unwrapApiResponse<T>(response: ApiResponse<T>, status?: number) {
   if (!response.success || response.data === undefined) {
-    throw createApiRequestError(response)
+    throw createApiRequestError(response, status)
   }
 
   return response.data
+}
+
+let cachedDeviceFingerprint: string | null = null
+
+function getDeviceFingerprint() {
+  if (cachedDeviceFingerprint !== null) {
+    return cachedDeviceFingerprint
+  }
+
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    cachedDeviceFingerprint = ''
+    return cachedDeviceFingerprint
+  }
+
+  const extendedNavigator = navigator as Navigator & { deviceMemory?: number }
+  const screenInfo = window.screen
+  // Non-invasive anti-abuse signals only; backend stores a keyed HMAC, not these raw values.
+  const fingerprintParts = [
+    navigator.userAgent,
+    navigator.language,
+    navigator.languages?.join(',') ?? '',
+    navigator.platform,
+    String(navigator.hardwareConcurrency ?? ''),
+    String(extendedNavigator.deviceMemory ?? ''),
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    `${screenInfo.width}x${screenInfo.height}x${screenInfo.colorDepth}`,
+    String(navigator.maxTouchPoints ?? 0),
+  ]
+
+  cachedDeviceFingerprint = fingerprintParts
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean)
+    .join('|')
+
+  return cachedDeviceFingerprint
 }
