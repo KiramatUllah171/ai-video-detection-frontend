@@ -3,6 +3,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiClient, cancelAnalysis, getAnalysisResult, getApiErrorMessage, pauseAnalysis, reanalyzeVideo, resumeAnalysis, retryAnalysis } from '../api/client'
 import type { ApiResponse, JobStatus } from '../api/types'
+import { authStorage } from '../auth/authStorage'
+import { isAdminRole } from '../auth/roleUtils'
+import { SubscriptionUpgradeModal } from '../components/subscriptions/SubscriptionUpgradeModal'
 import { AppButton } from '../components/ui/AppButton'
 import { AppCard } from '../components/ui/AppCard'
 import { AppModal } from '../components/ui/AppModal'
@@ -17,6 +20,7 @@ import { useLanguage, type LanguageCode } from '../i18n/LanguageContext'
 import { formatLocalizedDateTime } from '../i18n/formatDate'
 import { localizeDisplayMessage } from '../i18n/localizeDynamicText'
 import { fromVideoRouteId, toVideoRouteId } from '../routes/videoRouteId'
+import { getSubscriptionUpgradeErrorCode, shouldShowSubscriptionUpgrade } from '../subscriptions/subscriptionErrors'
 
 export function ProcessingStatusPage() {
   const { videoId: routeVideoId } = useParams()
@@ -31,6 +35,9 @@ export function ProcessingStatusPage() {
   const [pauseError, setPauseError] = useState<string | null>(null)
   const [resumeError, setResumeError] = useState<string | null>(null)
   const [pauseModalOpen, setPauseModalOpen] = useState(false)
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false)
+  const [subscriptionReasonCode, setSubscriptionReasonCode] = useState<string | undefined>()
+  const isAdmin = isAdminRole(authStorage.getUser()?.role)
   const statusQuery = useQuery({
     queryKey: ['job-status', videoId],
     enabled: Boolean(videoId),
@@ -88,8 +95,12 @@ export function ProcessingStatusPage() {
       }))
       await statusQuery.refetch()
     },
-    onError: () => {
+    onError: (error) => {
       setRetryLockedJobId(null)
+      if (shouldShowSubscriptionUpgrade(error, isAdmin)) {
+        setSubscriptionReasonCode(getSubscriptionUpgradeErrorCode(error))
+        setSubscriptionModalOpen(true)
+      }
     },
   })
   const reanalyzeMutation = useMutation({
@@ -111,6 +122,12 @@ export function ProcessingStatusPage() {
         lastUpdatedAt: new Date().toISOString(),
       }))
       await statusQuery.refetch()
+    },
+    onError: (error) => {
+      if (shouldShowSubscriptionUpgrade(error, isAdmin)) {
+        setSubscriptionReasonCode(getSubscriptionUpgradeErrorCode(error))
+        setSubscriptionModalOpen(true)
+      }
     },
   })
   const retryLocked = status ? retryLockedJobId === status.jobId : false
@@ -278,10 +295,12 @@ export function ProcessingStatusPage() {
                 <p>{safeErrorMessage}</p>
                 {status.technicalReferenceId && <small>{t('processing.reference', { id: status.technicalReferenceId })}</small>}
               </div>
-              {retryMutation.error && <ErrorMessage message={getApiErrorMessage(retryMutation.error, t)} />}
+              {retryMutation.error && !shouldShowSubscriptionUpgrade(retryMutation.error, isAdmin) && (
+                <ErrorMessage message={getApiErrorMessage(retryMutation.error, t)} />
+              )}
             </div>
           )}
-          {reanalyzeMutation.error && (
+          {reanalyzeMutation.error && !shouldShowSubscriptionUpgrade(reanalyzeMutation.error, isAdmin) && (
             <div className="failed-panel" role="alert">
               <div>
                 <h3>{t('processing.startAgainFailedTitle')}</h3>
@@ -482,6 +501,11 @@ export function ProcessingStatusPage() {
               </AppButton>
             </div>
           </AppModal>
+          <SubscriptionUpgradeModal
+            open={subscriptionModalOpen}
+            reasonCode={subscriptionReasonCode}
+            onClose={() => setSubscriptionModalOpen(false)}
+          />
         </AppCard>
       )}
     </main>

@@ -10,6 +10,9 @@ const translations: Record<string, string> = {
   'api.forbidden': 'Forbidden localized.',
   'api.validationError': 'Validation localized.',
   'api.accountInactive': 'Inactive localized.',
+  'api.serverStorageCapacityLow': 'Capacity localized.',
+  'api.uploadBusy': 'Upload busy localized.',
+  'api.analysisQueueUnavailable': 'Queue localized.',
   'analysis.notAvailable': 'Not available localized.',
   'login.emailNotConfirmed': 'Email not confirmed localized.',
   'processing.defaultError': 'Processing failed localized.',
@@ -48,5 +51,20 @@ describe('getApiErrorMessage', () => {
 
   it('localizes report retention errors from plain thrown errors', () => {
     expect(getApiErrorMessage(new Error('REPORT_EXPIRED'), t)).toBe('Report expired localized.')
+  })
+
+  it('uses machine-readable infrastructure error codes before generic status messages', () => {
+    expect(getApiErrorMessage(new ApiRequestError('Server failed', {
+      errorCode: 'SERVER_STORAGE_CAPACITY_LOW',
+      status: 503,
+    }), t)).toBe('Capacity localized.')
+    expect(getApiErrorMessage(new ApiRequestError('Queue failed', {
+      errorCode: 'ANALYSIS_QUEUE_UNAVAILABLE',
+      status: 503,
+    }), t)).toBe('Queue localized.')
+    expect(getApiErrorMessage(new ApiRequestError('Busy', {
+      errorCode: 'UPLOAD_CONCURRENCY_LIMIT_REACHED',
+      status: 429,
+    }), t)).toBe('Upload busy localized.')
   })
 })

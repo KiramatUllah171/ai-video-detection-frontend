@@ -4,7 +4,8 @@ import userEvent from '@testing-library/user-event'
 import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiClient, cancelAnalysis, pauseAnalysis, reanalyzeVideo, resumeAnalysis, retryAnalysis } from '../api/client'
+import { ApiRequestError, apiClient, cancelAnalysis, getSubscriptionStatus, pauseAnalysis, reanalyzeVideo, resumeAnalysis, retryAnalysis } from '../api/client'
+import { authStorage } from '../auth/authStorage'
 import { LanguageProvider } from '../i18n/LanguageContext'
 import { ProcessingStatusPage } from './ProcessingStatusPage'
 
@@ -17,16 +18,41 @@ vi.mock('../api/client', async () => {
     },
     cancelAnalysis: vi.fn(),
     getAnalysisResult: vi.fn(),
+    getSubscriptionStatus: vi.fn(),
+    initiatePayment: vi.fn(),
     pauseAnalysis: vi.fn(),
     reanalyzeVideo: vi.fn(),
     resumeAnalysis: vi.fn(),
     retryAnalysis: vi.fn(),
+    getPaymentStatus: vi.fn(),
+    completeMockPayment: vi.fn(),
   }
 })
 
 describe('ProcessingStatusPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
+    vi.mocked(getSubscriptionStatus).mockResolvedValue({
+      planCode: 'FREE',
+      planName: 'Free Trial',
+      isPaid: false,
+      isAdmin: false,
+      subscriptionStatus: 'Active',
+      scanLimit: 2,
+      usedScans: 2,
+      reservedScans: 0,
+      remainingScans: 0,
+      maxVideoSizeBytes: 209_715_200,
+      allowsSmartScan: true,
+      allowsDetailedScan: false,
+      freeTrial: {
+        accountRemainingScans: 0,
+        deviceRemainingScans: 0,
+        ipRemainingScans: 0,
+        effectiveRemainingScans: 0,
+      },
+    })
   })
 
   it('shows a safe failed message and retries the same video once', async () => {
@@ -325,6 +351,53 @@ describe('ProcessingStatusPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: /resume analysis/i }))
 
     expect(await screen.findByText("We couldn't complete the analysis. Please retry.")).toBeInTheDocument()
+  })
+
+  it('opens the subscription upgrade popup when retry fails with a quota error', async () => {
+    mockStatus({
+      status: 'Failed',
+      progress: 78,
+      currentStep: 'Failed: provider temporarily unavailable',
+      canRetry: true,
+    })
+    vi.mocked(retryAnalysis).mockRejectedValue(new ApiRequestError('Free-trial scan quota is exhausted.', {
+      errorCode: 'FREE_TRIAL_EXHAUSTED',
+      status: 402,
+    }))
+
+    renderWithProviders(<ProcessingStatusPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /retry analysis/i }))
+
+    expect(await screen.findByRole('dialog', { name: 'Upgrade Subscription' })).toBeInTheDocument()
+    expect(screen.getByText('Your free trial scans are used up. Upgrade to keep analyzing videos.')).toBeInTheDocument()
+    expect(screen.queryByText('Free-trial scan quota is exhausted.')).not.toBeInTheDocument()
+  })
+
+  it('does not show the subscription upgrade popup for admin retry errors', async () => {
+    authStorage.setUser({
+      id: 1,
+      name: 'Admin User',
+      email: 'admin@example.com',
+      role: 'Admin',
+    })
+    mockStatus({
+      status: 'Failed',
+      progress: 78,
+      currentStep: 'Failed: provider temporarily unavailable',
+      canRetry: true,
+    })
+    vi.mocked(retryAnalysis).mockRejectedValue(new ApiRequestError('Free-trial scan quota is exhausted.', {
+      errorCode: 'FREE_TRIAL_EXHAUSTED',
+      status: 402,
+    }))
+
+    renderWithProviders(<ProcessingStatusPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /retry analysis/i }))
+
+    expect(await screen.findByText('Request failed. Please try again.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Upgrade Subscription' })).not.toBeInTheDocument()
   })
 })
 

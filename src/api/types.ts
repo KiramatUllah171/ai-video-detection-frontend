@@ -4,6 +4,7 @@ export type ApiResponse<T> = {
   data?: T
   errors: string[]
   correlationId?: string
+  errorCode?: string
 }
 
 export type UserProfile = {
@@ -20,6 +21,74 @@ export type AuthResponse = {
   refreshToken: string
   expiresAt: string
   user: UserProfile
+}
+
+export type FreeTrialStatus = {
+  accountRemainingScans: number
+  deviceRemainingScans?: number | null
+  ipRemainingScans?: number | null
+  effectiveRemainingScans: number
+}
+
+export type SubscriptionStatusResponse = {
+  planCode: string
+  planName: string
+  isAdmin: boolean
+  isPaid: boolean
+  subscriptionStatus: string
+  startsAt?: string | null
+  expiresAt?: string | null
+  scanLimit?: number | null
+  usedScans: number
+  reservedScans: number
+  remainingScans?: number | null
+  maxVideoSizeBytes?: number | null
+  allowsSmartScan: boolean
+  allowsDetailedScan: boolean
+  freeTrial?: FreeTrialStatus | null
+}
+
+export type InitiatePaymentRequest = {
+  planCode: string
+}
+
+export type PaymentInitiationResponse = {
+  orderId: string
+  provider: string
+  status: string
+  planCode: string
+  planName: string
+  amount: number
+  currency: string
+  expiresAt?: string | null
+  paymentUrl?: string | null
+  isMock: boolean
+}
+
+export type PaymentStatusResponse = {
+  orderId: string
+  provider: string
+  status: string
+  planCode: string
+  planName: string
+  amount: number
+  currency: string
+  providerTransactionId?: string | null
+  initiatedAt: string
+  verifiedAt?: string | null
+  failedAt?: string | null
+  expiresAt?: string | null
+  subscriptionId?: number | null
+  subscriptionStartsAt?: string | null
+  subscriptionExpiresAt?: string | null
+  failureReason?: string | null
+}
+
+export type MockPaymentCompletionRequest = {
+  succeed: boolean
+  amount?: number | null
+  providerTransactionId?: string | null
+  failureReason?: string | null
 }
 
 export type PagedResponse<T> = {
