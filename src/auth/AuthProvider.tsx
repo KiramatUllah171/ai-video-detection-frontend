@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '../api/client'
+import { apiClient, refreshAuthSession } from '../api/client'
 import type { ApiResponse, AuthResponse, UserProfile } from '../api/types'
 import { authSessionClearedEvent, authStorage } from './authStorage'
 import { AuthContext } from './AuthContext'
@@ -39,11 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!storedAccessToken) {
         try {
-          const refreshResponse = await apiClient.post<ApiResponse<AuthResponse>>('/api/auth/refresh', {})
-          if (!cancelled && refreshResponse.data.success && refreshResponse.data.data) {
-            authStorage.setSession(refreshResponse.data.data)
-            setUser(normalizeUserProfile(refreshResponse.data.data.user))
-            setSessionExpiresAt(refreshResponse.data.data.expiresAt)
+          const refreshedSession = await refreshAuthSession()
+          if (!cancelled && refreshedSession) {
+            setUser(normalizeUserProfile(refreshedSession.user))
+            setSessionExpiresAt(refreshedSession.expiresAt)
           }
         } catch {
           authStorage.clear()

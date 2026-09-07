@@ -10,7 +10,7 @@ import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { LoadingState } from '../components/ui/LoadingState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
-import { ActivityIcon, AlertCircleIcon, BarChartIcon, ClockIcon, FileVideoIcon, ShieldIcon } from '../components/ui/icons'
+import { ActivityIcon, AlertCircleIcon, FileVideoIcon, ShieldIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
 import { formatLocalizedDateShort, formatLocalizedDateTime } from '../i18n/formatDate'
 import { fromVideoRouteId } from '../routes/videoRouteId'
@@ -95,63 +95,21 @@ export function AnalysisResultPage() {
 
       {analysis && (
         <>
-          <AppCard className="analysis-hero-card">
-            <div className="analysis-title-row">
-              <div>
-                <StatusBadge status={analysis.label} />
-                <h2>{localizeLabel(analysis.label, t)}</h2>
-                <p>{localizeAnalysisSummary(analysis, t)}</p>
-              </div>
-              <div className="analysis-meta">
-                <span>{mode}</span>
-                <strong>{formatModelDisplay(analysis.modelVersion, t)}</strong>
-                <small>{t('analysis.resultGeneratedAt', { date: formatLocalizedDateTime(analysis.createdAt, language, t('analysis.dateUnavailable')) })}</small>
-              </div>
-            </div>
-            {analysis.isMock && (
-              <WarningPanel
-                message={t('analysis.mockWarning')}
-                strong
-              />
-            )}
-            {showAdvancedDetails && analysis.modelCapability === 'frame_image' && (
-              <WarningPanel message={t('analysis.frameWarning')} />
-            )}
-            {showAdvancedDetails && analysis.modelCapability === 'video_temporal' && analysis.confidence < 0.6 && (
-              <WarningPanel message={t('analysis.lowConfidenceWarning')} />
-            )}
-            {showAdvancedDetails && analysis.modelDisagreement && (
-              <WarningPanel message={t('analysis.disagreementWarning')} />
-            )}
-            {showAdvancedDetails && analysis.strongFrameEvidence && (
-              <WarningPanel message={t('analysis.strongFrameWarning')} />
-            )}
-            {showAdvancedDetails && analysis.modelDisagreement && detectorBreakdown?.video && detectorBreakdown?.frame && detectorBreakdown.video.ai_score < 0.5 && (detectorBreakdown.frame.raw_frame_ai_score ?? detectorBreakdown.frame.ai_score) >= 0.7 && (
-              <WarningPanel message={t('analysis.inconclusiveWarning')} />
-            )}
-            {showAdvancedDetails && analysis.label === 'Inconclusive' && (
-              <WarningPanel message={t('analysis.inconclusiveWarning')} subtle />
-            )}
-            <WarningPanel message={t('analysis.proofWarning')} subtle />
-            <div className="retention-panel retention-panel-compact">
-              <span className="retention-panel-icon">
-                <ClockIcon />
-              </span>
-              <div>
-                <strong>{t('retention.reportWindowTitle')}</strong>
-                <p>{t('retention.analysisNotice')}</p>
-              </div>
-            </div>
-          </AppCard>
-
           <section className="result-grid">
             <MetricCard label={t('analysis.aiProbability')} value={`${formatPercent(analysis.aiGeneratedProbability)}%`} icon={<AlertCircleIcon />} isMock={analysis.isMock} />
             <MetricCard label={t('analysis.realProbability')} value={`${formatPercent(analysis.likelyRealProbability)}%`} icon={<ShieldIcon />} isMock={analysis.isMock} />
             <MetricCard label={t('analysis.confidence')} value={`${formatPercent(analysis.confidencePercentage)}%`} icon={<ActivityIcon />} isMock={analysis.isMock} />
-            <MetricCard label={t('analysis.finalScore')} value={`${formatPercent(analysis.finalScore * 100)}%`} icon={<BarChartIcon />} isMock={analysis.isMock} />
           </section>
 
-          <UserReportSummary analysis={analysis} matches={matches} matchesLoading={matchesQuery.isLoading} />
+          <AppCard className={`analysis-section probability-section ${analysis.label === 'Inconclusive' ? 'analysis-section-neutral' : ''}`}>
+            <div className="card-header compact">
+              <div>
+                <h2>{t('analysis.probabilityBalance')}</h2>
+                <p>{t('analysis.probabilitySubtitle')}</p>
+              </div>
+            </div>
+            <ProbabilityBalance analysis={analysis} />
+          </AppCard>
 
           <section className="analysis-advanced-toggle">
             <button type="button" className={`${buttonClassName('outline')} technical-details-pulse ${getTechnicalDetailsPulseClass(analysis)}`} onClick={() => setShowAdvancedDetails((current) => !current)}>
@@ -159,6 +117,33 @@ export function AnalysisResultPage() {
             </button>
             <p>{t('analysis.technicalDetailsHelper')} {t('retention.technicalNotice')}</p>
           </section>
+
+          {showAdvancedDetails && (
+            <UserReportSummary analysis={analysis} matches={matches} matchesLoading={matchesQuery.isLoading} />
+          )}
+
+          {showAdvancedDetails && (
+          <AppCard className="analysis-section">
+            <div className="card-header compact">
+              <div>
+                <h2>{t('analysis.runDetails')}</h2>
+                <p>{t('analysis.runDetailsSubtitle')}</p>
+              </div>
+            </div>
+            <div className="detector-breakdown">
+              <div className="detector-card">
+                <span>{t('analysis.modelMode')}</span>
+                <strong>{mode}</strong>
+                <small>{t('analysis.resultGeneratedAt', { date: formatLocalizedDateTime(analysis.createdAt, language, t('analysis.dateUnavailable')) })}</small>
+              </div>
+              <div className="detector-card">
+                <span>{t('analysis.modelVersion')}</span>
+                <strong>{formatModelDisplay(analysis.modelVersion, t)}</strong>
+                <small>{t('analysis.technicalOnly')}</small>
+              </div>
+            </div>
+          </AppCard>
+          )}
 
           {showAdvancedDetails && detectorBreakdown && (
             <AppCard className="analysis-section">
@@ -203,16 +188,6 @@ export function AnalysisResultPage() {
             </div>
           </AppCard>
           )}
-
-          <AppCard className={`analysis-section ${analysis.label === 'Inconclusive' ? 'analysis-section-neutral' : ''}`}>
-            <div className="card-header compact">
-              <div>
-                <h2>{t('analysis.probabilityBalance')}</h2>
-                <p>{t('analysis.probabilitySubtitle')}</p>
-              </div>
-            </div>
-            <ProbabilityBalance analysis={analysis} />
-          </AppCard>
 
           {showAdvancedDetails && (
           <section className="content-grid">
@@ -337,8 +312,12 @@ function SummaryPoint({ title, text }: { title: string; text: string }) {
 }
 
 function getTechnicalDetailsPulseClass(analysis: AnalysisResult) {
-  if (analysis.aiGeneratedProbability > analysis.likelyRealProbability) {
+  const tone = getResultTone(analysis)
+  if (tone === 'ai') {
     return 'technical-details-pulse-ai'
+  }
+  if (tone === 'neutral') {
+    return 'technical-details-pulse-neutral'
   }
 
   return 'technical-details-pulse-real'
@@ -351,31 +330,78 @@ function ProbabilityBalance({ analysis }: { analysis: AnalysisResult }) {
   const cautiousLabel = analysis.label === 'Inconclusive' || analysis.modelDisagreement
   const realLabel = `${cautiousLabel ? t('analysis.estimatedReal') : t('analysis.likelyReal')} ${formatPercent(realPercent)}%`
   const aiLabel = `${cautiousLabel ? t('analysis.estimatedAi') : t('analysis.aiManipulated')} ${formatPercent(aiPercent)}%`
+  const resultTone = getResultTone(analysis)
+  const riskPercent = aiPercent
+  const circumference = 2 * Math.PI * 54
+  const strokeOffset = circumference - (riskPercent / 100) * circumference
 
   return (
-    <div className="probability-balance">
-      <div className="split-probability" aria-label={`${realLabel}. ${aiLabel}.`}>
-        <div
-          className={realPercent < 12 ? 'is-small' : ''}
-          style={{ width: `${realPercent}%` }}
-          title={realLabel}
-        >
-          <span>{realLabel}</span>
+    <div className={`probability-balance probability-balance-${resultTone}`}>
+      <div className="mobile-probability-result" aria-label={`${localizeLabel(analysis.label, t)}. ${t('analysis.aiProbability')} ${formatPercent(riskPercent)}%. ${realLabel}. ${aiLabel}.`}>
+        <div className="mobile-result-pill">
+          <span />
+          {localizeLabel(analysis.label, t)}
         </div>
-        <div
-          className={aiPercent < 12 ? 'is-small' : ''}
-          style={{ width: `${aiPercent}%` }}
-          title={aiLabel}
-        >
+        <div className="mobile-result-ring">
+          <svg viewBox="0 0 128 128" aria-hidden="true">
+            <circle className="mobile-result-track" cx="64" cy="64" r="54" />
+            <circle
+              className="mobile-result-progress"
+              cx="64"
+              cy="64"
+              r="54"
+              pathLength={circumference}
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeOffset}
+            />
+          </svg>
+          <div className="mobile-result-center">
+            <span>{t('analysis.mobileResultAi')}</span>
+            <strong>{formatPercent(riskPercent)}%</strong>
+            <small>{localizeLabel(analysis.label, t)}</small>
+          </div>
+        </div>
+        <div className="mobile-result-balance">
+          <span>{realLabel}</span>
           <span>{aiLabel}</span>
         </div>
       </div>
-      <div className="probability-legend">
-        <span className="probability-legend-real">{realLabel}</span>
-        <span className="probability-legend-ai">{aiLabel}</span>
+      <div className="desktop-probability-balance">
+        <div className="split-probability" aria-label={`${realLabel}. ${aiLabel}.`}>
+          <div
+            className={realPercent < 12 ? 'is-small' : ''}
+            style={{ width: `${realPercent}%` }}
+            title={realLabel}
+          >
+            <span>{realLabel}</span>
+          </div>
+          <div
+            className={aiPercent < 12 ? 'is-small' : ''}
+            style={{ width: `${aiPercent}%` }}
+            title={aiLabel}
+          >
+            <span>{aiLabel}</span>
+          </div>
+        </div>
+        <div className="probability-legend">
+          <span className="probability-legend-real">{realLabel}</span>
+          <span className="probability-legend-ai">{aiLabel}</span>
+        </div>
       </div>
     </div>
   )
+}
+
+function getResultTone(analysis: AnalysisResult) {
+  const normalized = (analysis.label ?? '').toLowerCase().replace(/\s+/g, '')
+  if (normalized === 'inconclusive' || analysis.modelDisagreement) {
+    return 'neutral'
+  }
+  if (normalized === 'likelyaigenerated' || normalized === 'suspicious' || analysis.aiGeneratedProbability > analysis.likelyRealProbability) {
+    return 'ai'
+  }
+
+  return 'real'
 }
 
 function WarningPanel({ message, subtle = false, strong = false }: { message: string; subtle?: boolean; strong?: boolean }) {
@@ -729,24 +755,6 @@ function localizeLabel(label: string | undefined, t: ReturnType<typeof useLangua
   return key ? t(key) : formatLabel(label || 'Inconclusive')
 }
 
-function localizeAnalysisSummary(analysis: AnalysisResult, t: ReturnType<typeof useLanguage>['t']) {
-  const summary = analysis.summary?.trim()
-  if (!summary) {
-    return t('analysis.defaultSummary')
-  }
-
-  const normalizedSummary = summary.toLowerCase()
-  if (
-    normalizedSummary.includes('bitmind external verification was used') ||
-    normalizedSummary.includes('metadata is shown separately') ||
-    normalizedSummary.includes('external ai detection provider')
-  ) {
-    return t('analysis.defaultSummary')
-  }
-
-  return localizeKnownMessage(summary, t)
-}
-
 function localizeEvidenceTitle(title: string, isMock: boolean, t: ReturnType<typeof useLanguage>['t']) {
   const normalized = title.trim().toLowerCase()
   if (normalized === 'missing creation time') return t('analysis.missingCreationTimeTitle')
@@ -788,6 +796,25 @@ function localizeKnownSentence(message: string, t: ReturnType<typeof useLanguage
   const normalized = message.trim().toLowerCase().replace(/[.!؟]+$/g, '')
   if (normalized.includes('provider authentication failed')) {
     return t('analysis.defaultSummary')
+  }
+  if (
+    normalized === 'the available evidence suggests this video is likely real' ||
+    normalized === 'the available evidence suggests this video is likely real.'
+  ) {
+    return t('analysis.simpleLikelyRealExplanation')
+  }
+  if (
+    normalized === 'the available evidence suggests this video is likely ai-generated' ||
+    normalized === 'the available evidence suggests this video is likely ai-generated.' ||
+    normalized === 'the available evidence suggests this video is likely ai generated'
+  ) {
+    return t('analysis.simpleLikelyAiExplanation')
+  }
+  if (
+    normalized === 'review the evidence before making a decision' ||
+    normalized === 'review the evidence before making a decision.'
+  ) {
+    return t('analysis.actionSuspicious')
   }
   if (normalized === 'this video may be processed by an external ai detection provider for analysis') {
     return t('analysis.defaultSummary')

@@ -19,8 +19,6 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { toVideoRouteId } from '../routes/videoRouteId'
 import { getSubscriptionUpgradeErrorCode, shouldShowSubscriptionUpgrade, subscriptionStatusQueryKey } from '../subscriptions/subscriptionErrors'
 
-const smartScanMaxSizeLabel = 'plan limit, up to 300 MB'
-const detailedScanMaxSizeLabel = '300 MB'
 const absoluteMaxUploadSizeBytes = 314_572_800
 const uploadRequestTimeoutMs = 20 * 60 * 1000
 const formats = ['MP4', 'MOV', 'AVI', 'MKV', 'WebM']
@@ -51,7 +49,7 @@ export function UploadVideoPage() {
   const freeTrialUsedUp = isFreeTrialUsedUp(subscriptionStatusQuery.data)
   const uploadDropzoneDisabled = isStartingAnalysis || freeTrialUsedUp
   const selectedMaxUploadSizeBytes = absoluteMaxUploadSizeBytes
-  const selectedMaxSizeLabel = getMaxSizeLabel(analysisMode)
+  const selectedMaxSizeLabel = getMaxSizeLabel(analysisMode, t)
   const fileExceedsSelectedModeLimit = Boolean(file && file.size > selectedMaxUploadSizeBytes)
 
   useEffect(() => {
@@ -204,9 +202,9 @@ export function UploadVideoPage() {
           {error && <ErrorMessage message={error} />}
           <div
             className={`upload-dropzone ${isDragging ? 'active' : ''} ${freeTrialUsedUp ? 'exhausted' : ''}`}
-            role="button"
+            role={freeTrialUsedUp ? undefined : 'button'}
             tabIndex={freeTrialUsedUp ? -1 : 0}
-            aria-disabled={uploadDropzoneDisabled}
+            aria-disabled={freeTrialUsedUp ? undefined : isStartingAnalysis}
             onDragOver={(event) => {
               event.preventDefault()
               if (uploadDropzoneDisabled) {
@@ -238,8 +236,8 @@ export function UploadVideoPage() {
                 <span className="upload-icon upload-icon-danger">
                   <ShieldIcon />
                 </span>
-                <h2>Free trial scans used up</h2>
-                <p>Your 2 free video analyses are complete. Upgrade your plan to upload and analyze more videos.</p>
+                <h2>{t('upload.freeTrialExhaustedTitle')}</h2>
+                <p>{t('upload.freeTrialExhaustedDescription')}</p>
                 <AppButton
                   type="button"
                   onClick={() => {
@@ -247,7 +245,7 @@ export function UploadVideoPage() {
                     setSubscriptionModalOpen(true)
                   }}
                 >
-                  Upgrade Plan
+                  {t('subscriptions.upgradePlan')}
                 </AppButton>
               </>
             ) : (
@@ -255,7 +253,10 @@ export function UploadVideoPage() {
                 <span className="upload-icon">
                   <UploadIcon />
                 </span>
-                <h2>{t('upload.dropTitle')}</h2>
+                <h2>
+                  <span className="desktop-upload-title">{t('upload.dropTitle')}</span>
+                  <span className="mobile-upload-title">{t('upload.browse')}</span>
+                </h2>
                 <p>{t('upload.dropSubtitle')}</p>
                 <AppButton
                   type="button"
@@ -402,8 +403,8 @@ export function UploadVideoPage() {
   )
 }
 
-function getMaxSizeLabel(analysisMode: string) {
-  return analysisMode === 'Detailed' ? detailedScanMaxSizeLabel : smartScanMaxSizeLabel
+function getMaxSizeLabel(analysisMode: string, t: ReturnType<typeof useLanguage>['t']) {
+  return analysisMode === 'Detailed' ? t('upload.detailedScanMaxSizeLabel') : t('upload.smartScanMaxSizeLabel')
 }
 
 function isFreeTrialUsedUp(

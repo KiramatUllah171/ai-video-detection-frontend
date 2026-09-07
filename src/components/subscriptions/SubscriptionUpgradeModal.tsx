@@ -8,7 +8,8 @@ import {
   initiatePayment,
 } from '../../api/client'
 import type { PaymentInitiationResponse, PaymentStatusResponse } from '../../api/types'
-import { getSubscriptionReason, subscriptionStatusQueryKey } from '../../subscriptions/subscriptionErrors'
+import { useLanguage } from '../../i18n/LanguageContext'
+import { getSubscriptionReasonKey, subscriptionStatusQueryKey } from '../../subscriptions/subscriptionErrors'
 import { AppButton } from '../ui/AppButton'
 import { AppModal } from '../ui/AppModal'
 import { buttonClassName } from '../ui/buttonStyles'
@@ -26,10 +27,10 @@ type PlanOption = {
   code: 'PLUS' | 'PRO'
   name: string
   price: string
-  scans: string
-  maxVideo: string
-  detailed: string
-  badge?: string
+  scansKey: string
+  maxVideoKey: string
+  featureKey: string
+  badgeKey?: string
 }
 
 const plans: PlanOption[] = [
@@ -37,22 +38,23 @@ const plans: PlanOption[] = [
     code: 'PLUS',
     name: 'Plus',
     price: 'PKR 499',
-    scans: '10 scans / 30 days',
-    maxVideo: '250 MB videos',
-    detailed: 'Smart Scan',
-    badge: 'Most Popular',
+    scansKey: 'subscriptions.plan.plusScans',
+    maxVideoKey: 'subscriptions.plan.plusMaxVideo',
+    featureKey: 'subscriptions.plan.smartScan',
+    badgeKey: 'subscriptions.plan.mostPopular',
   },
   {
     code: 'PRO',
     name: 'Pro',
     price: 'PKR 999',
-    scans: '25 scans / 30 days',
-    maxVideo: '300 MB videos',
-    detailed: 'Smart + Detailed Scan',
+    scansKey: 'subscriptions.plan.proScans',
+    maxVideoKey: 'subscriptions.plan.proMaxVideo',
+    featureKey: 'subscriptions.plan.smartDetailedScan',
   },
 ]
 
 export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: SubscriptionUpgradeModalProps) {
+  const { t } = useLanguage()
   const queryClient = useQueryClient()
   const [checkout, setCheckout] = useState<PaymentInitiationResponse | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatusResponse | null>(null)
@@ -119,13 +121,18 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
   return (
     <AppModal
       open={open}
-      title="Upgrade Subscription"
+      title={t('subscriptions.upgradeTitle')}
       className="subscription-modal"
       icon={<AlertCircleIcon />}
       busy={busy}
       onClose={onClose}
+      footer={(
+        <AppButton type="button" variant="outline" disabled={busy} onClick={onClose}>
+          {t('common.close')}
+        </AppButton>
+      )}
     >
-      <p className="app-modal-copy">{getSubscriptionReason(reasonCode)}</p>
+      <p className="app-modal-copy">{t(getSubscriptionReasonKey(reasonCode))}</p>
 
       {statusQuery.data && (
         <div className="subscription-modal-current">
@@ -133,7 +140,7 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
         </div>
       )}
 
-      <div className="subscription-plan-grid" aria-label="Subscription plans">
+      <div className="subscription-plan-grid" aria-label={t('subscriptions.plansLabel')}>
         {plans.map((plan) => (
           <div className="subscription-plan-card" key={plan.code}>
             <div className="subscription-plan-heading">
@@ -141,12 +148,12 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
                 <strong>{plan.name}</strong>
                 <span>{plan.price}</span>
               </div>
-              {plan.badge && <em>{plan.badge}</em>}
+              {plan.badgeKey && <em>{t(plan.badgeKey)}</em>}
             </div>
             <ul>
-              <li><ActivityIcon /> {plan.scans}</li>
-              <li><ShieldIcon /> {plan.maxVideo}</li>
-              <li><CheckCircleIcon /> {plan.detailed}</li>
+              <li><ActivityIcon /> {t(plan.scansKey)}</li>
+              <li><ShieldIcon /> {t(plan.maxVideoKey)}</li>
+              <li><CheckCircleIcon /> {t(plan.featureKey)}</li>
             </ul>
             <AppButton
               type="button"
@@ -155,7 +162,7 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
               disabled={busy}
               onClick={() => choosePlan(plan.code)}
             >
-              Choose {plan.name}
+              {t('subscriptions.choosePlan', { plan: plan.name })}
             </AppButton>
           </div>
         ))}
@@ -168,9 +175,9 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
       {checkout && (
         <div className="payment-status-panel">
           <div>
-            <strong>{checkout.planName} checkout</strong>
-            <span>{checkout.currency} {checkout.amount.toLocaleString()} via {checkout.provider}</span>
-            <small>Order {checkout.orderId}</small>
+            <strong>{t('subscriptions.checkoutTitle', { plan: checkout.planName })}</strong>
+            <span>{t('subscriptions.checkoutSubtitle', { currency: checkout.currency, amount: checkout.amount.toLocaleString(), provider: checkout.provider })}</span>
+            <small>{t('subscriptions.order', { orderId: checkout.orderId })}</small>
           </div>
           <PaymentStatusBadge status={paymentStatus?.status ?? checkout.status} />
           {checkout.paymentUrl && (
@@ -180,7 +187,7 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
               target="_blank"
               rel="noreferrer"
             >
-              Open Payment
+              {t('subscriptions.openPayment')}
             </a>
           )}
           <div className="payment-status-actions">
@@ -191,7 +198,7 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
               disabled={busy}
               onClick={() => paymentStatusMutation.mutate(checkout.orderId)}
             >
-              Check Status
+              {t('subscriptions.checkStatus')}
             </AppButton>
             {checkout.isMock && (
               <>
@@ -201,7 +208,7 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
                   disabled={busy}
                   onClick={() => completeMockMutation.mutate(true)}
                 >
-                  Mark Paid
+                  {t('subscriptions.markPaid')}
                 </AppButton>
                 <AppButton
                   type="button"
@@ -209,7 +216,7 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
                   disabled={busy}
                   onClick={() => completeMockMutation.mutate(false)}
                 >
-                  Mark Failed
+                  {t('subscriptions.markFailed')}
                 </AppButton>
               </>
             )}
@@ -218,18 +225,16 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
         </div>
       )}
 
-      <div className="app-modal-actions">
-        <AppButton type="button" variant="outline" disabled={busy} onClick={onClose}>
-          Close
-        </AppButton>
-      </div>
     </AppModal>
   )
 }
 
 function PaymentStatusBadge({ status }: { status: string }) {
+  const { t } = useLanguage()
   const normalized = status.trim().toLowerCase()
-  const label = normalized === 'verified' ? 'Payment verified' : `Payment ${status || 'pending'}`
+  const label = normalized === 'verified'
+    ? t('subscriptions.paymentVerified')
+    : t('subscriptions.paymentStatus', { status: status || t('common.pending') })
   return <span className={`payment-status-badge payment-status-${normalized || 'pending'}`}>{label}</span>
 }
 

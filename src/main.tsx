@@ -11,6 +11,10 @@ import App from './App.tsx'
 import { AuthProvider } from './auth/AuthProvider.tsx'
 import { LanguageProvider } from './i18n/LanguageContext.tsx'
 
+const themeStorageKey = 'ai-video-detection-theme'
+
+document.documentElement.classList.toggle('theme-dark', localStorage.getItem(themeStorageKey) === 'dark')
+
 const queryClient = new QueryClient()
 
 createRoot(document.getElementById('root')!).render(

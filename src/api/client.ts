@@ -24,16 +24,82 @@ import type {
 import { authStorage } from '../auth/authStorage'
 import { isStrongPasswordErrorMessage } from '../auth/passwordPolicy'
 
-const env = import.meta.env as Record<string, string | undefined>
-const baseURL =
-  env.VITE_API_BASE_URL ??
-  env.REACT_APP_API_BASE_URL ??
-  'http://localhost:5166'
+const env = import.meta.env as ImportMetaEnv & {
+  VITE_API_BASE_URL?: string
+  REACT_APP_API_BASE_URL?: string
+}
+const configuredBaseURL = env.VITE_API_BASE_URL ?? env.REACT_APP_API_BASE_URL
+const baseURL = resolveApiBaseURL(configuredBaseURL)
+
+function resolveApiBaseURL(configuredValue?: string) {
+  const configured = configuredValue?.trim()
+  if (shouldUseBrowserHostApiBaseURL(configured)) {
+    return `http://${window.location.hostname}:5166`
+  }
+
+  return configured || 'http://localhost:5166'
+}
+
+function shouldUseBrowserHostApiBaseURL(configured?: string) {
+  if (typeof window === 'undefined' || !env.DEV || !isLocalDevelopmentHost(window.location.hostname)) {
+    return false
+  }
+
+  if (!configured) {
+    return true
+  }
+
+  try {
+    const configuredUrl = new URL(configured)
+    return configuredUrl.port === '5166' && isLocalDevelopmentHost(configuredUrl.hostname)
+  } catch {
+    return false
+  }
+}
+
+function isLocalDevelopmentHost(hostname: string) {
+  const normalized = hostname.trim().toLowerCase()
+  if (normalized === 'localhost' || normalized === '127.0.0.1') {
+    return true
+  }
+
+  const parts = normalized.split('.').map((part) => Number(part))
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false
+  }
+
+  return parts[0] === 10 || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || (parts[0] === 192 && parts[1] === 168)
+}
 
 export const apiClient = axios.create({
   baseURL,
   withCredentials: true,
 })
+
+let refreshSessionPromise: Promise<AuthResponse | null> | null = null
+
+export function refreshAuthSession() {
+  refreshSessionPromise ??= axios
+    .post<ApiResponse<AuthResponse>>(`${baseURL}/api/auth/refresh`, {}, { withCredentials: true })
+    .then((response) => {
+      if (response.data.success && response.data.data) {
+        authStorage.setSession(response.data.data)
+        return response.data.data
+      }
+
+      authStorage.clear()
+      return null
+    })
+    .catch((error: unknown) => {
+      authStorage.clear()
+      throw error
+    })
+    .finally(() => {
+      refreshSessionPromise = null
+    })
+
+  return refreshSessionPromise
+}
 
 apiClient.interceptors.request.use((config) => {
   config.headers = config.headers ?? {}
@@ -75,15 +141,10 @@ apiClient.interceptors.response.use(
       try {
         originalRequest.headers = originalRequest.headers ?? {}
         originalRequest.headers['x-refresh-attempted'] = 'true'
-        const refreshResponse = await axios.post<ApiResponse<AuthResponse>>(
-          `${baseURL}/api/auth/refresh`,
-          {},
-          { withCredentials: true },
-        )
+        const refreshedSession = await refreshAuthSession()
 
-        if (refreshResponse.data.success && refreshResponse.data.data) {
-          authStorage.setSession(refreshResponse.data.data)
-          originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.data.accessToken}`
+        if (refreshedSession) {
+          originalRequest.headers.Authorization = `Bearer ${refreshedSession.accessToken}`
           return apiClient(originalRequest)
         }
       } catch {

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { getUserRoleName, isAdminRole } from '../auth/roleUtils'
 import { AppLogo } from '../components/ui/AppLogo'
+import { MobileAppChrome } from '../components/ui/MobileAppChrome'
+import { ResponsiveNavigation } from '../components/ui/ResponsiveNavigation'
 import { ActivityIcon, BarChartIcon, GlobeIcon, LogOutIcon, MoonIcon, ShieldIcon, SunIcon, UploadIcon, UserIcon, VideoIcon } from '../components/ui/icons'
 import { useLanguage, type LanguageCode } from '../i18n/LanguageContext'
 
@@ -18,6 +20,7 @@ export function AppLayout() {
   const displayName = auth.user?.name || auth.user?.email || t('profile.account')
   const initial = displayName.trim().charAt(0).toUpperCase() || 'U'
   const isAdmin = isAdminRole(auth.user?.role)
+  const roleName = getUserRoleName(auth.user?.role)
 
   async function handleLogout() {
     setDarkMode(false)
@@ -59,9 +62,20 @@ export function AppLayout() {
 
   return (
     <div className="app-layout">
+      <MobileAppChrome
+        darkMode={darkMode}
+        displayName={displayName}
+        email={auth.user?.email}
+        initial={initial}
+        isAdmin={isAdmin}
+        isLoadingProfile={auth.isLoading}
+        roleName={roleName}
+        onLogout={handleLogout}
+        onToggleTheme={() => setDarkMode((enabled) => !enabled)}
+      />
       <header className="topbar">
         <AppLogo />
-        <nav className="topbar-nav" aria-label={t('nav.primary')}>
+        <ResponsiveNavigation className="topbar-nav" label={t('nav.primary')}>
           <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <BarChartIcon />
             {t('nav.dashboard')}
@@ -94,7 +108,7 @@ export function AppLayout() {
               </NavLink>
             </>
           )}
-        </nav>
+        </ResponsiveNavigation>
         <div className="user-menu" ref={profileRef}>
           <button
             type="button"

@@ -26,6 +26,27 @@ export function shouldShowSubscriptionUpgrade(error: unknown, isAdmin: boolean) 
 }
 
 export function getSubscriptionReason(errorCode?: string) {
+  return getSubscriptionReasonText(errorCode)
+}
+
+export function getSubscriptionReasonKey(errorCode?: string) {
+  switch (errorCode) {
+    case 'FREE_TRIAL_EXHAUSTED':
+      return 'subscriptions.reason.freeTrialExhausted'
+    case 'SCAN_QUOTA_EXHAUSTED':
+      return 'subscriptions.reason.scanQuotaExhausted'
+    case 'DETAILED_SCAN_NOT_ALLOWED':
+      return 'subscriptions.reason.detailedScanNotAllowed'
+    case 'VIDEO_SIZE_LIMIT_EXCEEDED':
+      return 'subscriptions.reason.videoSizeLimitExceeded'
+    case 'SUBSCRIPTION_REQUIRED':
+      return 'subscriptions.reason.subscriptionRequired'
+    default:
+      return 'subscriptions.reason.default'
+  }
+}
+
+function getSubscriptionReasonText(errorCode?: string) {
   switch (errorCode) {
     case 'FREE_TRIAL_EXHAUSTED':
       return 'Your free trial scans are used up. Upgrade to keep analyzing videos.'

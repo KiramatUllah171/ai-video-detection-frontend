@@ -21,6 +21,8 @@ import { UploadVideoPage } from './pages/UploadVideoPage'
 import { AboutPage, ContactPage, HomePage, PrivacyPolicyPage, TermsAndConditionsPage } from './pages/PublicPages'
 import { AppErrorBoundary } from './components/ui/AppErrorBoundary'
 import './App.css'
+import './responsive.css'
+import './mobile.css'
 
 function App() {
   return (

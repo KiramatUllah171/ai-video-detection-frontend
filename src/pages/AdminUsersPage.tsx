@@ -1,3 +1,4 @@
+import { ScrollRegion } from '../components/ui/ScrollRegion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { getAdminUsers, getApiErrorMessage, updateAdminUserStatus } from '../api/client'
@@ -87,7 +88,47 @@ export function AdminUsersPage() {
         {statusMutation.error && <ErrorMessage message={getApiErrorMessage(statusMutation.error, t)} />}
 
         {users.length > 0 && (
-          <div className="table-shell">
+          <>
+          <div className="mobile-record-list mobile-admin-list" aria-label={t('admin.users.accounts')}>
+            {users.map((user) => (
+              <article className="mobile-record-card" key={`mobile-${user.email}`}>
+                <div className="mobile-record-head">
+                  <div className="mobile-record-title">
+                    <span className="avatar-initial" aria-hidden="true">{(user.name || user.email).charAt(0).toUpperCase()}</span>
+                    <div>
+                      <strong>{user.name}</strong>
+                      <span>{user.email}</span>
+                    </div>
+                  </div>
+                  <StatusBadge status={user.isActive ? 'Active' : 'Disabled'} />
+                </div>
+                <div className="mobile-record-grid">
+                  <div>
+                    <span>{t('admin.users.role')}</span>
+                    <strong>{localizeRoleName(user.role, t)}</strong>
+                  </div>
+                  <div>
+                    <span>{t('admin.users.email')}</span>
+                    <strong>{user.emailConfirmed ? t('status.confirmed') : t('admin.users.emailUnconfirmed')}</strong>
+                  </div>
+                  <div>
+                    <span>{t('admin.users.videos')}</span>
+                    <strong>{t('admin.users.totalVideos', { count: user.totalVideos })}</strong>
+                  </div>
+                  <div>
+                    <span>{t('admin.users.created')}</span>
+                    <strong>{formatAdminDate(user.createdAt, t('common.notAvailable'), language)}</strong>
+                  </div>
+                </div>
+                <UserStatusButton
+                  user={user}
+                  busy={statusMutation.isPending}
+                  onToggle={() => statusMutation.mutate({ userId: user.userId, isActive: !user.isActive })}
+                />
+              </article>
+            ))}
+          </div>
+          <ScrollRegion className="table-shell desktop-data-table" label={t('admin.users.accounts')}>
             <table className="premium-table admin-table admin-table-relaxed">
               <thead>
                 <tr>
@@ -134,7 +175,8 @@ export function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
+          </>
         )}
 
         {!usersQuery.isLoading && users.length === 0 && <p className="muted-copy">{t('admin.users.empty')}</p>}

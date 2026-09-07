@@ -1,3 +1,4 @@
+import { ScrollRegion } from '../components/ui/ScrollRegion'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { getAdminAuditLogs, getApiErrorMessage } from '../api/client'
@@ -140,7 +141,41 @@ export function AdminLogsPage() {
         {logsQuery.error && <ErrorMessage message={getApiErrorMessage(logsQuery.error, t)} />}
 
         {logs.length > 0 && (
-          <div className="table-shell">
+          <>
+          <div className="mobile-record-list mobile-admin-list" aria-label={t('admin.logs.activity')}>
+            {logs.map((log) => (
+              <article className="mobile-record-card" key={`mobile-${log.id}`}>
+                <div className="mobile-record-head">
+                  <div className="mobile-record-title">
+                    <span className="file-icon"><ActivityIcon /></span>
+                    <div>
+                      <strong>{localizeAuditAction(log.action, t)}</strong>
+                      <span>{formatNullable(log.userName, t('admin.logs.guestUser'))}</span>
+                    </div>
+                  </div>
+                  <strong className="mobile-record-chip">{localizeAuditCategory(log.category, t)}</strong>
+                </div>
+                <p className="mobile-record-copy">{localizeAuditMessage(log.action, log.message, t)}</p>
+                <div className="mobile-record-grid">
+                  <div>
+                    <span>{t('admin.logs.resource')}</span>
+                    <strong>{localizeAuditCategory(log.category, t)}</strong>
+                  </div>
+                  <div>
+                    <span>{t('admin.requests.started')}</span>
+                    <strong>{formatAdminDate(log.createdAt, t('common.notAvailable'), language)}</strong>
+                  </div>
+                </div>
+                {log.correlationId && (
+                  <div className="mobile-record-meta">
+                    <span>{t('admin.logs.reference', { correlationId: '' }).trim()}</span>
+                    <strong>{log.correlationId}</strong>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+          <ScrollRegion className="table-shell desktop-data-table" label={t('admin.logs.activity')}>
             <table className="premium-table admin-table admin-table-relaxed admin-logs-table">
               <colgroup>
                 <col className="admin-logs-user-col" />
@@ -179,7 +214,8 @@ export function AdminLogsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
+          </>
         )}
 
         {!logsQuery.isLoading && logs.length === 0 && <p className="muted-copy">{t('admin.logs.empty')}</p>}

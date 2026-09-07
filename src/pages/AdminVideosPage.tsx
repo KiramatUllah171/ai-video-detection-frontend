@@ -1,3 +1,4 @@
+import { ScrollRegion } from '../components/ui/ScrollRegion'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -82,7 +83,49 @@ export function AdminVideosPage() {
         {videosQuery.error && <ErrorMessage message={getApiErrorMessage(videosQuery.error, t)} />}
 
         {videos.length > 0 && (
-          <div className="table-shell">
+          <>
+          <div className="mobile-record-list mobile-admin-list" aria-label={t('admin.videos.uploaded')}>
+            {videos.map((video) => (
+              <article className="mobile-record-card" key={`mobile-${video.ownerEmail}-${video.originalName}-${video.createdAt}`}>
+                <div className="mobile-record-head">
+                  <div className="mobile-record-title">
+                    <span className="file-icon"><FileVideoIcon /></span>
+                    <div>
+                      <strong>{video.originalName}</strong>
+                      <span>{formatFileSize(video.fileSize, t('common.notAvailable'))} - {formatNullable(video.contentType, t('common.notAvailable'))}</span>
+                    </div>
+                  </div>
+                  <StatusBadge status={video.latestJobStatus ?? video.status} />
+                </div>
+                <div className="mobile-record-progress">
+                  <span>{t('admin.videos.job')}</span>
+                  <ProgressBar value={video.latestJobProgress ?? 0} status={video.latestJobStatus} />
+                </div>
+                <div className="mobile-record-grid">
+                  <div>
+                    <span>{t('admin.videos.owner')}</span>
+                    <strong>{video.ownerName}</strong>
+                  </div>
+                  <div>
+                    <span>{t('admin.videos.result')}</span>
+                    <strong>{localizeVerdict(video.finalVerdict, t)}</strong>
+                  </div>
+                  <div>
+                    <span>{t('admin.videoDetail.aiProbability')}</span>
+                    <strong>{isFiniteNumber(video.aiGeneratedProbability) ? `${video.aiGeneratedProbability.toFixed(1)}%` : t('admin.videos.noScore')}</strong>
+                  </div>
+                  <div>
+                    <span>{t('admin.videos.uploadedAt')}</span>
+                    <strong>{formatAdminDate(video.createdAt, t('common.notAvailable'), language)}</strong>
+                  </div>
+                </div>
+                <Link className={buttonClassName('primary')} to={`/admin/videos/${toVideoRouteId(video.videoId)}`}>
+                  {t('admin.videos.review')}
+                </Link>
+              </article>
+            ))}
+          </div>
+          <ScrollRegion className="table-shell desktop-data-table" label={t('admin.videos.uploaded')}>
             <table className="premium-table admin-table admin-table-relaxed">
               <thead>
                 <tr>
@@ -134,7 +177,8 @@ export function AdminVideosPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
+          </>
         )}
 
         {!videosQuery.isLoading && videos.length === 0 && <p className="muted-copy">{t('admin.videos.empty')}</p>}

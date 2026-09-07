@@ -441,10 +441,7 @@ export function ProcessingStatusPage() {
             icon={<AlertCircleIcon />}
             busy={pauseMutation.isPending}
             onClose={() => setPauseModalOpen(false)}
-          >
-            <p className="app-modal-copy">{t('processing.pauseDialogMessage')}</p>
-            {pauseError && <ErrorMessage message={pauseError} />}
-            <div className="app-modal-actions">
+            footer={<>
               <AppButton
                 type="button"
                 variant="outline"
@@ -467,7 +464,10 @@ export function ProcessingStatusPage() {
               >
                 {pauseMutation.isPending ? t('processing.pausing') : t('processing.pauseAnalysis')}
               </AppButton>
-            </div>
+            </>}
+          >
+            <p className="app-modal-copy">{t('processing.pauseDialogMessage')}</p>
+            {pauseError && <ErrorMessage message={pauseError} />}
           </AppModal>
           <AppModal
             open={cancelModalOpen}
@@ -475,10 +475,7 @@ export function ProcessingStatusPage() {
             icon={<AlertCircleIcon />}
             busy={cancelMutation.isPending}
             onClose={() => setCancelModalOpen(false)}
-          >
-            <p className="app-modal-copy">{t('processing.cancelDialogMessage')}</p>
-            {cancelError && <ErrorMessage message={cancelError} />}
-            <div className="app-modal-actions">
+            footer={<>
               <AppButton
                 type="button"
                 variant="outline"
@@ -499,7 +496,10 @@ export function ProcessingStatusPage() {
               >
                 {cancelMutation.isPending ? t('processing.cancelling') : t('processing.cancelAnalysis')}
               </AppButton>
-            </div>
+            </>}
+          >
+            <p className="app-modal-copy">{t('processing.cancelDialogMessage')}</p>
+            {cancelError && <ErrorMessage message={cancelError} />}
           </AppModal>
           <SubscriptionUpgradeModal
             open={subscriptionModalOpen}

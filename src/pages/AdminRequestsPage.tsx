@@ -1,3 +1,4 @@
+import { ScrollRegion } from '../components/ui/ScrollRegion'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -88,7 +89,49 @@ export function AdminRequestsPage() {
         {usersQuery.error && <ErrorMessage message={getApiErrorMessage(usersQuery.error, t)} />}
 
         {users.length > 0 && (
-          <div className="table-shell">
+          <>
+          <div className="mobile-record-list mobile-admin-list" aria-label={t('admin.requests.title')}>
+            {users.map((user) => (
+              <article className={`mobile-record-card ${selectedUser?.userId === user.userId ? 'mobile-record-selected' : ''}`} key={`mobile-${user.email}`}>
+                <div className="mobile-record-head">
+                  <div className="mobile-record-title">
+                    <span className="avatar-initial" aria-hidden="true">{(user.name || user.email).charAt(0).toUpperCase()}</span>
+                    <div>
+                      <strong>{user.name || t('common.notAvailable')}</strong>
+                      <span>{user.email}</span>
+                    </div>
+                  </div>
+                  <StatusBadge status={user.pendingRequests > 0 ? 'Pending' : 'Completed'} />
+                </div>
+                <div className="mobile-record-grid">
+                  <div>
+                    <span>{t('common.total')}</span>
+                    <strong>{user.totalRequests.toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span>{t('common.pending')}</span>
+                    <strong>{user.pendingRequests.toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span>{t('common.completed')}</span>
+                    <strong>{user.completedRequests.toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span>{t('admin.requests.latest')}</span>
+                    <strong>{formatAdminDate(user.latestRequestAt, t('common.notAvailable'), language)}</strong>
+                  </div>
+                </div>
+                <div className="mobile-record-meta">
+                  <span>{t('admin.videos.video')}</span>
+                  <strong>{user.latestVideoName ?? t('admin.requests.noVideoName')}</strong>
+                </div>
+                <button type="button" className={buttonClassName('primary')} onClick={() => selectUser(user)}>
+                  {t('admin.requests.reviewComplete')}
+                </button>
+              </article>
+            ))}
+          </div>
+          <ScrollRegion className="table-shell desktop-data-table" label={t('admin.requests.title')}>
             <table className="premium-table admin-table admin-table-relaxed">
               <thead>
                 <tr>
@@ -131,7 +174,8 @@ export function AdminRequestsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
+          </>
         )}
 
         {!usersQuery.isLoading && users.length === 0 && <p className="muted-copy">{t('admin.requests.emptyUsers')}</p>}
@@ -176,7 +220,49 @@ export function AdminRequestsPage() {
           {requestsQuery.error && <ErrorMessage message={getApiErrorMessage(requestsQuery.error, t)} />}
 
           {requests.length > 0 && (
-            <div className="table-shell">
+            <>
+            <div className="mobile-record-list mobile-admin-list" aria-label={t('admin.requests.history', { email: selectedUser.email })}>
+              {requests.map((request) => (
+                <article className="mobile-record-card" key={`mobile-${request.videoName}-${request.requestStartedAt}-${request.status}`}>
+                  <div className="mobile-record-head">
+                    <div className="mobile-record-title">
+                      <span className="file-icon"><ActivityIcon /></span>
+                      <div>
+                        <strong>{request.providerName}</strong>
+                        <span>{request.providerMode}</span>
+                      </div>
+                    </div>
+                    <StatusBadge status={request.status} />
+                  </div>
+                  <div className="mobile-record-meta">
+                    <span>{t('admin.videos.video')}</span>
+                    <strong>{request.videoName}</strong>
+                  </div>
+                  <div className="mobile-record-grid">
+                    <div>
+                      <span>{t('admin.requests.http')}</span>
+                      <strong>{request.httpStatusCode ?? t('common.notAvailable')}</strong>
+                    </div>
+                    <div>
+                      <span>{t('admin.requests.duration')}</span>
+                      <strong>{request.durationMs ? t('common.ms', { value: request.durationMs }) : t('common.notAvailable')}</strong>
+                    </div>
+                    <div>
+                      <span>{t('admin.requests.started')}</span>
+                      <strong>{formatAdminDate(request.requestStartedAt, t('common.notAvailable'), language)}</strong>
+                    </div>
+                    <div>
+                      <span>{t('admin.requests.completedAt')}</span>
+                      <strong>{formatAdminDate(request.requestCompletedAt, t('common.notAvailable'), language)}</strong>
+                    </div>
+                  </div>
+                  <Link className={buttonClassName('outline')} to={`/admin/videos/${toVideoRouteId(request.videoId)}`}>
+                    {t('admin.requests.reviewVideo')}
+                  </Link>
+                </article>
+              ))}
+            </div>
+            <ScrollRegion className="table-shell desktop-data-table" label={t('admin.requests.history', { email: selectedUser.email })}>
               <table className="premium-table admin-table admin-table-relaxed">
                 <thead>
                   <tr>
@@ -214,7 +300,8 @@ export function AdminRequestsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
+            </>
           )}
 
           {!requestsQuery.isLoading && requests.length === 0 && <p className="muted-copy">{t('admin.requests.emptyRecords')}</p>}

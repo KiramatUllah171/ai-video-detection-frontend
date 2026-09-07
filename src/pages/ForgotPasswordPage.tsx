@@ -85,13 +85,13 @@ export function ForgotPasswordPage() {
         closeOnBackdrop={false}
         closeOnEscape={false}
         onClose={() => setSuccessModalOpen(false)}
-      >
-        <p className="app-modal-copy">{t('forgotPassword.success')}</p>
-        <div className="app-modal-actions">
+        footer={(
           <AppButton type="button" onClick={() => setSuccessModalOpen(false)}>
             {t('forgotPassword.gotIt')}
           </AppButton>
-        </div>
+        )}
+      >
+        <p className="app-modal-copy">{t('forgotPassword.success')}</p>
       </AppModal>
     </AuthLayout>
   )

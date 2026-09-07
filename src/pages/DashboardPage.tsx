@@ -1,3 +1,4 @@
+import { ScrollRegion } from '../components/ui/ScrollRegion'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -106,7 +107,7 @@ export function DashboardPage() {
         <SummaryCard icon={<AlertCircleIcon />} label={t('dashboard.failed')} value={failedJobs} tone="danger" />
       </section>
 
-      <AppCard>
+      <AppCard className="dashboard-recent-card">
         <div className="card-header">
           <div>
             <h2>{t('dashboard.recentUploads')}</h2>
@@ -137,7 +138,54 @@ export function DashboardPage() {
           />
         )}
         {items.length > 0 && (
-          <div className="table-shell">
+          <>
+          <div className="mobile-record-list" aria-label={t('dashboard.recentUploads')}>
+            {items.map((item) => {
+              const isVideoExpiredWithReport = item.isOriginalVideoAvailable === false && item.isReportAvailable === true
+              const effectiveStatus = getEffectiveStatus(item)
+              const actionPath = effectiveStatus === 'completed' || isVideoExpiredWithReport
+                ? `/analysis/${toVideoRouteId(item.videoId)}`
+                : `/processing/${toVideoRouteId(item.videoId)}`
+              const actionLabel = isVideoExpiredWithReport
+                ? t('dashboard.viewReport')
+                : effectiveStatus === 'completed'
+                  ? t('dashboard.viewResult')
+                  : t('dashboard.viewStatus')
+
+              return (
+                <article className={`mobile-record-card ${isVideoExpiredWithReport ? 'mobile-record-muted' : ''}`} key={`mobile-${item.videoId}`}>
+                  <div className="mobile-record-head">
+                    <div className="mobile-record-title">
+                      <span className="file-icon"><VideoIcon /></span>
+                      <div>
+                        <strong>{item.originalName}</strong>
+                        <span>{formatFileSize(item.fileSize)}</span>
+                      </div>
+                    </div>
+                    <StatusBadge status={item.latestJobStatus ?? item.status} />
+                  </div>
+                  <div className="mobile-record-progress">
+                    <span>{t('dashboard.progress')}</span>
+                    <ProgressBar value={item.latestJobProgress ?? 0} status={item.latestJobStatus} />
+                  </div>
+                  <div className="mobile-record-meta">
+                    <span>{t('dashboard.created')}</span>
+                    <strong>{formatLocalizedDateTime(item.createdAt, language, t('common.notAvailable'))}</strong>
+                  </div>
+                  {isVideoExpiredWithReport && (
+                    <div className="history-expired-message">
+                      <AlertCircleIcon />
+                      <span>{t('dashboard.videoExpiredReportAvailable')}</span>
+                    </div>
+                  )}
+                  <Link className={buttonClassName(isVideoExpiredWithReport ? 'primary' : 'outline')} to={actionPath}>
+                    {actionLabel}
+                  </Link>
+                </article>
+              )
+            })}
+          </div>
+          <ScrollRegion className="table-shell desktop-data-table" label={t('dashboard.recentUploads')}>
             <table className="premium-table">
               <thead>
                 <tr>
@@ -166,7 +214,7 @@ export function DashboardPage() {
                     <tr className={isVideoExpiredWithReport ? 'history-row-video-expired' : undefined} key={item.videoId}>
                       <td>
                         <div className={`video-cell ${isVideoExpiredWithReport ? 'history-cell-muted' : ''}`}>
-                          <span className="file-icon">
+                          <span className="file-icon dashboard-table-file-icon">
                             <VideoIcon />
                           </span>
                           <div>
@@ -211,7 +259,8 @@ export function DashboardPage() {
                 })}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
+          </>
         )}
       </AppCard>
     </main>
