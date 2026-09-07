@@ -98,7 +98,7 @@ export function AdminVideoDetailPage() {
                 <StatusBadge status={detail.video.status} />
               </div>
               {videoUrl ? (
-                <video className="admin-video-player" src={videoUrl} controls preload="metadata" />
+                <video className="admin-video-player" src={videoUrl} controls playsInline preload="metadata" />
               ) : videoError ? (
                 <ErrorMessage message={videoError} />
               ) : (

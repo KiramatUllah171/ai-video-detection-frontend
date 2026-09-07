@@ -1,3 +1,4 @@
+import { ScrollRegion } from '../components/ui/ScrollRegion'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { getAdminDashboardSummary, getApiErrorMessage } from '../api/client'
@@ -233,21 +234,23 @@ function ActivityChart({ uploads, analyses }: { uploads: AdminDailyActivity[]; a
   const max = Math.max(1, ...rows.flatMap((item) => [item.uploads, item.analyses]))
 
   return (
-    <div className="admin-chart" aria-label={t('admin.activity.chartLabel')}>
-      {rows.map((item) => (
-        <div className="admin-chart-day" key={item.date} title={`${item.date}: ${item.uploads} ${t('admin.activity.uploads').toLowerCase()}, ${item.analyses} ${t('admin.activity.analyses').toLowerCase()}`}>
-          <div className="admin-chart-bars">
-            <span className="admin-chart-upload" style={{ height: `${Math.max(4, (item.uploads / max) * 100)}%` }} />
-            <span className="admin-chart-analysis" style={{ height: `${Math.max(4, (item.analyses / max) * 100)}%` }} />
+    <ScrollRegion className="chart-shell" label={t('admin.activity.chartLabel')}>
+      <div className="admin-chart">
+        {rows.map((item) => (
+          <div className="admin-chart-day" key={item.date} title={`${item.date}: ${item.uploads} ${t('admin.activity.uploads').toLowerCase()}, ${item.analyses} ${t('admin.activity.analyses').toLowerCase()}`}>
+            <div className="admin-chart-bars">
+              <span className="admin-chart-upload" style={{ height: `${Math.max(4, (item.uploads / max) * 100)}%` }} />
+              <span className="admin-chart-analysis" style={{ height: `${Math.max(4, (item.analyses / max) * 100)}%` }} />
+            </div>
+            <small>{formatLocalizedDay(item.date, language, t('common.notAvailable'))}</small>
           </div>
-          <small>{formatLocalizedDay(item.date, language, t('common.notAvailable'))}</small>
+        ))}
+        <div className="admin-chart-legend">
+          <span><i className="admin-chart-upload" />{t('admin.activity.uploads')}</span>
+          <span><i className="admin-chart-analysis" />{t('admin.activity.analyses')}</span>
         </div>
-      ))}
-      <div className="admin-chart-legend">
-        <span><i className="admin-chart-upload" />{t('admin.activity.uploads')}</span>
-        <span><i className="admin-chart-analysis" />{t('admin.activity.analyses')}</span>
       </div>
-    </div>
+    </ScrollRegion>
   )
 }
 

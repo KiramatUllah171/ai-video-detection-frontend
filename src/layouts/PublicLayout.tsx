@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { AppLogo } from '../components/ui/AppLogo'
+import { ResponsiveNavigation } from '../components/ui/ResponsiveNavigation'
 import { buttonClassName } from '../components/ui/buttonStyles'
 import { GlobeIcon } from '../components/ui/icons'
 import { useLanguage, type LanguageCode } from '../i18n/LanguageContext'
@@ -20,7 +21,7 @@ export function PublicLayout() {
     <div className="public-layout">
       <header className="public-topbar">
         <AppLogo to="/" />
-        <nav className="public-nav" aria-label={t('public.nav.label')}>
+        <ResponsiveNavigation className="public-nav" label={t('public.nav.label')}>
           {publicLinks.map((link) => (
             <NavLink
               key={link.to}
@@ -31,7 +32,7 @@ export function PublicLayout() {
               {t(link.labelKey)}
             </NavLink>
           ))}
-        </nav>
+        </ResponsiveNavigation>
         <div className="public-actions">
           <label className="language-control public-language-control">
             <GlobeIcon />

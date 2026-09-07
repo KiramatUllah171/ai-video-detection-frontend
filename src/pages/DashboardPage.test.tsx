@@ -30,12 +30,12 @@ describe('DashboardPage', () => {
 
     renderWithProviders(<DashboardPage />)
 
-    expect(await screen.findByText('51%')).toBeInTheDocument()
+    expect(await screen.findAllByText('51%')).not.toHaveLength(0)
     expect(apiClient.get).toHaveBeenCalledTimes(1)
 
     document.dispatchEvent(new Event('visibilitychange'))
 
-    await waitFor(() => expect(screen.getByText('77%')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText('77%')).not.toHaveLength(0))
     expect(apiClient.get).toHaveBeenCalledTimes(2)
   })
 })

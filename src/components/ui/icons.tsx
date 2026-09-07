@@ -104,6 +104,25 @@ export function BarChartIcon(props: IconProps) {
   )
 }
 
+export function ArrowLeftIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m12 19-7-7 7-7" />
+      <path d="M19 12H5" />
+    </IconBase>
+  )
+}
+
+export function MenuIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 6h16" />
+      <path d="M4 12h16" />
+      <path d="M4 18h16" />
+    </IconBase>
+  )
+}
+
 export function LogOutIcon(props: IconProps) {
   return (
     <IconBase {...props}>

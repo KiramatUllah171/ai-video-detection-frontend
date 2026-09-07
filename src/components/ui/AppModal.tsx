@@ -5,6 +5,7 @@ type AppModalProps = {
   open: boolean
   title: string
   children: ReactNode
+  footer?: ReactNode
   className?: string
   icon?: ReactNode
   busy?: boolean
@@ -26,6 +27,7 @@ export function AppModal({
   open,
   title,
   children,
+  footer,
   className = '',
   icon,
   busy = false,
@@ -120,7 +122,8 @@ export function AppModal({
           {icon && <span className="app-modal-icon app-modal-icon-warning">{icon}</span>}
           <h2 id={titleId}>{title}</h2>
         </div>
-        {children}
+        <div className="app-modal-body">{children}</div>
+        {footer && <div className="app-modal-actions">{footer}</div>}
       </div>
     </div>,
     document.body,
