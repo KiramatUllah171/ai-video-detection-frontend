@@ -7,10 +7,20 @@ type StatusBadgeProps = {
 const statusMap: Record<string, string> = {
   uploaded: 'info',
   queued: 'queued',
+  notstarted: 'muted',
   processing: 'processing',
+  preparing: 'processing',
+  finalizing: 'processing',
   completed: 'success',
+  active: 'success',
+  confirmed: 'success',
+  verified: 'success',
   failed: 'danger',
+  disabled: 'danger',
+  error: 'danger',
   deleted: 'muted',
+  expired: 'muted',
+  unconfirmed: 'warning',
   retrying: 'queued',
   cancelrequested: 'warning',
   pauserequested: 'warning',
@@ -28,14 +38,15 @@ const statusMap: Record<string, string> = {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const { t } = useLanguage()
-  const normalized = (status ?? 'Queued').toLowerCase()
+  const normalized = (status ?? '').trim().toLowerCase().replace(/[\s_-]+/g, '') || 'queued'
   const tone = statusMap[normalized] ?? 'info'
-  const translationKey = `status.${normalized.replace(/\s+/g, '')}` as Parameters<typeof t>[0]
+  const translationKey = `status.${normalized}` as Parameters<typeof t>[0]
+  const translated = t(translationKey)
 
   return (
     <span className={`status-badge status-${tone}`}>
       <span className="status-dot" />
-      {t(translationKey) === translationKey ? status ?? t('status.queued') : t(translationKey)}
+      {translated === translationKey ? status ?? t('status.queued') : translated}
     </span>
   )
 }

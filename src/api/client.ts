@@ -33,11 +33,34 @@ const baseURL = resolveApiBaseURL(configuredBaseURL)
 
 function resolveApiBaseURL(configuredValue?: string) {
   const configured = configuredValue?.trim()
+  if (env.PROD) {
+    return resolveProductionApiBaseURL(configured)
+  }
+
   if (shouldUseBrowserHostApiBaseURL(configured)) {
     return `http://${window.location.hostname}:5166`
   }
 
   return configured || 'http://localhost:5166'
+}
+
+function resolveProductionApiBaseURL(configured?: string) {
+  if (!configured) {
+    throw new Error('VITE_API_BASE_URL must be configured for production builds.')
+  }
+
+  let configuredUrl: URL
+  try {
+    configuredUrl = new URL(configured)
+  } catch {
+    throw new Error('VITE_API_BASE_URL must be an absolute HTTPS URL in production builds.')
+  }
+
+  if (configuredUrl.protocol !== 'https:') {
+    throw new Error('VITE_API_BASE_URL must use HTTPS in production builds.')
+  }
+
+  return configured.replace(/\/+$/, '')
 }
 
 function shouldUseBrowserHostApiBaseURL(configured?: string) {
@@ -107,6 +130,7 @@ apiClient.interceptors.request.use((config) => {
   const selectedLanguage = localStorage.getItem('ai-video-detection-language')
   if (selectedLanguage) {
     config.headers['Accept-Language'] = selectedLanguage
+    config.headers['X-Language'] = selectedLanguage
   }
 
   const deviceFingerprint = getDeviceFingerprint()
@@ -227,6 +251,24 @@ function localizeApiErrorCode(errorCode?: string, t?: Translate) {
         return 'The upload service is busy. Please try again shortly.'
       case 'ANALYSIS_QUEUE_UNAVAILABLE':
         return 'Analysis queue is temporarily unavailable. Please try again shortly.'
+      case 'PLAN_NOT_FOUND':
+        return 'The selected subscription plan was not found.'
+      case 'PAYMENT_NOT_REQUIRED':
+        return 'Payment is not required for this plan.'
+      case 'PAYMENT_NOT_FOUND':
+        return 'Payment was not found.'
+      case 'PAYMENT_EXPIRED':
+        return 'Payment expired before verification.'
+      case 'PAYMENT_ALREADY_FINALIZED':
+        return 'Payment is already finalized.'
+      case 'PAYMENT_GATEWAY_UNAVAILABLE':
+        return 'Payment gateway is unavailable.'
+      case 'PAYMENT_VERIFICATION_FAILED':
+        return 'Payment verification failed.'
+      case 'PAYMENT_AMOUNT_MISMATCH':
+        return 'Payment amount did not match the selected plan.'
+      case 'MOCK_PAYMENT_UNAVAILABLE':
+        return 'Mock payment controls are not available in this environment.'
       default:
         return undefined
     }
@@ -244,6 +286,24 @@ function localizeApiErrorCode(errorCode?: string, t?: Translate) {
       return 'api.uploadBusy'
     case 'ANALYSIS_QUEUE_UNAVAILABLE':
       return 'api.analysisQueueUnavailable'
+    case 'PLAN_NOT_FOUND':
+      return 'subscriptions.planNotFound'
+    case 'PAYMENT_NOT_REQUIRED':
+      return 'subscriptions.paymentNotRequired'
+    case 'PAYMENT_NOT_FOUND':
+      return 'subscriptions.paymentNotFound'
+    case 'PAYMENT_EXPIRED':
+      return 'subscriptions.paymentExpiredBeforeVerification'
+    case 'PAYMENT_ALREADY_FINALIZED':
+      return 'subscriptions.paymentAlreadyFinalized'
+    case 'PAYMENT_GATEWAY_UNAVAILABLE':
+      return 'subscriptions.paymentGatewayUnavailable'
+    case 'PAYMENT_VERIFICATION_FAILED':
+      return 'subscriptions.paymentVerificationFailed'
+    case 'PAYMENT_AMOUNT_MISMATCH':
+      return 'subscriptions.paymentAmountMismatch'
+    case 'MOCK_PAYMENT_UNAVAILABLE':
+      return 'subscriptions.mockPaymentUnavailable'
     default:
       return undefined
     }
@@ -296,6 +356,42 @@ function localizeApiError(message: string, t?: Translate, status?: number) {
   }
   if (normalized.includes('confirm your email address') || normalized.includes('email address has not been confirmed')) {
     return t('login.emailNotConfirmed')
+  }
+  if (normalized.includes('selected subscription plan was not found') || normalized.includes('subscription plan was not found')) {
+    return t('subscriptions.planNotFound')
+  }
+  if (normalized.includes('payment is not required') || normalized.includes('does not require payment')) {
+    return t('subscriptions.paymentNotRequired')
+  }
+  if (
+    normalized.includes('payment gateway is unavailable') ||
+    normalized.includes('production checkout is not configured') ||
+    normalized.includes('live initiation requires official merchant')
+  ) {
+    return t('subscriptions.paymentGatewayUnavailable')
+  }
+  if (normalized.includes('mock payment controls are not available') || normalized.includes('mock payments are available only')) {
+    return t('subscriptions.mockPaymentUnavailable')
+  }
+  if (normalized.includes('payment amount did not match') || normalized.includes('amount or currency did not match')) {
+    return t('subscriptions.paymentAmountMismatch')
+  }
+  if (normalized.includes('payment expired before verification')) {
+    return t('subscriptions.paymentExpiredBeforeVerification')
+  }
+  if (normalized.includes('payment is already finalized')) {
+    return t('subscriptions.paymentAlreadyFinalized')
+  }
+  if (
+    normalized.includes('payment verification failed') ||
+    normalized.includes('callback verification is not configured') ||
+    normalized.includes('callback did not report a successful payment') ||
+    normalized.includes('callback signature verification failed') ||
+    normalized.includes('verification order did not match') ||
+    normalized.includes('provider transaction reference was already used') ||
+    normalized.includes('did not include a valid provider transaction reference')
+  ) {
+    return t('subscriptions.paymentVerificationFailed')
   }
   if (normalized.includes('user account is inactive')) {
     return t('api.accountInactive')

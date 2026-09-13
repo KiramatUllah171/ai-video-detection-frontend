@@ -5,6 +5,7 @@ import { AppButton } from '../components/ui/AppButton'
 import { AlertCircleIcon, CheckCircleIcon } from '../components/ui/icons'
 import { AuthCard, AuthLayout } from '../layouts/AuthLayout'
 import { useLanguage } from '../i18n/LanguageContext'
+import { localizeDisplayMessage } from '../i18n/localizeDynamicText'
 
 type ConfirmationState = 'checkingStatus' | 'ready' | 'confirming' | 'declining' | 'success' | 'declined' | 'handled' | 'error'
 
@@ -39,7 +40,7 @@ export function ConfirmEmailPage() {
         }
 
         setState('handled')
-        setMessage(response.message || t('confirmEmail.error'))
+        setMessage(response.message ? localizeDisplayMessage(response.message, t) : t('confirmEmail.error'))
       } catch {
         if (!cancelled) {
           setState('error')
@@ -80,7 +81,7 @@ export function ConfirmEmailPage() {
     try {
       const response = await declineEmailConfirmation(token)
       setState('declined')
-      setMessage(response.message || t('confirmEmail.declined'))
+      setMessage(response.message ? localizeDisplayMessage(response.message, t) : t('confirmEmail.declined'))
     } catch {
       setState('error')
       setMessage(t('confirmEmail.declineError'))

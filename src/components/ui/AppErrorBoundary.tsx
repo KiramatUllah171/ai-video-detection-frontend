@@ -29,14 +29,14 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
 
   render() {
     if (this.state.hasError) {
-      const t = this.context?.t
+      const t = this.context!.t
       return (
         <main className="page">
           <AppCard className="app-error-boundary">
             <AlertCircleIcon />
             <div>
-              <h1>{t ? t('app.errorTitle') : 'Something went wrong.'}</h1>
-              <p>{t ? t('app.errorDescription') : 'Refresh the page and try again. If this continues, check the browser console for the render error.'}</p>
+              <h1>{t('app.errorTitle')}</h1>
+              <p>{t('app.errorDescription')}</p>
             </div>
           </AppCard>
         </main>

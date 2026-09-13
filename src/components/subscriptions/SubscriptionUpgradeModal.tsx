@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   completeMockPayment,
   getApiErrorMessage,
@@ -9,6 +9,7 @@ import {
 } from '../../api/client'
 import type { PaymentInitiationResponse, PaymentStatusResponse } from '../../api/types'
 import { useLanguage } from '../../i18n/LanguageContext'
+import { localizeDisplayMessage, localizeStatusValue } from '../../i18n/localizeDynamicText'
 import { getSubscriptionReasonKey, subscriptionStatusQueryKey } from '../../subscriptions/subscriptionErrors'
 import { AppButton } from '../ui/AppButton'
 import { AppModal } from '../ui/AppModal'
@@ -25,7 +26,7 @@ type SubscriptionUpgradeModalProps = {
 
 type PlanOption = {
   code: 'PLUS' | 'PRO'
-  name: string
+  nameKey: string
   price: string
   scansKey: string
   maxVideoKey: string
@@ -36,7 +37,7 @@ type PlanOption = {
 const plans: PlanOption[] = [
   {
     code: 'PLUS',
-    name: 'Plus',
+    nameKey: 'subscriptions.plus',
     price: 'PKR 499',
     scansKey: 'subscriptions.plan.plusScans',
     maxVideoKey: 'subscriptions.plan.plusMaxVideo',
@@ -45,7 +46,7 @@ const plans: PlanOption[] = [
   },
   {
     code: 'PRO',
-    name: 'Pro',
+    nameKey: 'subscriptions.pro',
     price: 'PKR 999',
     scansKey: 'subscriptions.plan.proScans',
     maxVideoKey: 'subscriptions.plan.proMaxVideo',
@@ -53,7 +54,15 @@ const plans: PlanOption[] = [
   },
 ]
 
-export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: SubscriptionUpgradeModalProps) {
+export function SubscriptionUpgradeModal(props: SubscriptionUpgradeModalProps) {
+  if (!props.open) {
+    return null
+  }
+
+  return <SubscriptionUpgradeModalContent {...props} />
+}
+
+function SubscriptionUpgradeModalContent({ open, reasonCode, onClose }: SubscriptionUpgradeModalProps) {
   const { t } = useLanguage()
   const queryClient = useQueryClient()
   const [checkout, setCheckout] = useState<PaymentInitiationResponse | null>(null)
@@ -66,14 +75,6 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
     enabled: open,
     staleTime: 30_000,
   })
-
-  useEffect(() => {
-    if (!open) {
-      setCheckout(null)
-      setPaymentStatus(null)
-      setSelectedPlanCode(null)
-    }
-  }, [open])
 
   const checkoutMutation = useMutation({
     mutationFn: initiatePayment,
@@ -145,7 +146,7 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
           <div className="subscription-plan-card" key={plan.code}>
             <div className="subscription-plan-heading">
               <div>
-                <strong>{plan.name}</strong>
+                <strong>{t(plan.nameKey)}</strong>
                 <span>{plan.price}</span>
               </div>
               {plan.badgeKey && <em>{t(plan.badgeKey)}</em>}
@@ -162,21 +163,21 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
               disabled={busy}
               onClick={() => choosePlan(plan.code)}
             >
-              {t('subscriptions.choosePlan', { plan: plan.name })}
+              {t('subscriptions.choosePlan', { plan: t(plan.nameKey) })}
             </AppButton>
           </div>
         ))}
       </div>
 
-      {checkoutMutation.error && <ErrorMessage message={getPaymentError(checkoutMutation.error)} />}
-      {paymentStatusMutation.error && <ErrorMessage message={getPaymentError(paymentStatusMutation.error)} />}
-      {completeMockMutation.error && <ErrorMessage message={getPaymentError(completeMockMutation.error)} />}
+      {checkoutMutation.error && <ErrorMessage message={getPaymentError(checkoutMutation.error, t)} />}
+      {paymentStatusMutation.error && <ErrorMessage message={getPaymentError(paymentStatusMutation.error, t)} />}
+      {completeMockMutation.error && <ErrorMessage message={getPaymentError(completeMockMutation.error, t)} />}
 
       {checkout && (
         <div className="payment-status-panel">
           <div>
-            <strong>{t('subscriptions.checkoutTitle', { plan: checkout.planName })}</strong>
-            <span>{t('subscriptions.checkoutSubtitle', { currency: checkout.currency, amount: checkout.amount.toLocaleString(), provider: checkout.provider })}</span>
+            <strong>{t('subscriptions.checkoutTitle', { plan: formatPaymentPlanName(checkout.planCode, checkout.planName, t) })}</strong>
+            <span>{t('subscriptions.checkoutSubtitle', { currency: checkout.currency, amount: checkout.amount.toLocaleString(), provider: formatPaymentProviderLabel(checkout.provider, t) })}</span>
             <small>{t('subscriptions.order', { orderId: checkout.orderId })}</small>
           </div>
           <PaymentStatusBadge status={paymentStatus?.status ?? checkout.status} />
@@ -221,7 +222,7 @@ export function SubscriptionUpgradeModal({ open, reasonCode, onClose }: Subscrip
               </>
             )}
           </div>
-          {paymentStatus?.failureReason && <small className="payment-failure">{paymentStatus.failureReason}</small>}
+          {paymentStatus?.failureReason && <small className="payment-failure">{formatPaymentFailureReason(paymentStatus.failureReason, t)}</small>}
         </div>
       )}
 
@@ -234,7 +235,7 @@ function PaymentStatusBadge({ status }: { status: string }) {
   const normalized = status.trim().toLowerCase()
   const label = normalized === 'verified'
     ? t('subscriptions.paymentVerified')
-    : t('subscriptions.paymentStatus', { status: status || t('common.pending') })
+    : t('subscriptions.paymentStatus', { status: localizeStatusValue(status || 'pending', t) })
   return <span className={`payment-status-badge payment-status-${normalized || 'pending'}`}>{label}</span>
 }
 
@@ -242,6 +243,33 @@ function isPaymentVerified(status: string) {
   return status.trim().toLowerCase() === 'verified'
 }
 
-function getPaymentError(error: unknown) {
-  return getApiErrorMessage(error)
+function getPaymentError(error: unknown, t: ReturnType<typeof useLanguage>['t']) {
+  return getApiErrorMessage(error, t)
+}
+
+function formatPaymentPlanName(planCode: string, planName: string, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = planCode.trim().toLowerCase()
+  if (normalized === 'plus') {
+    return t('subscriptions.plus')
+  }
+  if (normalized === 'pro') {
+    return t('subscriptions.pro')
+  }
+  return planName
+}
+
+function formatPaymentProviderLabel(_provider: string, t: ReturnType<typeof useLanguage>['t']) {
+  return t('subscriptions.paymentService')
+}
+
+function formatPaymentFailureReason(reason: string, t: ReturnType<typeof useLanguage>['t']) {
+  if (containsSensitivePaymentText(reason)) {
+    return t('subscriptions.paymentVerificationFailed')
+  }
+
+  return localizeDisplayMessage(reason, t)
+}
+
+function containsSensitivePaymentText(value: string) {
+  return /\b(mock|provider|api|quota|exception|stack|endpoint|merchant|callback|signature|transaction reference|api key|secret)\b/i.test(value)
 }

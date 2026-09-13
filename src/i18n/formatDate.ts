@@ -5,8 +5,9 @@ export function formatLocalizedDateTime(value: string | undefined | null, langua
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-    hour: 'numeric',
+    hour: language === 'en' ? 'numeric' : '2-digit',
     minute: '2-digit',
+    hour12: language === 'en',
   })
 }
 
@@ -43,7 +44,7 @@ function formatLocalizedDate(
 }
 
 function getIntlLocale(language: LanguageCode) {
-  if (language === 'ur') return 'ur-PK'
-  if (language === 'ps') return 'ps-AF'
+  if (language === 'ur') return 'ur-PK-u-ca-gregory-nu-latn'
+  if (language === 'ps') return 'ps-AF-u-ca-gregory-nu-latn'
   return 'en'
 }

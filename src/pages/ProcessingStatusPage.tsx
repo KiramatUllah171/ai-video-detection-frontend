@@ -42,7 +42,7 @@ export function ProcessingStatusPage() {
     queryKey: ['job-status', videoId],
     enabled: Boolean(videoId),
     refetchInterval: (query) => {
-      const status = query.state.data?.status.toLowerCase()
+      const status = normalizeStatusName(query.state.data?.status)
       if (status === 'completed' || status === 'failed' || status === 'cancelled') {
         return false
       }
@@ -60,7 +60,7 @@ export function ProcessingStatusPage() {
   const status = statusQuery.data
   const statusContent = getStatusContent(status?.status, t)
   const statusIcon = getStatusIcon(status?.status)
-  const statusName = status?.status.toLowerCase()
+  const statusName = normalizeStatusName(status?.status)
   const isFailed = statusName === 'failed'
   const isCompleted = statusName === 'completed'
   const isCancelled = statusName === 'cancelled'
@@ -71,7 +71,7 @@ export function ProcessingStatusPage() {
   const canResume = isPaused
   const canCancel = statusName ? ['queued', 'preparing', 'processing', 'retrying', 'finalizing', 'pauserequested', 'paused', 'resumerequested'].includes(statusName) : false
   const safeErrorMessage = status
-    ? localizeDisplayMessage(status.userMessage ?? status.errorMessage ?? t('processing.defaultError'), t)
+    ? formatSafeFailureMessage(status.userMessage ?? status.errorMessage, t, isAdmin)
     : t('processing.defaultError')
   const scanType = formatScanMode(status?.scanMode, t)
   const originalName = status?.originalName?.trim() || t('processing.notAvailable')
@@ -226,7 +226,7 @@ export function ProcessingStatusPage() {
           <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
             {statusContent.title}
           </div>
-          <div className={`status-hero status-hero-${status.status.toLowerCase()}`}>
+          <div className={`status-hero status-hero-${normalizeStatusName(status.status)}`}>
             <div className="status-icon">
               {statusIcon}
             </div>
@@ -247,7 +247,7 @@ export function ProcessingStatusPage() {
           <div className="detail-grid">
             <DetailItem label={t('processing.videoFile')} value={originalName} icon={<FileVideoIcon />} title={originalName} truncate />
             <DetailItem label={t('processing.scanType')} value={scanType} icon={<ActivityIcon />} />
-            <DetailItem label={t('processing.currentStep')} value={formatSafeStatusText(status.currentStep, t)} icon={<ClockIcon />} />
+            <DetailItem label={t('processing.currentStep')} value={formatSafeStatusText(status.currentStep, t, isAdmin)} icon={<ClockIcon />} />
             <DetailItem label={t('processing.retryAttempt')} value={t('processing.attempt', { current: Math.min(status.retryCount + 1, status.maxRetryCount), max: status.maxRetryCount })} icon={<AlertCircleIcon />} />
             <DetailItem label={t('processing.created')} value={formatLocalizedDateTime(status.createdAt, language, t('processing.notAvailable'))} icon={<ClockIcon />} />
             <DetailItem label={t('processing.lastUpdated')} value={formatLastUpdated(status, language, t)} icon={<ActivityIcon />} />
@@ -293,7 +293,7 @@ export function ProcessingStatusPage() {
               <div>
                 <h3>{t('processing.failedTitle')}</h3>
                 <p>{safeErrorMessage}</p>
-                {status.technicalReferenceId && <small>{t('processing.reference', { id: status.technicalReferenceId })}</small>}
+                {isAdmin && status.technicalReferenceId && <small>{t('processing.reference', { id: status.technicalReferenceId })}</small>}
               </div>
               {retryMutation.error && !shouldShowSubscriptionUpgrade(retryMutation.error, isAdmin) && (
                 <ErrorMessage message={getApiErrorMessage(retryMutation.error, t)} />
@@ -544,7 +544,7 @@ function ScanStatusPanel({ status, scanType }: { status: JobStatus; scanType: st
 
   const completed = status.completedSegments ?? 0
   const total = status.totalSegments
-  const statusName = status.status.toLowerCase()
+  const statusName = normalizeStatusName(status.status)
   if (statusName === 'cancelled') {
     return (
       <div className="scan-status-panel scan-status-panel-neutral">
@@ -622,7 +622,7 @@ function ScanStatusPanel({ status, scanType }: { status: JobStatus; scanType: st
 }
 
 function getStatusContent(status: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
-  switch (status?.toLowerCase()) {
+  switch (normalizeStatusName(status)) {
     case 'pauserequested':
       return {
         title: t('processing.statusPauseRequestedTitle'),
@@ -679,7 +679,7 @@ function wait(delayMs: number) {
 }
 
 function getStatusIcon(status?: string) {
-  switch (status?.toLowerCase()) {
+  switch (normalizeStatusName(status)) {
     case 'processing':
     case 'preparing':
     case 'finalizing':
@@ -706,7 +706,7 @@ function formatLastUpdated(status: JobStatus, language: LanguageCode, t: ReturnT
     return formatLocalizedDateTime(updatedAt, language, t('processing.notAvailable'))
   }
 
-  const statusName = status.status.toLowerCase()
+  const statusName = normalizeStatusName(status.status)
   return statusName === 'queued'
     || statusName === 'processing'
     || statusName === 'retrying'
@@ -721,25 +721,28 @@ function formatPercent(value: number | null | undefined, t: ReturnType<typeof us
   return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value)}%` : t('processing.calculating')
 }
 
-function formatSafeStatusText(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+function formatSafeStatusText(value: string | undefined, t: ReturnType<typeof useLanguage>['t'], isAdmin: boolean) {
   if (!value) {
     return t('processing.waitingWorker')
   }
 
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'preparing video') {
-    return t('processing.stepPreparingVideo')
-  }
-  if (normalized === 'analysis completed') {
-    return t('dynamic.analysisCompleted')
-  }
-  if (normalized === 'waiting for processing worker') {
-    return t('processing.waitingWorker')
+  if (!isAdmin && containsSensitiveOperationalText(value)) {
+    return t('processing.currentStepGeneric')
   }
 
-  return value
-    .replace(/External\s+BitMind\s+verification/gi, t('analysis.externalVerification'))
-    .replace(/BitMind/gi, t('analysis.externalVerification'))
+  return localizeDisplayMessage(value, t)
+}
+
+function formatSafeFailureMessage(value: string | undefined, t: ReturnType<typeof useLanguage>['t'], isAdmin: boolean) {
+  if (!value) {
+    return t('processing.defaultError')
+  }
+
+  if (!isAdmin && containsSensitiveOperationalText(value)) {
+    return t('processing.defaultError')
+  }
+
+  return localizeDisplayMessage(value, t)
 }
 
 function formatScanMode(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
@@ -755,4 +758,12 @@ function formatScanMode(value: string | undefined, t: ReturnType<typeof useLangu
   }
 
   return value!.trim()
+}
+
+function normalizeStatusName(status: string | undefined | null) {
+  return status?.trim().toLowerCase().replace(/[\s_-]+/g, '') ?? ''
+}
+
+function containsSensitiveOperationalText(value: string) {
+  return /\b(bitmind|external|provider|api|quota|exception|stack|endpoint|model|database|configured|merchant|callback|signature|subnet|api key|secret)\b/i.test(value)
 }

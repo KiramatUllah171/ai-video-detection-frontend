@@ -130,6 +130,12 @@ function formatPlanName(status: SubscriptionStatusResponse, t: ReturnType<typeof
   if (normalizedCode === 'free') {
     return t('subscriptions.freeTrial')
   }
+  if (normalizedCode === 'plus') {
+    return t('subscriptions.plus')
+  }
+  if (normalizedCode === 'pro') {
+    return t('subscriptions.pro')
+  }
 
   return status.planName || formatPlanCode(status.planCode, t)
 }

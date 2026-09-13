@@ -12,6 +12,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
+import { localizeProviderValue } from '../i18n/localizeDynamicText'
 import { toVideoRouteId } from '../routes/videoRouteId'
 import { formatAdminDate } from './adminUtils'
 
@@ -229,7 +230,7 @@ export function AdminRequestsPage() {
                       <span className="file-icon"><ActivityIcon /></span>
                       <div>
                         <strong>{request.providerName}</strong>
-                        <span>{request.providerMode}</span>
+                        <span>{localizeProviderValue(request.providerMode, t)}</span>
                       </div>
                     </div>
                     <StatusBadge status={request.status} />
@@ -282,7 +283,7 @@ export function AdminRequestsPage() {
                       <td>
                         <div className="admin-mini-counts">
                           <strong>{request.providerName}</strong>
-                          <span>{request.providerMode}</span>
+                          <span>{localizeProviderValue(request.providerMode, t)}</span>
                         </div>
                       </td>
                       <td>{request.videoName}</td>
