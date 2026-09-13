@@ -299,11 +299,11 @@ function StatusList({ title, items }: { title: string; items: AdminStatusCount[]
 function localizeMetricLabel(metric: AdminMetric, t: ReturnType<typeof useLanguage>['t']) {
   const key = `admin.metric.${metric.key}`
   const label = t(key)
-  return label === key ? metric.label : label
+  return label === key ? localizeDisplayMessage(metric.label, t) : label
 }
 
 function localizeStatusLabel(status: string, t: ReturnType<typeof useLanguage>['t']) {
-  const key = `status.${status.toLowerCase().replace(/\s+/g, '')}`
+  const key = `status.${status.toLowerCase().replace(/[\s_-]+/g, '')}`
   const label = t(key)
   return label === key ? status : label
 }

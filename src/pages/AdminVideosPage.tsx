@@ -158,7 +158,7 @@ export function AdminVideosPage() {
                     </td>
                     <td><StatusBadge status={video.status} /></td>
                     <td>
-                      <StatusBadge status={video.latestJobStatus ?? 'Not started'} />
+                      <StatusBadge status={video.latestJobStatus ?? 'notstarted'} />
                       <ProgressBar value={video.latestJobProgress ?? 0} status={video.latestJobStatus} />
                     </td>
                     <td>

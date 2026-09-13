@@ -3,6 +3,8 @@ import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { downloadAnalysisReport, getAnalysisResult, getApiErrorMessage, getOriginMatches, getVideoMetadata } from '../api/client'
 import type { AnalysisResult, EvidenceItem, MetadataResult, SourceMatch } from '../api/types'
+import { useAuth } from '../auth/AuthContext'
+import { isAdminRole } from '../auth/roleUtils'
 import { AppCard } from '../components/ui/AppCard'
 import { buttonClassName } from '../components/ui/buttonStyles'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -16,9 +18,11 @@ import { formatLocalizedDateShort, formatLocalizedDateTime } from '../i18n/forma
 import { fromVideoRouteId } from '../routes/videoRouteId'
 
 export function AnalysisResultPage() {
+  const auth = useAuth()
   const { videoId: routeVideoId } = useParams()
   const videoId = fromVideoRouteId(routeVideoId)
   const { language, t } = useLanguage()
+  const isAdmin = isAdminRole(auth.user?.role)
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false)
   const [downloadError, setDownloadError] = useState('')
   const [isDownloadingReport, setIsDownloadingReport] = useState(false)
@@ -96,9 +100,9 @@ export function AnalysisResultPage() {
       {analysis && (
         <>
           <section className="result-grid">
-            <MetricCard label={t('analysis.aiProbability')} value={`${formatPercent(analysis.aiGeneratedProbability)}%`} icon={<AlertCircleIcon />} isMock={analysis.isMock} />
-            <MetricCard label={t('analysis.realProbability')} value={`${formatPercent(analysis.likelyRealProbability)}%`} icon={<ShieldIcon />} isMock={analysis.isMock} />
-            <MetricCard label={t('analysis.confidence')} value={`${formatPercent(analysis.confidencePercentage)}%`} icon={<ActivityIcon />} isMock={analysis.isMock} />
+            <MetricCard label={t('analysis.aiProbability')} value={`${formatPercent(analysis.aiGeneratedProbability)}%`} icon={<AlertCircleIcon />} isMock={analysis.isMock} showMockBadge={isAdmin} />
+            <MetricCard label={t('analysis.realProbability')} value={`${formatPercent(analysis.likelyRealProbability)}%`} icon={<ShieldIcon />} isMock={analysis.isMock} showMockBadge={isAdmin} />
+            <MetricCard label={t('analysis.confidence')} value={`${formatPercent(analysis.confidencePercentage)}%`} icon={<ActivityIcon />} isMock={analysis.isMock} showMockBadge={isAdmin} />
           </section>
 
           <AppCard className={`analysis-section probability-section ${analysis.label === 'Inconclusive' ? 'analysis-section-neutral' : ''}`}>
@@ -113,16 +117,18 @@ export function AnalysisResultPage() {
 
           <section className="analysis-advanced-toggle">
             <button type="button" className={`${buttonClassName('outline')} technical-details-pulse ${getTechnicalDetailsPulseClass(analysis)}`} onClick={() => setShowAdvancedDetails((current) => !current)}>
-              {showAdvancedDetails ? t('analysis.hideTechnicalDetails') : t('analysis.showTechnicalDetails')}
+              {showAdvancedDetails
+                ? t(isAdmin ? 'analysis.hideTechnicalDetails' : 'analysis.hideReviewDetails')
+                : t(isAdmin ? 'analysis.showTechnicalDetails' : 'analysis.showReviewDetails')}
             </button>
-            <p>{t('analysis.technicalDetailsHelper')} {t('retention.technicalNotice')}</p>
+            <p>{t(isAdmin ? 'analysis.technicalDetailsHelper' : 'analysis.reviewDetailsHelper')} {t(isAdmin ? 'retention.technicalNotice' : 'retention.reviewNotice')}</p>
           </section>
 
           {showAdvancedDetails && (
             <UserReportSummary analysis={analysis} matches={matches} matchesLoading={matchesQuery.isLoading} />
           )}
 
-          {showAdvancedDetails && (
+          {showAdvancedDetails && isAdmin && (
           <AppCard className="analysis-section">
             <div className="card-header compact">
               <div>
@@ -145,7 +151,7 @@ export function AnalysisResultPage() {
           </AppCard>
           )}
 
-          {showAdvancedDetails && detectorBreakdown && (
+          {showAdvancedDetails && isAdmin && detectorBreakdown && (
             <AppCard className="analysis-section">
               <div className="card-header compact">
                 <div>
@@ -165,13 +171,13 @@ export function AnalysisResultPage() {
                   {analysis.minimumRecommendedScore !== undefined && analysis.minimumRecommendedScore !== null && (
                     <small>{t('analysis.adjustedMinimum', { score: formatPercent(analysis.minimumRecommendedScore * 100) })}</small>
                   )}
-                  {analysis.ensembleStrategy && <small>{t('analysis.strategy', { strategy: formatWords(analysis.ensembleStrategy) })}</small>}
+                  {analysis.ensembleStrategy && <small>{t('analysis.strategy', { strategy: formatWords(analysis.ensembleStrategy, t) })}</small>}
                 </div>
               </div>
             </AppCard>
           )}
 
-          {showAdvancedDetails && (
+          {showAdvancedDetails && isAdmin && (
           <AppCard className="analysis-section">
             <div className="card-header compact">
               <div>
@@ -216,7 +222,7 @@ export function AnalysisResultPage() {
           </section>
           )}
 
-          {showAdvancedDetails && (
+          {showAdvancedDetails && isAdmin && (
           <AppCard className="analysis-section">
             <div className="card-header compact">
               <div>
@@ -245,12 +251,12 @@ export function AnalysisResultPage() {
   )
 }
 
-function MetricCard({ label, value, icon, isMock = false }: { label: string; value: string; icon: ReactNode; isMock?: boolean }) {
+function MetricCard({ label, value, icon, isMock = false, showMockBadge = false }: { label: string; value: string; icon: ReactNode; isMock?: boolean; showMockBadge?: boolean }) {
   const { t } = useLanguage()
   return (
     <AppCard className={`result-metric ${isMock ? 'result-metric-mock' : ''}`}>
       <span>{icon}</span>
-      {isMock && <em>{t('analysis.mock')}</em>}
+      {isMock && showMockBadge && <em>{t('analysis.mock')}</em>}
       <small>{label}</small>
       <strong>{value}</strong>
     </AppCard>
@@ -432,7 +438,7 @@ function DetectorScore({ title, component }: { title: string; component?: Detect
         <small>{t('analysis.rawFrameScore', { raw: formatPercent(component.raw_frame_ai_score * 100), calibrated: formatPercent((component.calibrated_frame_ai_score ?? component.ai_score) * 100) })}</small>
       )}
       <small>{component.model_id}</small>
-      <small>{t('analysis.confidenceInline', { capability: formatWords(component.model_capability), confidence: formatPercent(component.confidence * 100) })}</small>
+      <small>{t('analysis.confidenceInline', { capability: formatWords(component.model_capability, t), confidence: formatPercent(component.confidence * 100) })}</small>
       {component.reliability?.accuracy !== undefined && (
         <small>{t('analysis.reliability', { accuracy: formatPercent(component.reliability.accuracy * 100), samples: component.reliability.sample_count ?? 0 })}</small>
       )}
@@ -580,7 +586,12 @@ function localizeOriginMatchTitle(match: SourceMatch, t: ReturnType<typeof useLa
 
 function localizePlatform(platform: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
   if (!platform) return t('analysis.unknown')
-  return platform.toLowerCase() === 'internal' ? t('analysis.internalPlatform') : platform
+  const normalized = platform.toLowerCase().replace(/[\s_-]+/g, '')
+  if (normalized === 'internal') return t('analysis.internalPlatform')
+  if (normalized === 'local') return t('analysis.internalVerification')
+  if (normalized === 'smartscan') return t('processing.scanTypeSmart')
+  if (normalized.includes('external')) return t('analysis.externalVerification')
+  return platform
 }
 
 function localizeConfidence(confidence: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
@@ -763,9 +774,16 @@ function localizeEvidenceTitle(title: string, isMock: boolean, t: ReturnType<typ
   if (normalized === 'heavy compression indicator') return `${t('analysis.bitrate')} ${t('status.low')}`
   if (normalized === 'incomplete core metadata') return t('analysis.metadataUnavailable')
   if (normalized === 'unreadable metadata') return t('analysis.metadataUnavailable')
+  if (normalized === 'limited confidence') return t('analysis.limitedConfidenceTitle')
+  if (normalized === 'metadata warning') return t('analysis.metadataWarningTitle')
+  if (normalized === 'mock ai service result') return t('analysis.mockAiServiceResultTitle')
   if (normalized === 'detector disagreement') return t('analysis.disagreementWarning')
   if (normalized === 'low confidence result') return t('analysis.lowConfidenceWarning')
   if (normalized === 'external provider notice') return t('analysis.defaultSummary')
+  if (normalized === 'high ai indicator frame') return t('analysis.highAiIndicatorFrameTitle')
+  if (normalized === 'moderate ai indicator frame') return t('analysis.moderateAiIndicatorFrameTitle')
+  if (isMock && normalized === 'mock high-score frame') return t('analysis.mockHighScoreFrameTitle')
+  if (isMock && normalized === 'mock moderate-score frame') return t('analysis.mockModerateScoreFrameTitle')
   if (isMock && normalized === 'high ai indicator frame') return `${t('analysis.mock')} ${t('status.high')}`
   if (isMock && normalized === 'moderate ai indicator frame') return `${t('analysis.mock')} ${t('status.medium')}`
   if (isMock && normalized === 'ai frame indicator') return t('analysis.mockFrameGroup')
@@ -774,6 +792,16 @@ function localizeEvidenceTitle(title: string, isMock: boolean, t: ReturnType<typ
 
 function localizeKnownMessage(message: string, t: ReturnType<typeof useLanguage>['t']) {
   const trimmed = message.trim()
+  const frameScoreMatch = trimmed.match(/^Frame\s+(\d+)\s+at\s+([0-9.]+)s\s+returned score\s+([0-9.]+)\s+with confidence\s+([0-9.]+)\.?$/i)
+  if (frameScoreMatch) {
+    return t('dynamic.frameScoreDescription', {
+      frame: frameScoreMatch[1],
+      timestamp: frameScoreMatch[2],
+      score: frameScoreMatch[3],
+      confidence: frameScoreMatch[4],
+    })
+  }
+
   const direct = localizeKnownSentence(trimmed, t)
   if (direct) {
     return direct
@@ -891,6 +919,9 @@ function localizeKnownSentence(message: string, t: ReturnType<typeof useLanguage
   if (normalized.includes('frame score combined from available detector models')) {
     return t('analysis.detectorBreakdownSubtitle')
   }
+  if (normalized.includes('this analysis was generated by the mock ai service')) {
+    return t('analysis.mockWarning')
+  }
   if (normalized === 'this is a probability-based analysis.' || normalized === 'this is a probability-based ensemble analysis.') {
     return t('analysis.defaultSummary')
   }
@@ -934,8 +965,17 @@ function formatPercent(value: number) {
   return Math.max(0, Math.min(100, numeric)).toFixed(1)
 }
 
-function formatWords(value?: string) {
-  return sanitizeDisplayMessage(value || 'Unknown').replace(/_/g, ' ')
+function formatWords(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
+  const normalized = (value ?? '').toLowerCase().replace(/[\s_-]+/g, '')
+  if (!normalized) return t('analysis.unknown')
+  if (normalized === 'ensemblevideoframe') return t('analysis.modelCapability.ensembleVideoFrame')
+  if (normalized === 'frameimage') return t('analysis.modelCapability.frameImage')
+  if (normalized === 'videotemporal') return t('analysis.modelCapability.videoTemporal')
+  if (normalized === 'representativevideosegments') return t('analysis.modelCapability.representativeVideoSegments')
+  if (normalized === 'mock') return t('analysis.modelCapability.mock')
+  if (normalized === 'strongframeevidencefloor') return t('analysis.strategy.strongFrameEvidenceFloor')
+  if (normalized === 'verystrongframeevidencefloor') return t('analysis.strategy.veryStrongFrameEvidenceFloor')
+  return sanitizeDisplayMessage(value ?? t('analysis.unknown'), t).replace(/_/g, ' ')
 }
 
 function formatScanModeDisplay(value: string | undefined, t: ReturnType<typeof useLanguage>['t']) {
@@ -968,9 +1008,17 @@ function formatModelDisplay(value: string | undefined, t: ReturnType<typeof useL
 
 function sanitizeDisplayMessage(value: string, t?: ReturnType<typeof useLanguage>['t']) {
   const genericModelLabel = t ? t('analysis.modelAi') : 'AI model'
+  if (t && containsSensitiveOperationalText(value)) {
+    return t('analysis.defaultSummary')
+  }
+
   return value
     .replace(/bitmind-oracle-v1-sn34/gi, genericModelLabel)
     .replace(/bitmind-subnet-34/gi, genericModelLabel)
     .replace(/External\s+BitMind\s+verification/gi, genericModelLabel)
     .replace(/BitMind/gi, genericModelLabel)
+}
+
+function containsSensitiveOperationalText(value: string) {
+  return /\b(bitmind|external|provider|api|quota|exception|stack|endpoint|database|configured|merchant|callback|signature|subnet|api key|secret)\b/i.test(value)
 }

@@ -94,8 +94,9 @@ describe('ProcessingStatusPage', () => {
     renderWithProviders(<ProcessingStatusPage />)
 
     expect(await screen.findAllByText("We couldn't complete the analysis.")).toHaveLength(3)
-    expect(screen.getByText('The external analysis service is temporarily unavailable. Please try again later.')).toBeInTheDocument()
-    expect(screen.getByText('Failed: External verification failed')).toBeInTheDocument()
+    expect(screen.getByText("We couldn't complete the analysis. Please retry.")).toBeInTheDocument()
+    expect(screen.queryByText('Failed: External verification failed')).not.toBeInTheDocument()
+    expect(screen.queryByText('The external analysis service is temporarily unavailable. Please try again later.')).not.toBeInTheDocument()
     expect(screen.queryByText(/BitMind/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/HTTP 401/i)).not.toBeInTheDocument()
 
@@ -268,6 +269,47 @@ describe('ProcessingStatusPage', () => {
     resolvePause?.(buildStatus({ status: 'PauseRequested', currentStep: 'Pausing analysis' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     confirmSpy.mockRestore()
+  })
+
+  it('localizes the pause requested status in Urdu without raw English text', async () => {
+    localStorage.setItem('ai-video-detection-language', 'ur')
+    mockStatus({
+      status: 'PauseRequested',
+      progress: 22,
+      currentStep: 'Pausing analysis',
+      completedSegments: 0,
+      totalSegments: 3,
+    })
+
+    renderWithProviders(<ProcessingStatusPage />)
+
+    expect(await screen.findAllByText('تجزیہ رک رہا ہے')).not.toHaveLength(0)
+    expect(screen.getByText('موجودہ عمل محفوظ مقام تک پہنچ رہا ہے۔ مکمل شدہ پیش رفت محفوظ رہے گی۔')).toBeInTheDocument()
+    expect(screen.getByText('پروسیسنگ اگلے محفوظ مقام کے بعد رک جائے گی۔ محفوظ پیش رفت: 0 از 3 حصے۔')).toBeInTheDocument()
+    expect(screen.getByText('ویڈیو فائل')).toBeInTheDocument()
+    expect(screen.queryByText('Pausing analysis')).not.toBeInTheDocument()
+    expect(screen.queryByText(/safe checkpoint/i)).not.toBeInTheDocument()
+  })
+
+  it('localizes the pause confirmation modal in Urdu', async () => {
+    localStorage.setItem('ai-video-detection-language', 'ur')
+    mockStatus({
+      status: 'Processing',
+      progress: 42,
+      currentStep: 'Analyzing video',
+      completedSegments: 2,
+      totalSegments: 8,
+    })
+
+    renderWithProviders(<ProcessingStatusPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'تجزیہ روکیں' }))
+
+    expect(screen.getByRole('dialog', { name: 'تجزیہ روکیں؟' })).toBeInTheDocument()
+    expect(screen.getByText('پروسیسنگ اگلے محفوظ مقام پر رک جائے گی۔ آپ کی پیش رفت اور مکمل شدہ نتائج محفوظ رہیں گے، اور آپ بعد میں یہ تجزیہ دوبارہ جاری کر سکیں گے۔')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'تجزیہ جاری رکھیں' })).toBeInTheDocument()
+    expect(screen.queryByText(/Keep analyzing/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Processing will stop/i)).not.toBeInTheDocument()
   })
 
   it('shows paused content and resumes without confirmation', async () => {

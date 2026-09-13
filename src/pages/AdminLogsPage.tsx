@@ -9,6 +9,7 @@ import { LoadingState } from '../components/ui/LoadingState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ActivityIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
+import { localizeDisplayMessage } from '../i18n/localizeDynamicText'
 import { formatAdminDate, formatNullable } from './adminUtils'
 
 const pageSize = 10
@@ -240,13 +241,13 @@ function toEndOfDayIso(value: string) {
 function localizeAuditCategory(category: string, t: ReturnType<typeof useLanguage>['t']) {
   const key = `admin.logs.category${category}` as const
   const localized = t(key)
-  return localized === key ? category : localized
+  return localized === key ? localizeDisplayMessage(category, t) : localized
 }
 
 function localizeAuditAction(action: string, t: ReturnType<typeof useLanguage>['t']) {
   const key = `admin.logs.action${action}` as const
   const localized = t(key)
-  return localized === key ? action : localized
+  return localized === key ? localizeDisplayMessage(action, t) : localized
 }
 
 function localizeAuditMessage(action: string, message: string, t: ReturnType<typeof useLanguage>['t']) {
@@ -263,5 +264,5 @@ function localizeAuditMessage(action: string, message: string, t: ReturnType<typ
   if (normalized.includes('completed')) {
     return t('admin.logs.messageCompleted')
   }
-  return message
+  return localizeDisplayMessage(message, t)
 }

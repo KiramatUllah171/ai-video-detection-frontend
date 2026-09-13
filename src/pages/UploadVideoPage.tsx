@@ -1,6 +1,6 @@
 import type { AxiosProgressEvent } from 'axios'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiRequestError, apiClient, getApiErrorMessage, getSubscriptionStatus } from '../api/client'
 import type { ApiResponse, UploadVideoResponse } from '../api/types'
@@ -47,23 +47,11 @@ export function UploadVideoPage() {
     staleTime: 30_000,
   })
   const freeTrialUsedUp = isFreeTrialUsedUp(subscriptionStatusQuery.data)
+  const selectedFile = freeTrialUsedUp ? null : file
   const uploadDropzoneDisabled = isStartingAnalysis || freeTrialUsedUp
   const selectedMaxUploadSizeBytes = absoluteMaxUploadSizeBytes
   const selectedMaxSizeLabel = getMaxSizeLabel(analysisMode, t)
-  const fileExceedsSelectedModeLimit = Boolean(file && file.size > selectedMaxUploadSizeBytes)
-
-  useEffect(() => {
-    if (!freeTrialUsedUp) {
-      return
-    }
-
-    setFile(null)
-    setProgress(0)
-    setIsDragging(false)
-    if (inputRef.current) {
-      inputRef.current.value = ''
-    }
-  }, [freeTrialUsedUp])
+  const fileExceedsSelectedModeLimit = Boolean(selectedFile && selectedFile.size > selectedMaxUploadSizeBytes)
 
   function selectFile(nextFile?: File) {
     if (uploadDropzoneDisabled) {
@@ -127,11 +115,11 @@ export function UploadVideoPage() {
       return
     }
 
-    if (!file || !consentAccepted || !auth.isAuthenticated || uploadDropzoneDisabled) {
+    if (!selectedFile || !consentAccepted || !auth.isAuthenticated || uploadDropzoneDisabled) {
       return
     }
 
-    const preflight = validateFileSizePreflight(file.size, subscriptionStatusQuery.data, isAdmin)
+    const preflight = validateFileSizePreflight(selectedFile.size, subscriptionStatusQuery.data, isAdmin)
     if (preflight === 'absolute') {
       setError(t('upload.absoluteMaxSizeError'))
       setProgress(0)
@@ -146,7 +134,7 @@ export function UploadVideoPage() {
     }
 
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', selectedFile)
     formData.append('consentAccepted', String(consentAccepted))
     formData.append('analysisMode', analysisMode)
     if (notes.trim()) {
@@ -201,7 +189,7 @@ export function UploadVideoPage() {
         <AppCard className="span-8 upload-card">
           {error && <ErrorMessage message={error} />}
           <div
-            className={`upload-dropzone ${isDragging ? 'active' : ''} ${freeTrialUsedUp ? 'exhausted' : ''}`}
+            className={`upload-dropzone ${isDragging && !uploadDropzoneDisabled ? 'active' : ''} ${freeTrialUsedUp ? 'exhausted' : ''}`}
             role={freeTrialUsedUp ? undefined : 'button'}
             tabIndex={freeTrialUsedUp ? -1 : 0}
             aria-disabled={freeTrialUsedUp ? undefined : isStartingAnalysis}
@@ -291,15 +279,15 @@ export function UploadVideoPage() {
               </>
             )}
           </div>
-          {file && (
+          {selectedFile && (
             <div className="selected-file">
               <div className="file-icon large">
                 <FileVideoIcon />
               </div>
               <div>
-                <strong>{file.name}</strong>
-                <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                <span>{file.type || t('upload.unknownType')} | {file.name.split('.').pop()?.toUpperCase()}</span>
+                <strong>{selectedFile.name}</strong>
+                <span>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                <span>{selectedFile.type || t('upload.unknownType')} | {selectedFile.name.split('.').pop()?.toUpperCase()}</span>
               </div>
               <button
                 type="button"
@@ -351,7 +339,7 @@ export function UploadVideoPage() {
           <p className="form-helper">
             {t('upload.scanModeNotice')}
           </p>
-          {file && file.size > 50 * 1024 * 1024 && (
+          {selectedFile && selectedFile.size > 50 * 1024 * 1024 && (
             <div className="success-panel">
               <div>
                 <strong>{t('upload.longVideoTitle')}</strong>
@@ -386,7 +374,7 @@ export function UploadVideoPage() {
             type="button"
             fullWidth
             loading={isStartingAnalysis}
-            disabled={!file || !consentAccepted || !auth.isAuthenticated || uploadDropzoneDisabled || fileExceedsSelectedModeLimit}
+            disabled={!selectedFile || !consentAccepted || !auth.isAuthenticated || uploadDropzoneDisabled || fileExceedsSelectedModeLimit}
             onClick={handleUpload}
             icon={<UploadIcon />}
           >

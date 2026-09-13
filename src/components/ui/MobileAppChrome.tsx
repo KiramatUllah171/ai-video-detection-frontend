@@ -93,7 +93,7 @@ export function MobileAppChrome({
             <AppLogo compact />
           )}
           <div className="mobile-appbar-title">
-            <span>{isAdmin && location.pathname.startsWith('/admin') ? t('admin.console') : 'SachAI'}</span>
+            <span>{isAdmin && location.pathname.startsWith('/admin') ? t('admin.console') : t('app.name')}</span>
             <strong>{title}</strong>
           </div>
         </div>

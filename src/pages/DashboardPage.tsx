@@ -64,7 +64,7 @@ export function DashboardPage() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [refetch])
 
-  const firstName = auth.user?.name?.split(' ')[0] ?? auth.user?.email ?? 'there'
+  const firstName = auth.user?.name?.split(' ')[0] ?? auth.user?.email ?? t('dashboard.defaultName')
   const totalUploads = items.length
   const queuedJobs = items.filter((item) => isQueuedStatus(getEffectiveStatus(item))).length
   const processingJobs = items.filter((item) => isProcessingStatus(getEffectiveStatus(item))).length
@@ -236,7 +236,7 @@ export function DashboardPage() {
                       </td>
                       <td>
                         <div className={isVideoExpiredWithReport ? 'history-cell-muted' : undefined}>
-                          <StatusBadge status={item.latestJobStatus ?? 'Queued'} />
+                          <StatusBadge status={item.latestJobStatus} />
                         </div>
                       </td>
                       <td>
@@ -314,7 +314,7 @@ function hasLiveDashboardJobs(items: VideoHistoryItem[]) {
 }
 
 function getEffectiveStatus(item: VideoHistoryItem) {
-  return (item.latestJobStatus ?? item.status).toLowerCase()
+  return (item.latestJobStatus ?? item.status).trim().toLowerCase().replace(/[\s_-]+/g, '')
 }
 
 function isLiveStatus(status: string) {

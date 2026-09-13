@@ -42,7 +42,7 @@ export function formatNullable(value?: string | number | null, fallback = 'Not a
 }
 
 export function statusTone(status?: string) {
-  const normalized = (status ?? '').toLowerCase()
+  const normalized = (status ?? '').trim().toLowerCase().replace(/[\s_-]+/g, '')
   if (['completed', 'success', 'active', 'confirmed'].includes(normalized)) {
     return 'success'
   }

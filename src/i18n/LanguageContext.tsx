@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { translationOverrides } from './translationOverrides'
 
 export type LanguageCode = 'en' | 'ur' | 'ps'
 
@@ -3096,8 +3097,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       const englishTranslations = translations.en as Record<string, string | undefined>
       const activeSupplementalTranslations = supplementalTranslations[language] as Record<string, string | undefined>
       const englishSupplementalTranslations = supplementalTranslations.en as Record<string, string | undefined>
-      const template = activeSupplementalTranslations[key]
+      const activeOverrideTranslations = translationOverrides[language] as Record<string, string | undefined>
+      const englishOverrideTranslations = translationOverrides.en as Record<string, string | undefined>
+      const template = activeOverrideTranslations[key]
+        ?? activeSupplementalTranslations[key]
         ?? activeTranslations[key]
+        ?? englishOverrideTranslations[key]
         ?? englishSupplementalTranslations[key]
         ?? englishTranslations[key]
         ?? key

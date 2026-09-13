@@ -13,6 +13,7 @@ const translations: Record<string, string> = {
   'api.serverStorageCapacityLow': 'Capacity localized.',
   'api.uploadBusy': 'Upload busy localized.',
   'api.analysisQueueUnavailable': 'Queue localized.',
+  'subscriptions.paymentVerificationFailed': 'Payment verification localized.',
   'analysis.notAvailable': 'Not available localized.',
   'login.emailNotConfirmed': 'Email not confirmed localized.',
   'processing.defaultError': 'Processing failed localized.',
@@ -66,5 +67,9 @@ describe('getApiErrorMessage', () => {
       errorCode: 'UPLOAD_CONCURRENCY_LIMIT_REACHED',
       status: 429,
     }), t)).toBe('Upload busy localized.')
+    expect(getApiErrorMessage(new ApiRequestError('Gateway detail', {
+      errorCode: 'PAYMENT_VERIFICATION_FAILED',
+      status: 400,
+    }), t)).toBe('Payment verification localized.')
   })
 })
