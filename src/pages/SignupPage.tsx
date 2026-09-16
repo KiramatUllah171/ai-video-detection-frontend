@@ -1,5 +1,5 @@
 import type { FormEvent, RefObject } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useRef, useState } from 'react'
 import { getApiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
@@ -12,6 +12,7 @@ import { useLanguage } from '../i18n/LanguageContext'
 export function SignupPage() {
   const auth = useAuth()
   const { t } = useLanguage()
+  const location = useLocation()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -23,6 +24,9 @@ export function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const passwordInputRef = useRef<HTMLInputElement | null>(null)
   const confirmPasswordInputRef = useRef<HTMLInputElement | null>(null)
+  const continueState = (location.state as { from?: { pathname?: string } } | null)?.from
+    ? { from: (location.state as { from: { pathname: string } }).from }
+    : undefined
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -85,7 +89,7 @@ export function SignupPage() {
             <CheckCircleIcon />
             <h2>{t('signup.confirmationTitle')}</h2>
             <p>{t('signup.confirmationSent')}</p>
-            <Link className="auth-success-link" to="/login">{t('forgotPassword.backToSignIn')}</Link>
+            <Link className="auth-success-link" to="/login" state={continueState}>{t('forgotPassword.backToSignIn')}</Link>
           </div>
         ) : (
           <>
@@ -216,7 +220,7 @@ export function SignupPage() {
               </AppButton>
             </form>
             <p className="auth-switch">
-              {t('signup.alreadyRegistered')} <Link to="/login">{t('signup.login')}</Link>
+              {t('signup.alreadyRegistered')} <Link to="/login" state={continueState}>{t('signup.login')}</Link>
             </p>
           </>
         )}

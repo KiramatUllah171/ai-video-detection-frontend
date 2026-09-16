@@ -33,6 +33,12 @@ describe('ProcessingStatusPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    authStorage.setSession({
+      accessToken: 'test-access-token',
+      refreshToken: 'test-refresh-token',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      user: { id: 1, name: 'Test User', email: 'test@example.com', role: 'User' },
+    })
     vi.mocked(getSubscriptionStatus).mockResolvedValue({
       planCode: 'FREE',
       planName: 'Free Trial',

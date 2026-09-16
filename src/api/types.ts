@@ -127,6 +127,7 @@ export type UploadVideoResponse = {
   contentType: string
   retryCount: number
   maxRetryCount: number
+  guestAccessToken?: string
   message: string
 }
 

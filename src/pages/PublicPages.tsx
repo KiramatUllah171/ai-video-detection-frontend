@@ -52,8 +52,8 @@ export function HomePage() {
           <h1>{t('public.home.title')}</h1>
           <p>{t('public.home.subtitle')}</p>
           <div className="public-hero-actions">
-            <Link className={buttonClassName('primary')} to="/signup">{t('public.action.createAccount')}</Link>
-            <Link className={buttonClassName('outline')} to="/login">{t('public.action.signIn')}</Link>
+            <Link className={buttonClassName('primary')} to="/upload">{t('nav.uploadVideo')}</Link>
+            <Link className={buttonClassName('outline')} to="/signup">{t('public.action.createAccount')}</Link>
           </div>
         </div>
         <AppCard className="public-hero-card">

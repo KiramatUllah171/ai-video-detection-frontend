@@ -135,16 +135,23 @@ export function AppLayout() {
               ))}
             </select>
           </label>
-          <button
-            type="button"
-            className="user-chip"
-            aria-haspopup="menu"
-            aria-expanded={profileOpen}
-            onClick={() => setProfileOpen((open) => !open)}
-          >
-            <span className="avatar-initial" aria-hidden="true">{initial}</span>
-            <span>{displayName}</span>
-          </button>
+          {!auth.isLoading && !auth.user ? (
+            <>
+              <NavLink to="/login" className="nav-link">{t('login.title')}</NavLink>
+              <NavLink to="/signup" className="nav-link">{t('signup.title')}</NavLink>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="user-chip"
+              aria-haspopup="menu"
+              aria-expanded={profileOpen}
+              onClick={() => setProfileOpen((open) => !open)}
+            >
+              <span className="avatar-initial" aria-hidden="true">{initial}</span>
+              <span>{displayName}</span>
+            </button>
+          )}
           {profileOpen && (
             <div className="profile-dropdown" role="menu" aria-label={t('profile.menu')}>
               {auth.isLoading ? (

@@ -425,6 +425,9 @@ function localizeApiError(message: string, t?: Translate, status?: number) {
   ) {
     return t('api.validationError')
   }
+  if (status === 413 || normalized.includes('request body is too large')) {
+    return t('upload.absoluteMaxSizeError')
+  }
   if (
     status !== undefined && status >= 500 ||
     normalized.includes('request failed') ||
@@ -458,6 +461,26 @@ export function getApiErrorCode(error: unknown) {
 
 export async function getAnalysisResult(videoId: string | number) {
   const response = await apiClient.get<ApiResponse<AnalysisResult>>(`/api/videos/${videoId}/analysis`)
+  if (!response.data.success || !response.data.data) {
+    throw createApiRequestError(response.data, response.status)
+  }
+  return response.data.data
+}
+
+export async function claimGuestVideo(videoId: string | number, guestAccessToken: string) {
+  const response = await apiClient.post<ApiResponse<boolean>>(`/api/videos/${videoId}/claim-guest`, { guestAccessToken })
+  if (!response.data.success) {
+    throw createApiRequestError(response.data, response.status)
+  }
+  return response.data.data ?? true
+}
+
+export async function getGuestJobStatus(videoId: string | number, guestAccessToken: string) {
+  const response = await apiClient.get<ApiResponse<JobStatus>>(`/api/jobs/guest/${videoId}/status`, {
+    headers: {
+      'X-Guest-Video-Token': guestAccessToken,
+    },
+  })
   if (!response.data.success || !response.data.data) {
     throw createApiRequestError(response.data, response.status)
   }
