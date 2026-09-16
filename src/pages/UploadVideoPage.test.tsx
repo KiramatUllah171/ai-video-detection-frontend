@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient, getSubscriptionStatus } from '../api/client'
 import type { SubscriptionStatusResponse, UserProfile } from '../api/types'
@@ -174,22 +174,46 @@ describe('UploadVideoPage size preflight', () => {
     expect(screen.getByRole('dialog', { name: /upgrade subscription/i })).toBeInTheDocument()
     expect(apiClient.post).not.toHaveBeenCalled()
   })
+
+  it('sends guests to sign in when they click Detailed Scan', async () => {
+    renderPage({}, { isAuthenticated: false, includeLoginRoute: true })
+
+    await userEvent.click(screen.getByText('Detailed'))
+
+    expect(await screen.findByText('Login route')).toBeInTheDocument()
+    expect(apiClient.post).not.toHaveBeenCalled()
+  })
 })
 
-function renderPage(user: Partial<UserProfile> = {}) {
+function renderPage(
+  user: Partial<UserProfile> = {},
+  options: { isAuthenticated?: boolean; includeLoginRoute?: boolean } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
   })
+  const isAuthenticated = options.isAuthenticated ?? true
+  const authUser = isAuthenticated
+    ? { id: 1, name: 'Test User', email: 'test@example.com', role: 'User', ...user }
+    : null
+  const content = options.includeLoginRoute ? (
+    <Routes>
+      <Route path="/upload" element={<UploadVideoPage />} />
+      <Route path="/login" element={<div>Login route</div>} />
+    </Routes>
+  ) : (
+    <UploadVideoPage />
+  )
 
   return render(
     <LanguageProvider>
       <AuthContext.Provider
         value={{
-          user: { id: 1, name: 'Test User', email: 'test@example.com', role: 'User', ...user },
-          isAuthenticated: true,
+          user: authUser,
+          isAuthenticated,
           isLoading: false,
           login: vi.fn(),
           signup: vi.fn(),
@@ -197,9 +221,7 @@ function renderPage(user: Partial<UserProfile> = {}) {
         }}
       >
         <QueryClientProvider client={queryClient}>
-          <MemoryRouter>
-            <UploadVideoPage />
-          </MemoryRouter>
+          <MemoryRouter initialEntries={['/upload']}>{content}</MemoryRouter>
         </QueryClientProvider>
       </AuthContext.Provider>
     </LanguageProvider>,

@@ -15,6 +15,7 @@ import { AppTextarea, FormField } from '../components/ui/FormField'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { FileVideoIcon, ShieldIcon, UploadIcon, XIcon } from '../components/ui/icons'
+import { saveGuestVideoAccess } from '../guest/guestVideoAccess'
 import { useLanguage } from '../i18n/LanguageContext'
 import { toVideoRouteId } from '../routes/videoRouteId'
 import { getSubscriptionUpgradeErrorCode, shouldShowSubscriptionUpgrade, subscriptionStatusQueryKey } from '../subscriptions/subscriptionErrors'
@@ -101,6 +102,11 @@ export function UploadVideoPage() {
       return
     }
 
+    if (!auth.isAuthenticated && nextMode === 'Detailed') {
+      navigate('/login', { state: { from: { pathname: '/upload' } } })
+      return
+    }
+
     setAnalysisMode(nextMode)
     setFile(null)
     setError(null)
@@ -115,7 +121,12 @@ export function UploadVideoPage() {
       return
     }
 
-    if (!selectedFile || !consentAccepted || !auth.isAuthenticated || uploadDropzoneDisabled) {
+    if (!selectedFile || !consentAccepted || uploadDropzoneDisabled) {
+      return
+    }
+
+    if (!auth.isAuthenticated && analysisMode !== 'Basic') {
+      navigate('/login', { state: { from: { pathname: '/upload' } } })
       return
     }
 
@@ -145,7 +156,8 @@ export function UploadVideoPage() {
     uploadInFlightRef.current = true
     setError(null)
     try {
-      const response = await apiClient.post<ApiResponse<UploadVideoResponse>>('/api/videos/upload', formData, {
+      const uploadPath = auth.isAuthenticated ? '/api/videos/upload' : '/api/videos/guest-upload'
+      const response = await apiClient.post<ApiResponse<UploadVideoResponse>>(uploadPath, formData, {
         timeout: uploadRequestTimeoutMs,
         onUploadProgress(event: AxiosProgressEvent) {
           if (event.total) {
@@ -160,6 +172,10 @@ export function UploadVideoPage() {
           errorCode: response.data.errorCode,
           status: response.status,
         })
+      }
+
+      if (response.data.data.guestAccessToken) {
+        saveGuestVideoAccess(response.data.data.videoId, response.data.data.guestAccessToken)
       }
 
       navigate(`/processing/${toVideoRouteId(response.data.data.videoId)}`, {
@@ -322,22 +338,35 @@ export function UploadVideoPage() {
             {[
               ['Basic', t('upload.smartScan'), t('upload.smartScanDescription')],
               ['Detailed', t('upload.detailed'), t('upload.detailedDescription')],
-            ].map(([mode, label, description]) => (
-              <label className={`mode-card ${analysisMode === mode ? 'selected' : ''}`} key={mode}>
-                <input
-                  type="radio"
-                  name="analysisMode"
-                  value={mode}
-                  checked={analysisMode === mode}
-                  onChange={(event) => handleAnalysisModeChange(event.target.value)}
-                />
-                <strong>{label}</strong>
-                <span>{description}</span>
-              </label>
-            ))}
+            ].map(([mode, label, description]) => {
+              const guestRequiresSignIn = !auth.isAuthenticated && mode === 'Detailed'
+
+              return (
+                <label
+                  className={`mode-card ${analysisMode === mode ? 'selected' : ''}`}
+                  key={mode}
+                  onClick={(event) => {
+                    if (guestRequiresSignIn) {
+                      event.preventDefault()
+                      navigate('/login', { state: { from: { pathname: '/upload' } } })
+                    }
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="analysisMode"
+                    value={mode}
+                    checked={analysisMode === mode}
+                    onChange={(event) => handleAnalysisModeChange(event.target.value)}
+                  />
+                  <strong>{label}</strong>
+                  <span>{guestRequiresSignIn ? t('upload.guestDetailedSignIn') : description}</span>
+                </label>
+              )
+            })}
           </div>
           <p className="form-helper">
-            {t('upload.scanModeNotice')}
+            {auth.isAuthenticated ? t('upload.scanModeNotice') : t('upload.guestUploadNotice')}
           </p>
           {selectedFile && selectedFile.size > 50 * 1024 * 1024 && (
             <div className="success-panel">
@@ -374,7 +403,7 @@ export function UploadVideoPage() {
             type="button"
             fullWidth
             loading={isStartingAnalysis}
-            disabled={!selectedFile || !consentAccepted || !auth.isAuthenticated || uploadDropzoneDisabled || fileExceedsSelectedModeLimit}
+            disabled={!selectedFile || !consentAccepted || uploadDropzoneDisabled || fileExceedsSelectedModeLimit}
             onClick={handleUpload}
             icon={<UploadIcon />}
           >

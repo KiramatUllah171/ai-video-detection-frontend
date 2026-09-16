@@ -40,11 +40,13 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/confirm-email" element={<ConfirmEmailPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route element={<AppLayout />}>
+          <Route path="/upload" element={<UploadVideoPage />} />
+          <Route path="/processing/:videoId" element={<ProcessingStatusPage />} />
+        </Route>
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/upload" element={<UploadVideoPage />} />
-            <Route path="/processing/:videoId" element={<ProcessingStatusPage />} />
             <Route path="/analysis/:videoId" element={<AnalysisResultPage />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />

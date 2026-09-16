@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { apiClient, cancelAnalysis, getAnalysisResult, getApiErrorMessage, pauseAnalysis, reanalyzeVideo, resumeAnalysis, retryAnalysis } from '../api/client'
+import { apiClient, cancelAnalysis, getAnalysisResult, getApiErrorMessage, getGuestJobStatus, pauseAnalysis, reanalyzeVideo, resumeAnalysis, retryAnalysis } from '../api/client'
 import type { ApiResponse, JobStatus } from '../api/types'
 import { authStorage } from '../auth/authStorage'
 import { isAdminRole } from '../auth/roleUtils'
@@ -19,6 +19,7 @@ import { ActivityIcon, AlertCircleIcon, CheckCircleIcon, ClockIcon, FileVideoIco
 import { useLanguage, type LanguageCode } from '../i18n/LanguageContext'
 import { formatLocalizedDateTime } from '../i18n/formatDate'
 import { localizeDisplayMessage } from '../i18n/localizeDynamicText'
+import { getGuestVideoToken } from '../guest/guestVideoAccess'
 import { fromVideoRouteId, toVideoRouteId } from '../routes/videoRouteId'
 import { getSubscriptionUpgradeErrorCode, shouldShowSubscriptionUpgrade } from '../subscriptions/subscriptionErrors'
 
@@ -38,9 +39,13 @@ export function ProcessingStatusPage() {
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false)
   const [subscriptionReasonCode, setSubscriptionReasonCode] = useState<string | undefined>()
   const isAdmin = isAdminRole(authStorage.getUser()?.role)
+  const isAuthenticated = Boolean(authStorage.getAccessToken() && !authStorage.isSessionExpired())
+  const guestAccessToken = getGuestVideoToken(videoId)
+  const isGuestSession = !isAuthenticated && Boolean(guestAccessToken)
+  const missingGuestAccess = Boolean(videoId && !isAuthenticated && !guestAccessToken)
   const statusQuery = useQuery({
-    queryKey: ['job-status', videoId],
-    enabled: Boolean(videoId),
+    queryKey: ['job-status', videoId, isGuestSession ? 'guest' : 'user'],
+    enabled: Boolean(videoId && !missingGuestAccess),
     refetchInterval: (query) => {
       const status = normalizeStatusName(query.state.data?.status)
       if (status === 'completed' || status === 'failed' || status === 'cancelled') {
@@ -49,6 +54,10 @@ export function ProcessingStatusPage() {
       return status === 'paused' ? 10000 : 3000
     },
     queryFn: async () => {
+      if (isGuestSession && guestAccessToken) {
+        return getGuestJobStatus(videoId!, guestAccessToken)
+      }
+
       const response = await apiClient.get<ApiResponse<JobStatus>>(`/api/jobs/${videoId}/status`)
       if (!response.data.success || !response.data.data) {
         throw new Error(response.data.errors[0] ?? response.data.message)
@@ -67,14 +76,15 @@ export function ProcessingStatusPage() {
   const isPaused = statusName === 'paused'
   const isPauseRequested = statusName === 'pauserequested'
   const isResumeRequested = statusName === 'resumerequested'
-  const canPause = statusName ? ['queued', 'preparing', 'processing', 'retrying', 'finalizing'].includes(statusName) : false
-  const canResume = isPaused
-  const canCancel = statusName ? ['queued', 'preparing', 'processing', 'retrying', 'finalizing', 'pauserequested', 'paused', 'resumerequested'].includes(statusName) : false
+  const canPause = !isGuestSession && statusName ? ['queued', 'preparing', 'processing', 'retrying', 'finalizing'].includes(statusName) : false
+  const canResume = !isGuestSession && isPaused
+  const canCancel = !isGuestSession && statusName ? ['queued', 'preparing', 'processing', 'retrying', 'finalizing', 'pauserequested', 'paused', 'resumerequested'].includes(statusName) : false
   const safeErrorMessage = status
     ? formatSafeFailureMessage(status.userMessage ?? status.errorMessage, t, isAdmin)
     : t('processing.defaultError')
   const scanType = formatScanMode(status?.scanMode, t)
   const originalName = status?.originalName?.trim() || t('processing.notAvailable')
+  const analysisPath = videoId ? `/analysis/${toVideoRouteId(videoId)}` : '/dashboard'
   const retryMutation = useMutation({
     mutationFn: () => retryAnalysis(videoId!),
     onSuccess: async (response) => {
@@ -187,6 +197,10 @@ export function ProcessingStatusPage() {
         }
 
         try {
+          if (!isAuthenticated && guestAccessToken) {
+            return
+          }
+
           await getAnalysisResult(videoId!)
           if (!cancelled) {
             navigate(`/analysis/${toVideoRouteId(videoId)}`, { replace: true })
@@ -206,7 +220,7 @@ export function ProcessingStatusPage() {
     return () => {
       cancelled = true
     }
-  }, [isCompleted, navigate, videoId])
+  }, [guestAccessToken, isAuthenticated, isCompleted, navigate, videoId])
 
   return (
     <main className="page">
@@ -217,6 +231,7 @@ export function ProcessingStatusPage() {
       />
 
       {statusQuery.isLoading && <LoadingState text={t('processing.loading')} />}
+      {missingGuestAccess && <ErrorMessage message={t('guest.signInToContinue')} />}
       {statusQuery.error && <ErrorMessage message={getApiErrorMessage(statusQuery.error, t)} />}
       {status && (
         <AppCard
@@ -312,8 +327,8 @@ export function ProcessingStatusPage() {
             <div className="success-panel">
               <CheckCircleIcon />
               <div>
-                <strong>{t('processing.completedStrong')}</strong>
-                <span>{t('processing.openingResult')}</span>
+                <strong>{isGuestSession ? t('guest.resultReadyTitle') : t('processing.completedStrong')}</strong>
+                <span>{isGuestSession ? t('guest.resultReadyDescription') : t('processing.openingResult')}</span>
               </div>
             </div>
           )}
@@ -388,7 +403,7 @@ export function ProcessingStatusPage() {
                 {t('processing.refreshStatus')}
               </AppButton>
             )}
-            {isFailed && (
+            {!isGuestSession && isFailed && (
               <AppButton
                 type="button"
                 onClick={() => {
@@ -405,12 +420,22 @@ export function ProcessingStatusPage() {
                 {retryMutation.isPending ? t('processing.retrying') : t('processing.retryAnalysis')}
               </AppButton>
             )}
-            {isCompleted && (
+            {!isGuestSession && isCompleted && (
               <Link className={buttonClassName('primary')} to={`/analysis/${toVideoRouteId(status.videoId)}`}>
                 {t('processing.viewResult')}
               </Link>
             )}
-            {isCancelled && (
+            {isGuestSession && isCompleted && (
+              <>
+                <Link className={buttonClassName('primary')} to="/login" state={{ from: { pathname: analysisPath } }}>
+                  {t('guest.loginToViewResult')}
+                </Link>
+                <Link className={buttonClassName('outline')} to="/signup" state={{ from: { pathname: analysisPath } }}>
+                  {t('guest.createAccountToViewResult')}
+                </Link>
+              </>
+            )}
+            {!isGuestSession && isCancelled && (
               <AppButton
                 type="button"
                 onClick={() => {
@@ -426,10 +451,10 @@ export function ProcessingStatusPage() {
                 {reanalyzeMutation.isPending ? t('processing.startingAgain') : t('processing.startAgain')}
               </AppButton>
             )}
-            <Link className={buttonClassName('outline')} to="/dashboard">
-              {t('processing.backDashboard')}
+            <Link className={buttonClassName('outline')} to={isGuestSession ? '/upload' : '/dashboard'}>
+              {isGuestSession ? t('processing.uploadAnother') : t('processing.backDashboard')}
             </Link>
-            {isFailed && (
+            {!isGuestSession && isFailed && (
               <Link className={buttonClassName('ghost')} to="/upload">
                 {t('processing.uploadAnother')}
               </Link>

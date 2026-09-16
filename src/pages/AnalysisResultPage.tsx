@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { downloadAnalysisReport, getAnalysisResult, getApiErrorMessage, getOriginMatches, getVideoMetadata } from '../api/client'
+import { claimGuestVideo, downloadAnalysisReport, getAnalysisResult, getApiErrorMessage, getOriginMatches, getVideoMetadata } from '../api/client'
 import type { AnalysisResult, EvidenceItem, MetadataResult, SourceMatch } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { isAdminRole } from '../auth/roleUtils'
@@ -15,6 +15,7 @@ import { StatusBadge } from '../components/ui/StatusBadge'
 import { ActivityIcon, AlertCircleIcon, FileVideoIcon, ShieldIcon } from '../components/ui/icons'
 import { useLanguage } from '../i18n/LanguageContext'
 import { formatLocalizedDateShort, formatLocalizedDateTime } from '../i18n/formatDate'
+import { getGuestVideoToken, removeGuestVideoAccess } from '../guest/guestVideoAccess'
 import { fromVideoRouteId } from '../routes/videoRouteId'
 
 export function AnalysisResultPage() {
@@ -26,9 +27,21 @@ export function AnalysisResultPage() {
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false)
   const [downloadError, setDownloadError] = useState('')
   const [isDownloadingReport, setIsDownloadingReport] = useState(false)
+  const guestAccessToken = getGuestVideoToken(videoId)
+  const claimQuery = useQuery({
+    queryKey: ['guest-video-claim', videoId],
+    enabled: Boolean(auth.isAuthenticated && videoId && guestAccessToken),
+    retry: false,
+    queryFn: async () => {
+      await claimGuestVideo(videoId!, guestAccessToken!)
+      removeGuestVideoAccess(videoId)
+      return true
+    },
+  })
+  const waitingForGuestClaim = Boolean(auth.isAuthenticated && videoId && guestAccessToken && !claimQuery.isSuccess)
   const analysisQuery = useQuery({
     queryKey: ['analysis-result', videoId],
-    enabled: Boolean(videoId),
+    enabled: Boolean(videoId && !waitingForGuestClaim),
     queryFn: () => getAnalysisResult(videoId!),
     staleTime: 0,
     refetchOnMount: 'always',
@@ -36,12 +49,12 @@ export function AnalysisResultPage() {
   })
   const matchesQuery = useQuery({
     queryKey: ['origin-matches', videoId],
-    enabled: Boolean(videoId),
+    enabled: Boolean(videoId && !waitingForGuestClaim),
     queryFn: () => getOriginMatches(videoId!),
   })
   const metadataQuery = useQuery({
     queryKey: ['video-metadata', videoId],
-    enabled: Boolean(videoId),
+    enabled: Boolean(videoId && !waitingForGuestClaim),
     queryFn: () => getVideoMetadata(videoId!),
   })
 
@@ -93,7 +106,9 @@ export function AnalysisResultPage() {
         )}
       />
 
-      {analysisQuery.isLoading && <LoadingState text={t('analysis.loading')} />}
+      {waitingForGuestClaim && !claimQuery.error && <LoadingState text={t('guest.linkingResult')} />}
+      {claimQuery.error && <ErrorMessage message={getApiErrorMessage(claimQuery.error, t)} />}
+      {analysisQuery.isLoading && !waitingForGuestClaim && <LoadingState text={t('analysis.loading')} />}
       {analysisQuery.error && <ErrorMessage message={getApiErrorMessage(analysisQuery.error, t)} />}
       {downloadError && <ErrorMessage message={downloadError} />}
 

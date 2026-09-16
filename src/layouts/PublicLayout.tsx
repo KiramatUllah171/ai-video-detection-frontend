@@ -50,7 +50,7 @@ export function PublicLayout() {
             </select>
           </label>
           <Link className={buttonClassName('outline')} to="/login">{t('public.action.signIn')}</Link>
-          <Link className={buttonClassName('primary')} to="/signup">{t('public.action.createAccount')}</Link>
+          <Link className={buttonClassName('primary')} to="/upload">{t('nav.uploadVideo')}</Link>
         </div>
       </header>
 
