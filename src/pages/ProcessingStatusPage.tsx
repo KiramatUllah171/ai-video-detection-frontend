@@ -451,9 +451,11 @@ export function ProcessingStatusPage() {
                 {reanalyzeMutation.isPending ? t('processing.startingAgain') : t('processing.startAgain')}
               </AppButton>
             )}
-            <Link className={buttonClassName('outline')} to={isGuestSession ? '/upload' : '/dashboard'}>
-              {isGuestSession ? t('processing.uploadAnother') : t('processing.backDashboard')}
-            </Link>
+            {!isGuestSession && (
+              <Link className={buttonClassName('outline')} to="/dashboard">
+                {t('processing.backDashboard')}
+              </Link>
+            )}
             {!isGuestSession && isFailed && (
               <Link className={buttonClassName('ghost')} to="/upload">
                 {t('processing.uploadAnother')}

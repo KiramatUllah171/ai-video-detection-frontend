@@ -11,6 +11,7 @@ import type {
   AnalysisResult,
   ApiResponse,
   AuthResponse,
+  GuestUploadStatusResponse,
   JobStatus,
   MockPaymentCompletionRequest,
   MetadataResult,
@@ -545,6 +546,11 @@ export async function getVideoMetadata(videoId: string | number) {
 
 export async function getSubscriptionStatus() {
   const response = await apiClient.get<ApiResponse<SubscriptionStatusResponse>>('/api/subscriptions/status')
+  return unwrapApiResponse(response.data, response.status)
+}
+
+export async function getGuestUploadStatus() {
+  const response = await apiClient.get<ApiResponse<GuestUploadStatusResponse>>('/api/subscriptions/guest-upload-status')
   return unwrapApiResponse(response.data, response.status)
 }
 

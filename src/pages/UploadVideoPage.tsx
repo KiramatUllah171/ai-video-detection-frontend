@@ -1,8 +1,8 @@
 import type { AxiosProgressEvent } from 'axios'
 import { useQuery } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ApiRequestError, apiClient, getApiErrorMessage, getSubscriptionStatus } from '../api/client'
+import { ApiRequestError, apiClient, getApiErrorCode, getApiErrorMessage, getGuestUploadStatus, getSubscriptionStatus } from '../api/client'
 import type { ApiResponse, UploadVideoResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { isAdminRole } from '../auth/roleUtils'
@@ -11,6 +11,7 @@ import { SubscriptionUpgradeModal } from '../components/subscriptions/Subscripti
 import { AppButton } from '../components/ui/AppButton'
 import { AppCard } from '../components/ui/AppCard'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
+import { LoadingState } from '../components/ui/LoadingState'
 import { AppTextarea, FormField } from '../components/ui/FormField'
 import { PageHeader } from '../components/ui/PageHeader'
 import { ProgressBar } from '../components/ui/ProgressBar'
@@ -47,12 +48,31 @@ export function UploadVideoPage() {
     enabled: auth.isAuthenticated,
     staleTime: 30_000,
   })
+  const guestUploadStatusQuery = useQuery({
+    queryKey: ['guest-upload-status'],
+    queryFn: getGuestUploadStatus,
+    enabled: !auth.isLoading && !auth.isAuthenticated,
+    retry: false,
+    staleTime: 15_000,
+  })
+  const guestUploadBlocked = !auth.isAuthenticated && guestUploadStatusQuery.data?.canUpload === false
   const freeTrialUsedUp = isFreeTrialUsedUp(subscriptionStatusQuery.data)
   const selectedFile = freeTrialUsedUp ? null : file
   const uploadDropzoneDisabled = isStartingAnalysis || freeTrialUsedUp
   const selectedMaxUploadSizeBytes = absoluteMaxUploadSizeBytes
   const selectedMaxSizeLabel = getMaxSizeLabel(analysisMode, t)
   const fileExceedsSelectedModeLimit = Boolean(selectedFile && selectedFile.size > selectedMaxUploadSizeBytes)
+
+  useEffect(() => {
+    if (!guestUploadBlocked) {
+      return
+    }
+
+    navigate('/login', {
+      replace: true,
+      state: { from: { pathname: '/upload' }, reason: guestUploadStatusQuery.data?.blockReasonCode },
+    })
+  }, [guestUploadBlocked, guestUploadStatusQuery.data?.blockReasonCode, navigate])
 
   function selectFile(nextFile?: File) {
     if (uploadDropzoneDisabled) {
@@ -182,7 +202,15 @@ export function UploadVideoPage() {
         state: { jobId: response.data.data.jobId },
       })
     } catch (requestError) {
-      if (shouldShowSubscriptionUpgrade(requestError, isAdmin)) {
+      if (!auth.isAuthenticated && shouldRequireGuestLogin(requestError)) {
+        navigate('/login', {
+          replace: true,
+          state: { from: { pathname: '/upload' }, reason: getApiErrorCode(requestError) },
+        })
+        return
+      }
+
+      if (auth.isAuthenticated && shouldShowSubscriptionUpgrade(requestError, isAdmin)) {
         setSubscriptionReasonCode(getSubscriptionUpgradeErrorCode(requestError))
         setSubscriptionModalOpen(true)
         setError(null)
@@ -192,6 +220,32 @@ export function UploadVideoPage() {
       setIsStartingAnalysis(false)
       uploadInFlightRef.current = false
     }
+  }
+
+  if (auth.isLoading || (!auth.isAuthenticated && guestUploadStatusQuery.isLoading)) {
+    return (
+      <main className="page">
+        <PageHeader
+          eyebrow={t('upload.eyebrow')}
+          title={t('upload.title')}
+          subtitle={t('upload.subtitle')}
+        />
+        <LoadingState text={t('processing.loading')} />
+      </main>
+    )
+  }
+
+  if (!auth.isAuthenticated && guestUploadStatusQuery.error) {
+    return (
+      <main className="page">
+        <PageHeader
+          eyebrow={t('upload.eyebrow')}
+          title={t('upload.title')}
+          subtitle={t('upload.subtitle')}
+        />
+        <ErrorMessage message={getApiErrorMessage(guestUploadStatusQuery.error, t)} />
+      </main>
+    )
   }
 
   return (
@@ -453,4 +507,9 @@ function validateFileSizePreflight(
   }
 
   return null
+}
+
+function shouldRequireGuestLogin(error: unknown) {
+  const errorCode = getApiErrorCode(error)
+  return errorCode === 'GUEST_LIMIT_REACHED' || errorCode === 'FREE_TRIAL_EXHAUSTED'
 }

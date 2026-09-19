@@ -48,6 +48,13 @@ export type SubscriptionStatusResponse = {
   freeTrial?: FreeTrialStatus | null
 }
 
+export type GuestUploadStatusResponse = {
+  canUpload: boolean
+  remainingUploads: number
+  blockReasonCode?: string | null
+  maxVideoSizeBytes?: number | null
+}
+
 export type InitiatePaymentRequest = {
   planCode: string
 }

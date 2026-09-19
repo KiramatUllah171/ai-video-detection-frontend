@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiClient, getSubscriptionStatus } from '../api/client'
+import { ApiRequestError, apiClient, getGuestUploadStatus, getSubscriptionStatus } from '../api/client'
 import type { SubscriptionStatusResponse, UserProfile } from '../api/types'
 import { AuthContext } from '../auth/AuthContext'
 import { LanguageProvider } from '../i18n/LanguageContext'
@@ -16,6 +16,7 @@ vi.mock('../api/client', async () => {
     apiClient: {
       post: vi.fn(),
     },
+    getGuestUploadStatus: vi.fn(),
     getSubscriptionStatus: vi.fn(),
     initiatePayment: vi.fn(),
     getPaymentStatus: vi.fn(),
@@ -27,6 +28,12 @@ describe('UploadVideoPage size preflight', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    vi.mocked(getGuestUploadStatus).mockResolvedValue({
+      canUpload: true,
+      remainingUploads: 1,
+      blockReasonCode: null,
+      maxVideoSizeBytes: 209_715_200,
+    })
     vi.mocked(apiClient.post).mockResolvedValue({
       status: 200,
       data: {
@@ -104,6 +111,52 @@ describe('UploadVideoPage size preflight', () => {
     expect(vi.mocked(apiClient.post).mock.calls[0][2]?.timeout).toBe(20 * 60 * 1000)
   })
 
+  it('allows a first-time guest to upload without showing the subscription popup', async () => {
+    const { container } = renderPage({}, { isAuthenticated: false, includeLoginRoute: true })
+    await waitFor(() => expect(getGuestUploadStatus).toHaveBeenCalled())
+    await screen.findByRole('button', { name: /start analysis/i })
+
+    await uploadFile(container, createSizedFile('guest-first.mp4', 20 * 1_048_576))
+    await userEvent.click(screen.getByLabelText(/right to upload/i))
+    await userEvent.click(screen.getByRole('button', { name: /start analysis/i }))
+
+    await waitFor(() => expect(apiClient.post).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(apiClient.post).mock.calls[0][0]).toBe('/api/videos/guest-upload')
+    expect(screen.queryByRole('dialog', { name: /upgrade subscription/i })).not.toBeInTheDocument()
+  })
+
+  it('sends a returning used guest to sign in instead of showing the upload form', async () => {
+    vi.mocked(getGuestUploadStatus).mockResolvedValue({
+      canUpload: false,
+      remainingUploads: 0,
+      blockReasonCode: 'GUEST_LIMIT_REACHED',
+      maxVideoSizeBytes: 209_715_200,
+    })
+
+    renderPage({}, { isAuthenticated: false, includeLoginRoute: true })
+
+    expect(await screen.findByText('Login route')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /start analysis/i })).not.toBeInTheDocument()
+  })
+
+  it('does not show the subscription popup for guest upload entitlement errors', async () => {
+    vi.mocked(apiClient.post).mockRejectedValue(new ApiRequestError('Guest upload limit reached.', {
+      errorCode: 'GUEST_LIMIT_REACHED',
+      status: 403,
+    }))
+
+    const { container } = renderPage({}, { isAuthenticated: false, includeLoginRoute: true })
+    await waitFor(() => expect(getGuestUploadStatus).toHaveBeenCalled())
+    await screen.findByRole('button', { name: /start analysis/i })
+
+    await uploadFile(container, createSizedFile('guest-second.mp4', 20 * 1_048_576))
+    await userEvent.click(screen.getByLabelText(/right to upload/i))
+    await userEvent.click(screen.getByRole('button', { name: /start analysis/i }))
+
+    expect(await screen.findByText('Login route')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: /upgrade subscription/i })).not.toBeInTheDocument()
+  })
+
   it('prevents duplicate upload submissions while the first request is in flight', async () => {
     vi.mocked(getSubscriptionStatus).mockResolvedValue(buildStatus({
       planCode: 'PRO',
@@ -178,7 +231,7 @@ describe('UploadVideoPage size preflight', () => {
   it('sends guests to sign in when they click Detailed Scan', async () => {
     renderPage({}, { isAuthenticated: false, includeLoginRoute: true })
 
-    await userEvent.click(screen.getByText('Detailed'))
+    await userEvent.click(await screen.findByText('Detailed'))
 
     expect(await screen.findByText('Login route')).toBeInTheDocument()
     expect(apiClient.post).not.toHaveBeenCalled()

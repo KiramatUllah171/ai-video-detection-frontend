@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event'
 import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiRequestError, apiClient, cancelAnalysis, getSubscriptionStatus, pauseAnalysis, reanalyzeVideo, resumeAnalysis, retryAnalysis } from '../api/client'
+import { ApiRequestError, apiClient, cancelAnalysis, getGuestJobStatus, getSubscriptionStatus, pauseAnalysis, reanalyzeVideo, resumeAnalysis, retryAnalysis } from '../api/client'
 import { authStorage } from '../auth/authStorage'
+import { saveGuestVideoAccess } from '../guest/guestVideoAccess'
 import { LanguageProvider } from '../i18n/LanguageContext'
 import { ProcessingStatusPage } from './ProcessingStatusPage'
 
@@ -18,6 +19,7 @@ vi.mock('../api/client', async () => {
     },
     cancelAnalysis: vi.fn(),
     getAnalysisResult: vi.fn(),
+    getGuestJobStatus: vi.fn(),
     getSubscriptionStatus: vi.fn(),
     initiatePayment: vi.fn(),
     pauseAnalysis: vi.fn(),
@@ -446,6 +448,23 @@ describe('ProcessingStatusPage', () => {
 
     expect(await screen.findByText('Request failed. Please try again.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Upgrade Subscription' })).not.toBeInTheDocument()
+  })
+
+  it('hides Upload Another for completed guest results', async () => {
+    authStorage.clear()
+    saveGuestVideoAccess(10, 'guest-token')
+    vi.mocked(getGuestJobStatus).mockResolvedValue(buildStatus({
+      status: 'Completed',
+      progress: 100,
+      currentStep: 'Analysis complete',
+    }))
+
+    renderWithProviders(<ProcessingStatusPage />)
+
+    expect(await screen.findByText('Your analysis is ready')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /sign in to view result/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /create account/i })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /upload another/i })).not.toBeInTheDocument()
   })
 })
 
