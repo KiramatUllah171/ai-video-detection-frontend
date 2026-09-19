@@ -136,7 +136,7 @@ describe('UploadVideoPage size preflight', () => {
 
     renderPage({}, { isAuthenticated: false, includeLoginRoute: true })
 
-    expect(await screen.findByText('Your free guest scan has already been used. Please sign in or create an account to upload another video.')).toBeInTheDocument()
+    expect(await screen.findByText('Your free guest scan has already been used. Please sign in or create an account to upload another video or view this video result.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /start analysis/i })).not.toBeInTheDocument()
   })
 
@@ -154,7 +154,7 @@ describe('UploadVideoPage size preflight', () => {
     await userEvent.click(screen.getByLabelText(/right to upload/i))
     await userEvent.click(screen.getByRole('button', { name: /start analysis/i }))
 
-    expect(await screen.findByText('Your free guest scan has already been used. Please sign in or create an account to upload another video.')).toBeInTheDocument()
+    expect(await screen.findByText('Your free guest scan has already been used. Please sign in or create an account to upload another video or view this video result.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: /upgrade subscription/i })).not.toBeInTheDocument()
   })
 

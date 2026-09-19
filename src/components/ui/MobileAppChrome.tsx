@@ -25,6 +25,7 @@ type MobileAppChromeProps = {
   email?: string
   initial: string
   isAdmin: boolean
+  isAuthenticated: boolean
   isLoadingProfile: boolean
   roleName?: string
   onLogout: () => void | Promise<void>
@@ -37,6 +38,7 @@ export function MobileAppChrome({
   email,
   initial,
   isAdmin,
+  isAuthenticated,
   isLoadingProfile,
   roleName,
   onLogout,
@@ -174,7 +176,7 @@ export function MobileAppChrome({
             <div>
               <strong>{isLoadingProfile ? t('profile.loading') : displayName}</strong>
               {email && <span>{email}</span>}
-              <small>{localizeRoleName(roleName, t)}</small>
+              <small>{isAuthenticated ? localizeRoleName(roleName, t) : t('profile.guest')}</small>
             </div>
           </div>
           <div className="mobile-settings-list">
@@ -189,9 +191,11 @@ export function MobileAppChrome({
             <button type="button" className="mobile-setting-row" onClick={onToggleTheme}>
               <span>{darkMode ? <SunIcon /> : <MoonIcon />}{darkMode ? t('theme.lightMode') : t('theme.darkMode')}</span>
             </button>
-            <button type="button" className="mobile-setting-row mobile-setting-danger" onClick={onLogout}>
-              <span><LogOutIcon />{t('profile.logout')}</span>
-            </button>
+            {isAuthenticated && (
+              <button type="button" className="mobile-setting-row mobile-setting-danger" onClick={onLogout}>
+                <span><LogOutIcon />{t('profile.logout')}</span>
+              </button>
+            )}
           </div>
         </MobileSheet>
       )}

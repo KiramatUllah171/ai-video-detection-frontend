@@ -17,8 +17,8 @@ export function AppLayout() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem(themeStorageKey) === 'dark')
   const profileRef = useRef<HTMLDivElement | null>(null)
-  const displayName = auth.user?.name || auth.user?.email || t('profile.account')
-  const initial = displayName.trim().charAt(0).toUpperCase() || 'U'
+  const displayName = auth.user?.name || auth.user?.email || t('profile.guest')
+  const initial = auth.user ? displayName.trim().charAt(0).toUpperCase() || 'U' : 'G'
   const isAdmin = isAdminRole(auth.user?.role)
   const roleName = getUserRoleName(auth.user?.role)
 
@@ -68,6 +68,7 @@ export function AppLayout() {
         email={auth.user?.email}
         initial={initial}
         isAdmin={isAdmin}
+        isAuthenticated={auth.isAuthenticated}
         isLoadingProfile={auth.isLoading}
         roleName={roleName}
         onLogout={handleLogout}
