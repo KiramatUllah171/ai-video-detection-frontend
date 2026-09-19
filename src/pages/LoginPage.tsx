@@ -26,6 +26,8 @@ export function LoginPage() {
   const [rememberEmail, setRememberEmail] = useState(() => localStorage.getItem('ai-video-detection-remember-email') === 'true')
   const [showPassword, setShowPassword] = useState(false)
   const passwordInputRef = useRef<HTMLInputElement | null>(null)
+  const routeReason = (location.state as { reason?: string } | null)?.reason
+  const guestLimitMessage = routeReason === 'GUEST_LIMIT_REACHED' ? t('guest.uploadLimitReached') : null
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -70,10 +72,10 @@ export function LoginPage() {
   return (
     <AuthLayout>
       <AuthCard eyebrow={t('login.eyebrow')} title={t('login.title')} description={t('login.subtitle')}>
-        {error && (
+        {(error || guestLimitMessage) && (
           <div id="login-error" className="auth-alert" role="alert" aria-live="assertive">
             <AlertCircleIcon />
-            <span>{error.message}</span>
+            <span>{error?.message ?? guestLimitMessage}</span>
           </div>
         )}
         <form className="auth-form" onSubmit={handleSubmit} aria-busy={loading}>

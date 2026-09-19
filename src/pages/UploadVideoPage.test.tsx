@@ -7,6 +7,7 @@ import { ApiRequestError, apiClient, getGuestUploadStatus, getSubscriptionStatus
 import type { SubscriptionStatusResponse, UserProfile } from '../api/types'
 import { AuthContext } from '../auth/AuthContext'
 import { LanguageProvider } from '../i18n/LanguageContext'
+import { LoginPage } from './LoginPage'
 import { UploadVideoPage } from './UploadVideoPage'
 
 vi.mock('../api/client', async () => {
@@ -135,7 +136,7 @@ describe('UploadVideoPage size preflight', () => {
 
     renderPage({}, { isAuthenticated: false, includeLoginRoute: true })
 
-    expect(await screen.findByText('Login route')).toBeInTheDocument()
+    expect(await screen.findByText('Your free guest scan has already been used. Please sign in or create an account to upload another video.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /start analysis/i })).not.toBeInTheDocument()
   })
 
@@ -153,7 +154,7 @@ describe('UploadVideoPage size preflight', () => {
     await userEvent.click(screen.getByLabelText(/right to upload/i))
     await userEvent.click(screen.getByRole('button', { name: /start analysis/i }))
 
-    expect(await screen.findByText('Login route')).toBeInTheDocument()
+    expect(await screen.findByText('Your free guest scan has already been used. Please sign in or create an account to upload another video.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: /upgrade subscription/i })).not.toBeInTheDocument()
   })
 
@@ -233,7 +234,7 @@ describe('UploadVideoPage size preflight', () => {
 
     await userEvent.click(await screen.findByText('Detailed'))
 
-    expect(await screen.findByText('Login route')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument()
     expect(apiClient.post).not.toHaveBeenCalled()
   })
 })
@@ -255,7 +256,7 @@ function renderPage(
   const content = options.includeLoginRoute ? (
     <Routes>
       <Route path="/upload" element={<UploadVideoPage />} />
-      <Route path="/login" element={<div>Login route</div>} />
+      <Route path="/login" element={<LoginPage />} />
     </Routes>
   ) : (
     <UploadVideoPage />

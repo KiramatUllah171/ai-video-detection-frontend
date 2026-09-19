@@ -153,6 +153,7 @@ Object.assign(translationOverrides.en, {
   'guest.createAccountToViewResult': 'Create account',
   'guest.linkingResult': 'Linking your result...',
   'guest.signInToContinue': 'Please sign in to continue, or upload a new video to start again.',
+  'guest.uploadLimitReached': 'Your free guest scan has already been used. Please sign in or create an account to upload another video.',
   'processing.statusFailedDescription': 'The uploaded video and report data stay available for 3 days. After that, they are permanently deleted and you can upload the same video again.',
   'retention.uploadNotice': 'Uploaded videos, reports, and supporting analysis details are available for 3 days, then permanently deleted.',
   'retention.dashboardNotice': 'Uploaded videos, reports, and supporting analysis details are available for 3 days, then permanently deleted.',
