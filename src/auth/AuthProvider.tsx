@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { apiClient, refreshAuthSession } from '../api/client'
+import { apiClient, claimGuestVideo, refreshAuthSession } from '../api/client'
 import type { ApiResponse, AuthResponse, UserProfile } from '../api/types'
+import { getGuestVideoAccessEntries, removeGuestVideoAccess } from '../guest/guestVideoAccess'
 import { authSessionClearedEvent, authStorage } from './authStorage'
 import { AuthContext } from './AuthContext'
 import { normalizeUserProfile } from './roleUtils'
@@ -99,6 +100,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionExpiresAt(session.expiresAt)
   }, [])
 
+  const claimStoredGuestVideos = useCallback(async () => {
+    const guestVideos = getGuestVideoAccessEntries()
+    if (guestVideos.length === 0) {
+      return
+    }
+
+    const results = await Promise.allSettled(
+      guestVideos.map(async ({ videoId, token }) => {
+        await claimGuestVideo(videoId, token)
+        removeGuestVideoAccess(videoId)
+      }),
+    )
+
+    if (results.some((result) => result.status === 'fulfilled')) {
+      await queryClient.invalidateQueries({ queryKey: ['video-history'] })
+    }
+  }, [queryClient])
+
   const login = useCallback(
     async (email: string, password: string) => {
       const response = await apiClient.post<ApiResponse<AuthResponse>>('/api/auth/login', { email, password })
@@ -106,8 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(response.data.errors[0] ?? response.data.message)
       }
       applySession(response.data.data)
+      await claimStoredGuestVideos()
     },
-    [applySession],
+    [applySession, claimStoredGuestVideos],
   )
 
   const signup = useCallback(

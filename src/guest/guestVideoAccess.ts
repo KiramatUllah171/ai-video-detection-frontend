@@ -7,6 +7,11 @@ type GuestVideoAccessRecord = {
 
 type GuestVideoAccessStore = Record<string, GuestVideoAccessRecord>
 
+export type GuestVideoAccessEntry = {
+  videoId: string
+  token: string
+}
+
 export function saveGuestVideoAccess(videoId: string | number, token: string) {
   const normalizedVideoId = String(videoId)
   if (!normalizedVideoId || !token) {
@@ -27,6 +32,12 @@ export function getGuestVideoToken(videoId: string | number | undefined) {
   }
 
   return readStore()[String(videoId)]?.token ?? null
+}
+
+export function getGuestVideoAccessEntries(): GuestVideoAccessEntry[] {
+  return Object.entries(readStore())
+    .filter(([, record]) => Boolean(record?.token))
+    .map(([videoId, record]) => ({ videoId, token: record.token }))
 }
 
 export function removeGuestVideoAccess(videoId: string | number | undefined) {
