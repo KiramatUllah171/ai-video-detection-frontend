@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
 import axios from 'axios'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import type { ApiResponse } from '../api/types'
 import { AppButton } from '../components/ui/AppButton'
@@ -26,8 +26,20 @@ export function LoginPage() {
   const [rememberEmail, setRememberEmail] = useState(() => localStorage.getItem('ai-video-detection-remember-email') === 'true')
   const [showPassword, setShowPassword] = useState(false)
   const passwordInputRef = useRef<HTMLInputElement | null>(null)
-  const routeReason = (location.state as { reason?: string } | null)?.reason
+  const routeState = location.state as { from?: { pathname?: string }; reason?: string } | null
+  const [routeReason] = useState(routeState?.reason)
   const guestLimitMessage = routeReason === 'GUEST_LIMIT_REACHED' ? t('guest.uploadLimitReached') : null
+
+  useEffect(() => {
+    if (!routeState?.reason) {
+      return
+    }
+
+    navigate(location.pathname, {
+      replace: true,
+      state: routeState.from ? { from: routeState.from } : null,
+    })
+  }, [location.pathname, navigate, routeState])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
