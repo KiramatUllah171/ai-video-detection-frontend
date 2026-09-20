@@ -20,18 +20,13 @@ import { SignupPage } from './pages/SignupPage'
 import { UploadVideoPage } from './pages/UploadVideoPage'
 import { AboutPage, ContactPage, HomePage, PrivacyPolicyPage, TermsAndConditionsPage } from './pages/PublicPages'
 import { AppErrorBoundary } from './components/ui/AppErrorBoundary'
-import { SachAILoader } from './components/SachAILoader/SachAILoader'
-import { useAuth } from './auth/AuthContext'
 import './App.css'
 import './responsive.css'
 import './mobile.css'
 
 function App() {
-  const auth = useAuth()
-
   return (
     <AppErrorBoundary>
-      <SachAILoader isReady={!auth.isLoading} />
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<HomePage />} />
