@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './SachAILoader.css'
 
 type SachAILoaderProps = {
@@ -12,6 +12,7 @@ export function SachAILoader({ isReady }: SachAILoaderProps) {
   const [minimumTimeElapsed, setMinimumTimeElapsed] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
   const [isMounted, setIsMounted] = useState(true)
+  const previousBodyOverflow = useRef<string | null>(null)
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -20,6 +21,22 @@ export function SachAILoader({ isReady }: SachAILoaderProps) {
 
     return () => window.clearTimeout(timerId)
   }, [])
+
+  useEffect(() => {
+    if (!isMounted) {
+      return
+    }
+
+    previousBodyOverflow.current = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      if (previousBodyOverflow.current !== null) {
+        document.body.style.overflow = previousBodyOverflow.current
+        previousBodyOverflow.current = null
+      }
+    }
+  }, [isMounted])
 
   useEffect(() => {
     if (!isReady || !minimumTimeElapsed) {
@@ -49,24 +66,7 @@ export function SachAILoader({ isReady }: SachAILoaderProps) {
       role="status"
       aria-label="Loading SachAI"
     >
-      <div className="sachai-loader-stage">
-        <div className="sachai-loader-orbit" aria-hidden="true">
-          <span className="sachai-loader-ring" />
-          <span className="sachai-loader-dot" />
-        </div>
-
-        <div className="sachai-loader-logo-wrap">
-          <img className="sachai-loader-logo" src="/sachvideoai-logo.png" alt="SachAI" draggable={false} />
-        </div>
-
-        <div className="sachai-loader-progress" aria-hidden="true">
-          <span />
-        </div>
-
-        <div className="sachai-loader-text" aria-hidden="true">
-          LOADING<span>.</span><span>.</span><span>.</span>
-        </div>
-      </div>
+      <img className="sachai-loader-art" src="/loading.png" alt="SachAI loading" draggable={false} />
     </div>
   )
 }
