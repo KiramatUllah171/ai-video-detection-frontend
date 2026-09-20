@@ -1,8 +1,10 @@
 import axios, { AxiosError } from 'axios'
 import type {
+  AdminAssignUserRequestsRequest,
   AdminDashboardSummary,
   AdminAuditLog,
   AdminJobListItem,
+  AdminManualSubscriptionGrant,
   AdminProviderRequestListItem,
   AdminProviderRequestUserSummary,
   AdminUserListItem,
@@ -743,6 +745,14 @@ export async function getAdminUsers(params: { page?: number; pageSize?: number; 
 
 export async function updateAdminUserStatus(userId: string | number, isActive: boolean) {
   const response = await apiClient.patch<ApiResponse<AdminUserListItem>>(`/api/admin/users/${userId}/status`, { isActive })
+  return unwrapApiResponse(response.data)
+}
+
+export async function assignAdminUserRequests(userId: string | number, request: AdminAssignUserRequestsRequest) {
+  const response = await apiClient.post<ApiResponse<AdminManualSubscriptionGrant>>(
+    `/api/admin/users/${userId}/manual-requests`,
+    request,
+  )
   return unwrapApiResponse(response.data)
 }
 

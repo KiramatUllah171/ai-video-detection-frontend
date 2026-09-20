@@ -8042,6 +8042,99 @@ html.theme-dark .admin-toolbar select {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
+.admin-manual-grant-card {
+  padding: 1.25rem 1.4rem;
+}
+
+.admin-manual-grant-form {
+  display: grid;
+  grid-template-columns: minmax(130px, 180px) minmax(130px, 180px) minmax(130px, 180px) minmax(180px, 230px) minmax(220px, 1fr) auto;
+  gap: 0.9rem;
+  align-items: end;
+  margin-top: 1rem;
+}
+
+.admin-manual-grant-form label {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.admin-manual-grant-form label > span,
+.admin-manual-grant-toggle span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-manual-grant-form input,
+.admin-manual-grant-form textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0 0.9rem;
+  background: var(--card-bg);
+  color: var(--text-strong);
+  font: inherit;
+  font-weight: 700;
+  outline: none;
+}
+
+.admin-manual-grant-form textarea {
+  height: 46px;
+  padding-top: 0.7rem;
+  resize: vertical;
+}
+
+.admin-manual-grant-form input:focus,
+.admin-manual-grant-form textarea:focus {
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.admin-manual-grant-toggle {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  min-height: 46px;
+}
+
+.admin-manual-grant-toggle input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+}
+
+.admin-manual-grant-note {
+  margin: 0.85rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.admin-manual-grant-result {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.9rem;
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.admin-manual-grant-result strong {
+  color: var(--text-strong);
+}
+
+.admin-manual-grant-result span,
+.admin-manual-grant-result small {
+  color: var(--text-muted);
+}
+
 .admin-table-relaxed {
   min-width: 980px;
 }
@@ -8140,11 +8233,21 @@ html.theme-dark .admin-toolbar select {
 
 html.theme-dark .admin-filter-grid input,
 html.theme-dark .admin-filter-grid select,
+html.theme-dark .admin-manual-grant-form input,
+html.theme-dark .admin-manual-grant-form textarea,
 html.theme-dark .admin-request-summary-strip span {
   background: rgba(15, 23, 42, 0.72);
 }
 
 @media (max-width: 900px) {
+  .admin-manual-grant-form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-manual-grant-form .app-button-primary {
+    width: 100%;
+  }
+
   .admin-filter-grid,
   .admin-filter-grid.two,
   .admin-request-summary-strip {

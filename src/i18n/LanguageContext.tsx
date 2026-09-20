@@ -1885,6 +1885,26 @@ const supplementalTranslations: Record<LanguageCode, Record<string, string>> = {
     'admin.videoDetail.similarity': '{value} similarity',
   },}
 
+const manualRequestAdminTranslations = {
+  'admin.manualRequests.title': 'Manual request grant',
+  'admin.manualRequests.subtitle': 'Assign temporary scan requests to a user while Easypaisa approval is pending.',
+  'admin.manualRequests.userId': 'User ID',
+  'admin.manualRequests.scanLimit': 'Requests',
+  'admin.manualRequests.validityDays': 'Validity days',
+  'admin.manualRequests.allowDetailed': 'Allow Detailed Scan',
+  'admin.manualRequests.notes': 'Admin notes',
+  'admin.manualRequests.notesPlaceholder': 'Payment/order reference or internal note',
+  'admin.manualRequests.assign': 'Assign requests',
+  'admin.manualRequests.assigning': 'Assigning...',
+  'admin.manualRequests.replacesExisting': 'This creates an active manual subscription and replaces any existing active paid/manual subscription for that user.',
+  'admin.manualRequests.assignedTo': 'Assigned to {email}',
+  'admin.manualRequests.grantSummary': '{remaining} of {total} requests available until {expires}.',
+}
+
+Object.assign(supplementalTranslations.en, manualRequestAdminTranslations)
+Object.assign(supplementalTranslations.ur, manualRequestAdminTranslations)
+Object.assign(supplementalTranslations.ps, manualRequestAdminTranslations)
+
 Object.assign(supplementalTranslations.en, {
   'nav.primary': 'Primary navigation',
   'nav.admin': 'Admin',

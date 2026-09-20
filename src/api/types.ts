@@ -339,6 +339,28 @@ export type AdminUserListItem = {
   updatedAt: string
 }
 
+export type AdminAssignUserRequestsRequest = {
+  scanLimit: number
+  validityDays: number
+  allowsDetailedScan: boolean
+  notes?: string
+}
+
+export type AdminManualSubscriptionGrant = {
+  userId: number
+  userEmail: string
+  subscriptionId: number
+  planCode: string
+  planName: string
+  scanLimit: number
+  usedScans: number
+  reservedScans: number
+  remainingScans: number
+  allowsDetailedScan: boolean
+  startsAt: string
+  expiresAt: string
+}
+
 export type AdminVideoListItem = {
   videoId: number
   userId: number

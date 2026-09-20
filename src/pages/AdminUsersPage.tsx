@@ -1,8 +1,8 @@
 import { ScrollRegion } from '../components/ui/ScrollRegion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { getAdminUsers, getApiErrorMessage, updateAdminUserStatus } from '../api/client'
-import type { AdminUserListItem } from '../api/types'
+import { type FormEvent, useState } from 'react'
+import { assignAdminUserRequests, getAdminUsers, getApiErrorMessage, updateAdminUserStatus } from '../api/client'
+import type { AdminManualSubscriptionGrant, AdminUserListItem } from '../api/types'
 import { AppCard } from '../components/ui/AppCard'
 import { buttonClassName } from '../components/ui/buttonStyles'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
@@ -22,6 +22,7 @@ export function AdminUsersPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  const [manualGrant, setManualGrant] = useState<AdminManualSubscriptionGrant | null>(null)
   const usersQuery = useQuery({
     queryKey: ['admin-users', page, search, status],
     queryFn: () => getAdminUsers({ page, pageSize, search: search.trim() || undefined, status: status || undefined }),
@@ -34,6 +35,20 @@ export function AdminUsersPage() {
       await queryClient.invalidateQueries({ queryKey: ['admin-dashboard-summary'] })
     },
   })
+  const requestGrantMutation = useMutation({
+    mutationFn: (request: ManualRequestGrantFormValues) => assignAdminUserRequests(request.userId, {
+      scanLimit: request.scanLimit,
+      validityDays: request.validityDays,
+      allowsDetailedScan: request.allowsDetailedScan,
+      notes: request.notes.trim() || undefined,
+    }),
+    onSuccess: async (grant) => {
+      setManualGrant(grant)
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      await queryClient.invalidateQueries({ queryKey: ['admin-dashboard-summary'] })
+      await queryClient.invalidateQueries({ queryKey: ['subscription-status'] })
+    },
+  })
 
   const users = usersQuery.data?.items ?? []
 
@@ -44,6 +59,13 @@ export function AdminUsersPage() {
         title={t('admin.users.title')}
         subtitle={t('admin.users.subtitle')}
         action={<span className="hero-pill light"><UserIcon />{t('admin.users.count', { count: usersQuery.data?.totalCount.toLocaleString() ?? 0 })}</span>}
+      />
+
+      <ManualRequestGrantCard
+        busy={requestGrantMutation.isPending}
+        error={requestGrantMutation.error}
+        grant={manualGrant}
+        onSubmit={(values) => requestGrantMutation.mutate(values)}
       />
 
       <AppCard className="admin-section-card admin-table-card">
@@ -187,6 +209,144 @@ export function AdminUsersPage() {
         />
       </AppCard>
     </main>
+  )
+}
+
+type ManualRequestGrantFormValues = {
+  userId: number
+  scanLimit: number
+  validityDays: number
+  allowsDetailedScan: boolean
+  notes: string
+}
+
+function ManualRequestGrantCard({
+  busy,
+  error,
+  grant,
+  onSubmit,
+}: {
+  busy: boolean
+  error: unknown
+  grant: AdminManualSubscriptionGrant | null
+  onSubmit: (values: ManualRequestGrantFormValues) => void
+}) {
+  const { language, t } = useLanguage()
+  const [form, setForm] = useState({
+    userId: '',
+    scanLimit: '10',
+    validityDays: '30',
+    allowsDetailedScan: false,
+    notes: '',
+  })
+  const parsedUserId = Number(form.userId)
+  const parsedScanLimit = Number(form.scanLimit)
+  const parsedValidityDays = Number(form.validityDays)
+  const canSubmit =
+    Number.isInteger(parsedUserId) &&
+    parsedUserId > 0 &&
+    Number.isInteger(parsedScanLimit) &&
+    parsedScanLimit >= 1 &&
+    parsedScanLimit <= 1000 &&
+    Number.isInteger(parsedValidityDays) &&
+    parsedValidityDays >= 1 &&
+    parsedValidityDays <= 365 &&
+    form.notes.length <= 500
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!canSubmit || busy) {
+      return
+    }
+
+    onSubmit({
+      userId: parsedUserId,
+      scanLimit: parsedScanLimit,
+      validityDays: parsedValidityDays,
+      allowsDetailedScan: form.allowsDetailedScan,
+      notes: form.notes,
+    })
+  }
+
+  return (
+    <AppCard className="admin-section-card admin-manual-grant-card">
+      <div className="card-header compact">
+        <div>
+          <h2>{t('admin.manualRequests.title')}</h2>
+          <p>{t('admin.manualRequests.subtitle')}</p>
+        </div>
+      </div>
+
+      <form className="admin-manual-grant-form" onSubmit={submit}>
+        <label>
+          <span>{t('admin.manualRequests.userId')}</span>
+          <input
+            inputMode="numeric"
+            min="1"
+            type="number"
+            value={form.userId}
+            onChange={(event) => setForm((current) => ({ ...current, userId: event.target.value }))}
+            placeholder="123"
+          />
+        </label>
+        <label>
+          <span>{t('admin.manualRequests.scanLimit')}</span>
+          <input
+            inputMode="numeric"
+            min="1"
+            max="1000"
+            type="number"
+            value={form.scanLimit}
+            onChange={(event) => setForm((current) => ({ ...current, scanLimit: event.target.value }))}
+          />
+        </label>
+        <label>
+          <span>{t('admin.manualRequests.validityDays')}</span>
+          <input
+            inputMode="numeric"
+            min="1"
+            max="365"
+            type="number"
+            value={form.validityDays}
+            onChange={(event) => setForm((current) => ({ ...current, validityDays: event.target.value }))}
+          />
+        </label>
+        <label className="admin-manual-grant-toggle">
+          <input
+            type="checkbox"
+            checked={form.allowsDetailedScan}
+            onChange={(event) => setForm((current) => ({ ...current, allowsDetailedScan: event.target.checked }))}
+          />
+          <span>{t('admin.manualRequests.allowDetailed')}</span>
+        </label>
+        <label className="admin-manual-grant-notes">
+          <span>{t('admin.manualRequests.notes')}</span>
+          <textarea
+            maxLength={500}
+            value={form.notes}
+            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+            placeholder={t('admin.manualRequests.notesPlaceholder')}
+          />
+        </label>
+        <button type="submit" className={buttonClassName('primary')} disabled={!canSubmit || busy}>
+          {busy ? t('admin.manualRequests.assigning') : t('admin.manualRequests.assign')}
+        </button>
+      </form>
+
+      <p className="admin-manual-grant-note">{t('admin.manualRequests.replacesExisting')}</p>
+      {Boolean(error) && <ErrorMessage message={getApiErrorMessage(error, t)} />}
+      {grant && (
+        <div className="admin-manual-grant-result" role="status">
+          <strong>{t('admin.manualRequests.assignedTo', { email: grant.userEmail })}</strong>
+          <span>{t('admin.manualRequests.grantSummary', {
+            remaining: grant.remainingScans,
+            total: grant.scanLimit,
+            expires: formatAdminDate(grant.expiresAt, t('common.notAvailable'), language),
+          })}</span>
+          <small>{grant.planCode}</small>
+        </div>
+      )}
+    </AppCard>
   )
 }
 
