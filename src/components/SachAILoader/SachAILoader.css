@@ -1,0 +1,53 @@
+.sachai-loader-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 1.25rem;
+  overflow: hidden;
+  background: rgba(248, 251, 255, 0.96);
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 360ms ease,
+    transform 360ms ease;
+}
+
+.sachai-loader-shell-exit {
+  opacity: 0;
+  transform: scale(0.992);
+  pointer-events: none;
+}
+
+.sachai-loader-gif {
+  display: block;
+  width: clamp(13rem, 24vw, 23rem);
+  max-width: min(72vw, 23rem);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  object-position: center;
+  user-select: none;
+}
+
+@media (max-width: 520px) {
+  .sachai-loader-shell {
+    padding: 1rem;
+  }
+
+  .sachai-loader-gif {
+    width: min(72vw, 17.5rem);
+    max-width: calc(100vw - 2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sachai-loader-shell {
+    transition: opacity 200ms ease;
+  }
+}
