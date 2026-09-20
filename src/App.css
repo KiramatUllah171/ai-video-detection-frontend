@@ -8054,7 +8054,7 @@ html.theme-dark .admin-toolbar select {
 
 .admin-manual-grant-fields {
   display: grid;
-  grid-template-columns: minmax(120px, 170px) minmax(120px, 170px) minmax(120px, 170px) minmax(170px, 220px) minmax(240px, 1fr);
+  grid-template-columns: minmax(240px, 1.35fr) minmax(120px, 170px) minmax(120px, 170px) minmax(170px, 220px) minmax(240px, 1fr);
   gap: 0.9rem;
   align-items: end;
 }
@@ -8128,6 +8128,13 @@ html.theme-dark .admin-toolbar select {
   color: var(--text-muted);
   font-size: 0.88rem;
   line-height: 1.5;
+}
+
+.admin-manual-grant-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: flex-end;
 }
 
 .admin-manual-grant-result {
@@ -8270,6 +8277,15 @@ html.theme-dark .admin-request-summary-strip span {
   .admin-manual-grant-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .admin-manual-grant-button-row {
+    justify-content: stretch;
+  }
+
+  .admin-manual-grant-button-row .app-button-outline,
+  .admin-manual-grant-button-row .app-button-primary {
+    width: 100%;
   }
 
   .admin-manual-grant-form .app-button-primary {

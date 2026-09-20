@@ -748,9 +748,16 @@ export async function updateAdminUserStatus(userId: string | number, isActive: b
   return unwrapApiResponse(response.data)
 }
 
-export async function assignAdminUserRequests(userId: string | number, request: AdminAssignUserRequestsRequest) {
+export async function getAdminUserRequestGrant(email: string) {
+  const response = await apiClient.get<ApiResponse<AdminManualSubscriptionGrant>>('/api/admin/users/manual-requests', {
+    params: { email },
+  })
+  return unwrapApiResponse(response.data)
+}
+
+export async function assignAdminUserRequests(request: AdminAssignUserRequestsRequest) {
   const response = await apiClient.post<ApiResponse<AdminManualSubscriptionGrant>>(
-    `/api/admin/users/${userId}/manual-requests`,
+    '/api/admin/users/manual-requests',
     request,
   )
   return unwrapApiResponse(response.data)

@@ -340,6 +340,7 @@ export type AdminUserListItem = {
 }
 
 export type AdminAssignUserRequestsRequest = {
+  email: string
   scanLimit: number
   validityDays: number
   allowsDetailedScan: boolean
@@ -348,6 +349,7 @@ export type AdminAssignUserRequestsRequest = {
 
 export type AdminManualSubscriptionGrant = {
   created: boolean
+  hasManualGrant: boolean
   userId: number
   userEmail: string
   subscriptionId: number

@@ -1,7 +1,7 @@
 import { ScrollRegion } from '../components/ui/ScrollRegion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
-import { assignAdminUserRequests, getAdminUsers, getApiErrorMessage, updateAdminUserStatus } from '../api/client'
+import { assignAdminUserRequests, getAdminUserRequestGrant, getAdminUsers, getApiErrorMessage, updateAdminUserStatus } from '../api/client'
 import type { AdminManualSubscriptionGrant, AdminUserListItem } from '../api/types'
 import { AppCard } from '../components/ui/AppCard'
 import { buttonClassName } from '../components/ui/buttonStyles'
@@ -23,6 +23,7 @@ export function AdminUsersPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [manualGrant, setManualGrant] = useState<AdminManualSubscriptionGrant | null>(null)
+  const [manualGrantMode, setManualGrantMode] = useState<'loaded' | 'saved'>('loaded')
   const usersQuery = useQuery({
     queryKey: ['admin-users', page, search, status],
     queryFn: () => getAdminUsers({ page, pageSize, search: search.trim() || undefined, status: status || undefined }),
@@ -36,7 +37,8 @@ export function AdminUsersPage() {
     },
   })
   const requestGrantMutation = useMutation({
-    mutationFn: (request: ManualRequestGrantFormValues) => assignAdminUserRequests(request.userId, {
+    mutationFn: (request: ManualRequestGrantFormValues) => assignAdminUserRequests({
+      email: request.email,
       scanLimit: request.scanLimit,
       validityDays: request.validityDays,
       allowsDetailedScan: request.allowsDetailedScan,
@@ -44,6 +46,7 @@ export function AdminUsersPage() {
     }),
     onSuccess: async (grant) => {
       setManualGrant(grant)
+      setManualGrantMode('saved')
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
       await queryClient.invalidateQueries({ queryKey: ['admin-dashboard-summary'] })
       await queryClient.invalidateQueries({ queryKey: ['subscription-status'] })
@@ -65,6 +68,11 @@ export function AdminUsersPage() {
         busy={requestGrantMutation.isPending}
         error={requestGrantMutation.error}
         grant={manualGrant}
+        mode={manualGrantMode}
+        onLoaded={(grant) => {
+          setManualGrant(grant)
+          setManualGrantMode('loaded')
+        }}
         onSubmit={(values) => requestGrantMutation.mutate(values)}
       />
 
@@ -120,16 +128,11 @@ export function AdminUsersPage() {
                     <div>
                       <strong>{user.name}</strong>
                       <span>{user.email}</span>
-                      <small className="admin-user-id">{t('admin.users.userId', { id: user.userId })}</small>
                     </div>
                   </div>
                   <StatusBadge status={user.isActive ? 'Active' : 'Disabled'} />
                 </div>
                 <div className="mobile-record-grid">
-                  <div>
-                    <span>{t('admin.manualRequests.userId')}</span>
-                    <strong>{user.userId}</strong>
-                  </div>
                   <div>
                     <span>{t('admin.users.role')}</span>
                     <strong>{localizeRoleName(user.role, t)}</strong>
@@ -177,7 +180,6 @@ export function AdminUsersPage() {
                         <div>
                           <strong>{user.name}</strong>
                           <span>{user.email}</span>
-                          <small className="admin-user-id">{t('admin.users.userId', { id: user.userId })}</small>
                         </div>
                       </div>
                     </td>
@@ -219,7 +221,7 @@ export function AdminUsersPage() {
 }
 
 type ManualRequestGrantFormValues = {
-  userId: number
+  email: string
   scanLimit: number
   validityDays: number
   allowsDetailedScan: boolean
@@ -230,27 +232,31 @@ function ManualRequestGrantCard({
   busy,
   error,
   grant,
+  mode,
+  onLoaded,
   onSubmit,
 }: {
   busy: boolean
   error: unknown
   grant: AdminManualSubscriptionGrant | null
+  mode: 'loaded' | 'saved'
+  onLoaded: (grant: AdminManualSubscriptionGrant | null) => void
   onSubmit: (values: ManualRequestGrantFormValues) => void
 }) {
   const { language, t } = useLanguage()
   const [form, setForm] = useState({
-    userId: '',
+    email: '',
     scanLimit: '10',
     validityDays: '30',
     allowsDetailedScan: false,
     notes: '',
   })
-  const parsedUserId = Number(form.userId)
   const parsedScanLimit = Number(form.scanLimit)
   const parsedValidityDays = Number(form.validityDays)
+  const normalizedEmail = form.email.trim()
+  const canLoad = normalizedEmail.includes('@') && normalizedEmail.includes('.')
   const canSubmit =
-    Number.isInteger(parsedUserId) &&
-    parsedUserId > 0 &&
+    canLoad &&
     Number.isInteger(parsedScanLimit) &&
     parsedScanLimit >= 1 &&
     parsedScanLimit <= 1000 &&
@@ -258,6 +264,21 @@ function ManualRequestGrantCard({
     parsedValidityDays >= 1 &&
     parsedValidityDays <= 365 &&
     form.notes.length <= 500
+  const loadMutation = useMutation({
+    mutationFn: () => getAdminUserRequestGrant(normalizedEmail),
+    onSuccess: (loadedGrant) => {
+      onLoaded(loadedGrant)
+      setForm((current) => ({
+        ...current,
+        email: loadedGrant.userEmail,
+        scanLimit: loadedGrant.scanLimit > 0 ? String(loadedGrant.scanLimit) : current.scanLimit,
+        validityDays: loadedGrant.expiresAt
+          ? String(Math.max(1, Math.ceil((new Date(loadedGrant.expiresAt).getTime() - Date.now()) / 86_400_000)))
+          : current.validityDays,
+        allowsDetailedScan: loadedGrant.allowsDetailedScan,
+      }))
+    },
+  })
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -266,7 +287,7 @@ function ManualRequestGrantCard({
     }
 
     onSubmit({
-      userId: parsedUserId,
+      email: normalizedEmail,
       scanLimit: parsedScanLimit,
       validityDays: parsedValidityDays,
       allowsDetailedScan: form.allowsDetailedScan,
@@ -286,14 +307,16 @@ function ManualRequestGrantCard({
       <form className="admin-manual-grant-form" onSubmit={submit}>
         <div className="admin-manual-grant-fields">
           <label>
-            <span>{t('admin.manualRequests.userId')}</span>
+            <span>{t('admin.manualRequests.email')}</span>
             <input
-              inputMode="numeric"
-              min="1"
-              type="number"
-              value={form.userId}
-              onChange={(event) => setForm((current) => ({ ...current, userId: event.target.value }))}
-              placeholder="123"
+              inputMode="email"
+              type="email"
+              value={form.email}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, email: event.target.value }))
+                onLoaded(null)
+              }}
+              placeholder="user@example.com"
             />
           </label>
           <label>
@@ -338,16 +361,22 @@ function ManualRequestGrantCard({
         </div>
         <div className="admin-manual-grant-actions">
           <p>{t('admin.manualRequests.upsertNote')}</p>
-          <button type="submit" className={buttonClassName('primary')} disabled={!canSubmit || busy}>
-            {busy ? t('admin.manualRequests.saving') : t('admin.manualRequests.save')}
-          </button>
+          <div className="admin-manual-grant-button-row">
+            <button type="button" className={buttonClassName('outline')} disabled={!canLoad || loadMutation.isPending || busy} onClick={() => loadMutation.mutate()}>
+              {loadMutation.isPending ? t('admin.manualRequests.loading') : t('admin.manualRequests.load')}
+            </button>
+            <button type="submit" className={buttonClassName('primary')} disabled={!canSubmit || busy || loadMutation.isPending}>
+              {busy ? t('admin.manualRequests.saving') : t('admin.manualRequests.save')}
+            </button>
+          </div>
         </div>
       </form>
 
+      {loadMutation.error && <ErrorMessage message={getApiErrorMessage(loadMutation.error, t)} />}
       {Boolean(error) && <ErrorMessage message={getApiErrorMessage(error, t)} />}
       {grant && (
         <div className="admin-manual-grant-result" role="status">
-          <strong>{t(grant.created ? 'admin.manualRequests.createdFor' : 'admin.manualRequests.updatedFor', { email: grant.userEmail })}</strong>
+          <strong>{t(resolveGrantTitleKey(grant, mode), { email: grant.userEmail })}</strong>
           <span>{t('admin.manualRequests.grantSummary', {
             remaining: grant.remainingScans,
             total: grant.scanLimit,
@@ -358,6 +387,12 @@ function ManualRequestGrantCard({
       )}
     </AppCard>
   )
+}
+
+function resolveGrantTitleKey(grant: AdminManualSubscriptionGrant, mode: 'loaded' | 'saved') {
+  if (mode === 'loaded') return 'admin.manualRequests.loadedFor'
+  if (grant.created) return 'admin.manualRequests.createdFor'
+  return 'admin.manualRequests.updatedFor'
 }
 
 function UserStatusButton({ user, busy, onToggle }: { user: AdminUserListItem; busy: boolean; onToggle: () => void }) {
