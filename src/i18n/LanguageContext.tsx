@@ -1887,18 +1887,20 @@ const supplementalTranslations: Record<LanguageCode, Record<string, string>> = {
 
 const manualRequestAdminTranslations = {
   'admin.manualRequests.title': 'Manual request grant',
-  'admin.manualRequests.subtitle': 'Assign temporary scan requests to a user while Easypaisa approval is pending.',
+  'admin.manualRequests.subtitle': 'Create or update temporary scan requests for a user while Easypaisa approval is pending.',
   'admin.manualRequests.userId': 'User ID',
   'admin.manualRequests.scanLimit': 'Requests',
   'admin.manualRequests.validityDays': 'Validity days',
   'admin.manualRequests.allowDetailed': 'Allow Detailed Scan',
   'admin.manualRequests.notes': 'Admin notes',
   'admin.manualRequests.notesPlaceholder': 'Payment/order reference or internal note',
-  'admin.manualRequests.assign': 'Assign requests',
-  'admin.manualRequests.assigning': 'Assigning...',
-  'admin.manualRequests.replacesExisting': 'This creates an active manual subscription and replaces any existing active paid/manual subscription for that user.',
-  'admin.manualRequests.assignedTo': 'Assigned to {email}',
+  'admin.manualRequests.save': 'Save requests',
+  'admin.manualRequests.saving': 'Saving...',
+  'admin.manualRequests.upsertNote': 'If this user already has an active manual grant, these values update it. Otherwise a new manual grant is created.',
+  'admin.manualRequests.createdFor': 'Created manual grant for {email}',
+  'admin.manualRequests.updatedFor': 'Updated manual grant for {email}',
   'admin.manualRequests.grantSummary': '{remaining} of {total} requests available until {expires}.',
+  'admin.users.userId': 'ID {id}',
 }
 
 Object.assign(supplementalTranslations.en, manualRequestAdminTranslations)

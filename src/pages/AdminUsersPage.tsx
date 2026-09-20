@@ -120,11 +120,16 @@ export function AdminUsersPage() {
                     <div>
                       <strong>{user.name}</strong>
                       <span>{user.email}</span>
+                      <small className="admin-user-id">{t('admin.users.userId', { id: user.userId })}</small>
                     </div>
                   </div>
                   <StatusBadge status={user.isActive ? 'Active' : 'Disabled'} />
                 </div>
                 <div className="mobile-record-grid">
+                  <div>
+                    <span>{t('admin.manualRequests.userId')}</span>
+                    <strong>{user.userId}</strong>
+                  </div>
                   <div>
                     <span>{t('admin.users.role')}</span>
                     <strong>{localizeRoleName(user.role, t)}</strong>
@@ -172,6 +177,7 @@ export function AdminUsersPage() {
                         <div>
                           <strong>{user.name}</strong>
                           <span>{user.email}</span>
+                          <small className="admin-user-id">{t('admin.users.userId', { id: user.userId })}</small>
                         </div>
                       </div>
                     </td>
@@ -278,66 +284,70 @@ function ManualRequestGrantCard({
       </div>
 
       <form className="admin-manual-grant-form" onSubmit={submit}>
-        <label>
-          <span>{t('admin.manualRequests.userId')}</span>
-          <input
-            inputMode="numeric"
-            min="1"
-            type="number"
-            value={form.userId}
-            onChange={(event) => setForm((current) => ({ ...current, userId: event.target.value }))}
-            placeholder="123"
-          />
-        </label>
-        <label>
-          <span>{t('admin.manualRequests.scanLimit')}</span>
-          <input
-            inputMode="numeric"
-            min="1"
-            max="1000"
-            type="number"
-            value={form.scanLimit}
-            onChange={(event) => setForm((current) => ({ ...current, scanLimit: event.target.value }))}
-          />
-        </label>
-        <label>
-          <span>{t('admin.manualRequests.validityDays')}</span>
-          <input
-            inputMode="numeric"
-            min="1"
-            max="365"
-            type="number"
-            value={form.validityDays}
-            onChange={(event) => setForm((current) => ({ ...current, validityDays: event.target.value }))}
-          />
-        </label>
-        <label className="admin-manual-grant-toggle">
-          <input
-            type="checkbox"
-            checked={form.allowsDetailedScan}
-            onChange={(event) => setForm((current) => ({ ...current, allowsDetailedScan: event.target.checked }))}
-          />
-          <span>{t('admin.manualRequests.allowDetailed')}</span>
-        </label>
-        <label className="admin-manual-grant-notes">
-          <span>{t('admin.manualRequests.notes')}</span>
-          <textarea
-            maxLength={500}
-            value={form.notes}
-            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-            placeholder={t('admin.manualRequests.notesPlaceholder')}
-          />
-        </label>
-        <button type="submit" className={buttonClassName('primary')} disabled={!canSubmit || busy}>
-          {busy ? t('admin.manualRequests.assigning') : t('admin.manualRequests.assign')}
-        </button>
+        <div className="admin-manual-grant-fields">
+          <label>
+            <span>{t('admin.manualRequests.userId')}</span>
+            <input
+              inputMode="numeric"
+              min="1"
+              type="number"
+              value={form.userId}
+              onChange={(event) => setForm((current) => ({ ...current, userId: event.target.value }))}
+              placeholder="123"
+            />
+          </label>
+          <label>
+            <span>{t('admin.manualRequests.scanLimit')}</span>
+            <input
+              inputMode="numeric"
+              min="1"
+              max="1000"
+              type="number"
+              value={form.scanLimit}
+              onChange={(event) => setForm((current) => ({ ...current, scanLimit: event.target.value }))}
+            />
+          </label>
+          <label>
+            <span>{t('admin.manualRequests.validityDays')}</span>
+            <input
+              inputMode="numeric"
+              min="1"
+              max="365"
+              type="number"
+              value={form.validityDays}
+              onChange={(event) => setForm((current) => ({ ...current, validityDays: event.target.value }))}
+            />
+          </label>
+          <label className="admin-manual-grant-toggle">
+            <input
+              type="checkbox"
+              checked={form.allowsDetailedScan}
+              onChange={(event) => setForm((current) => ({ ...current, allowsDetailedScan: event.target.checked }))}
+            />
+            <span>{t('admin.manualRequests.allowDetailed')}</span>
+          </label>
+          <label className="admin-manual-grant-notes">
+            <span>{t('admin.manualRequests.notes')}</span>
+            <textarea
+              maxLength={500}
+              value={form.notes}
+              onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+              placeholder={t('admin.manualRequests.notesPlaceholder')}
+            />
+          </label>
+        </div>
+        <div className="admin-manual-grant-actions">
+          <p>{t('admin.manualRequests.upsertNote')}</p>
+          <button type="submit" className={buttonClassName('primary')} disabled={!canSubmit || busy}>
+            {busy ? t('admin.manualRequests.saving') : t('admin.manualRequests.save')}
+          </button>
+        </div>
       </form>
 
-      <p className="admin-manual-grant-note">{t('admin.manualRequests.replacesExisting')}</p>
       {Boolean(error) && <ErrorMessage message={getApiErrorMessage(error, t)} />}
       {grant && (
         <div className="admin-manual-grant-result" role="status">
-          <strong>{t('admin.manualRequests.assignedTo', { email: grant.userEmail })}</strong>
+          <strong>{t(grant.created ? 'admin.manualRequests.createdFor' : 'admin.manualRequests.updatedFor', { email: grant.userEmail })}</strong>
           <span>{t('admin.manualRequests.grantSummary', {
             remaining: grant.remainingScans,
             total: grant.scanLimit,

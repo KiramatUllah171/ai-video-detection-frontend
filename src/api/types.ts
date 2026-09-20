@@ -347,6 +347,7 @@ export type AdminAssignUserRequestsRequest = {
 }
 
 export type AdminManualSubscriptionGrant = {
+  created: boolean
   userId: number
   userEmail: string
   subscriptionId: number
