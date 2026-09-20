@@ -1904,6 +1904,10 @@ const manualRequestAdminTranslations = {
   'admin.manualRequests.createdFor': 'Created manual grant for {email}',
   'admin.manualRequests.updatedFor': 'Updated manual grant for {email}',
   'admin.manualRequests.grantSummary': '{remaining} of {total} requests available until {expires}.',
+  'admin.manualRequests.total': 'Total',
+  'admin.manualRequests.used': 'Used',
+  'admin.manualRequests.reserved': 'Reserved',
+  'admin.manualRequests.available': 'Available',
   'admin.users.userId': 'ID {id}',
 }
 

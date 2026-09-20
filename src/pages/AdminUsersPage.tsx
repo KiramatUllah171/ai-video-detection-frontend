@@ -382,6 +382,12 @@ function ManualRequestGrantCard({
             total: grant.scanLimit,
             expires: formatAdminDate(grant.expiresAt, t('common.notAvailable'), language),
           })}</span>
+          <div className="admin-manual-grant-stats">
+            <span><small>{t('admin.manualRequests.total')}</small><strong>{grant.scanLimit}</strong></span>
+            <span><small>{t('admin.manualRequests.used')}</small><strong>{grant.usedScans}</strong></span>
+            <span><small>{t('admin.manualRequests.reserved')}</small><strong>{grant.reservedScans}</strong></span>
+            <span><small>{t('admin.manualRequests.available')}</small><strong>{grant.remainingScans}</strong></span>
+          </div>
           <small>{grant.planCode}</small>
         </div>
       )}
