@@ -5553,6 +5553,114 @@ html.theme-dark .format-chips span {
   color: var(--color-primary);
 }
 
+.subscription-plan-manual-note {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-background-accent);
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.manual-payment-panel {
+  display: grid;
+  gap: 16px;
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(49, 87, 232, 0.08), rgba(6, 182, 212, 0.08)),
+    var(--color-surface);
+  box-shadow: 0 18px 42px rgba(37, 99, 235, 0.08);
+}
+
+.manual-payment-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.manual-payment-header > span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  color: #ffffff;
+  background: var(--gradient-brand);
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.24);
+}
+
+.manual-payment-header svg {
+  width: 21px;
+  height: 21px;
+}
+
+.manual-payment-header strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: 17px;
+}
+
+.manual-payment-header p {
+  margin: 5px 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.manual-payment-account {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.manual-payment-account div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.manual-payment-account span,
+.manual-payment-account strong {
+  display: block;
+}
+
+.manual-payment-account span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.manual-payment-account strong {
+  margin-top: 5px;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.manual-payment-steps {
+  display: grid;
+  gap: 9px;
+  padding-left: 1.25rem;
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.manual-payment-steps li::marker {
+  color: var(--color-primary);
+  font-weight: 900;
+}
+
 .payment-status-panel {
   align-items: start;
 }
@@ -5706,6 +5814,9 @@ html.theme-dark .app-modal-icon-warning {
 html.theme-dark .subscription-status-panel,
 html.theme-dark .subscription-modal-current,
 html.theme-dark .subscription-plan-card,
+html.theme-dark .manual-payment-panel,
+html.theme-dark .manual-payment-account div,
+html.theme-dark .subscription-plan-manual-note,
 html.theme-dark .payment-status-panel,
 html.theme-dark .subscription-metric {
   background: rgba(15, 27, 46, 0.84);
@@ -5714,6 +5825,9 @@ html.theme-dark .subscription-metric {
 
 html.theme-dark .subscription-status-header p,
 html.theme-dark .subscription-plan-card ul,
+html.theme-dark .manual-payment-header p,
+html.theme-dark .manual-payment-steps,
+html.theme-dark .subscription-plan-manual-note,
 html.theme-dark .payment-status-panel span,
 html.theme-dark .payment-status-panel small {
   color: var(--dark-text-secondary);
@@ -5730,8 +5844,14 @@ html.theme-dark .subscription-metric small {
 }
 
 html.theme-dark .subscription-metric strong,
+html.theme-dark .manual-payment-header strong,
+html.theme-dark .manual-payment-account strong,
 html.theme-dark .subscription-plan-heading span {
   color: var(--dark-text);
+}
+
+html.theme-dark .manual-payment-account span {
+  color: var(--dark-text-muted);
 }
 
 html.theme-dark .subscription-plan-heading em {
@@ -9113,4 +9233,14 @@ html.theme-dark .history-expired-message {
   color: #fecaca;
   background: rgba(127, 29, 29, 0.36);
   border-color: rgba(248, 113, 113, 0.34);
+}
+
+@media (max-width: 640px) {
+  .manual-payment-account {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-payment-panel {
+    padding: 15px;
+  }
 }
