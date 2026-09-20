@@ -69,6 +69,14 @@ export function SubscriptionStatusContent({ status }: { status: SubscriptionStat
     : status.remainingScans ?? status.freeTrial?.effectiveRemainingScans ?? 0
   const scanLimit = status.scanLimit ?? (status.isAdmin ? t('subscriptions.unlimited') : t('subscriptions.trial'))
   const maxVideoSize = status.maxVideoSizeBytes ? formatMegabytes(status.maxVideoSizeBytes) : t('subscriptions.unlimited')
+  const isFreeTrial = status.planCode.trim().toLowerCase() === 'free'
+  const accountRemaining = status.freeTrial?.accountRemainingScans
+  const effectiveRemaining = status.freeTrial?.effectiveRemainingScans
+  const isLimitedByDeviceOrNetwork =
+    isFreeTrial &&
+    typeof accountRemaining === 'number' &&
+    typeof effectiveRemaining === 'number' &&
+    effectiveRemaining < accountRemaining
 
   return (
     <>
@@ -81,6 +89,9 @@ export function SubscriptionStatusContent({ status }: { status: SubscriptionStat
       </div>
       <div className="subscription-status-grid">
         <StatusMetric label={t('subscriptions.usedScans')} value={String(status.usedScans)} icon={<ActivityIcon />} />
+        {status.reservedScans > 0 && (
+          <StatusMetric label={t('subscriptions.reservedScans')} value={String(status.reservedScans)} icon={<ClockIcon />} />
+        )}
         <StatusMetric label={t('subscriptions.remaining')} value={String(remainingScans)} icon={<ActivityIcon />} />
         <StatusMetric label={t('subscriptions.scanLimit')} value={String(scanLimit)} icon={<ShieldIcon />} />
         <StatusMetric label={t('subscriptions.maxVideo')} value={maxVideoSize} icon={<ShieldIcon />} />
@@ -90,6 +101,15 @@ export function SubscriptionStatusContent({ status }: { status: SubscriptionStat
           icon={<ClockIcon />}
         />
       </div>
+      {isLimitedByDeviceOrNetwork && (
+        <p className="subscription-trial-scope-note">
+          {t('subscriptions.freeTrialScopeNote', {
+            account: accountRemaining,
+            device: status.freeTrial?.deviceRemainingScans ?? t('subscriptions.unknown'),
+            network: status.freeTrial?.ipRemainingScans ?? t('subscriptions.unknown'),
+          })}
+        </p>
+      )}
     </>
   )
 }

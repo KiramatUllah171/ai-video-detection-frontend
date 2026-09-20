@@ -295,7 +295,7 @@ export function UploadVideoPage() {
                   <ShieldIcon />
                 </span>
                 <h2>{t('upload.freeTrialExhaustedTitle')}</h2>
-                <p>{t('upload.freeTrialExhaustedDescription')}</p>
+                <p>{getFreeTrialExhaustedDescription(subscriptionStatusQuery.data, t)}</p>
                 <AppButton
                   type="button"
                   onClick={() => {
@@ -486,6 +486,28 @@ function isFreeTrialUsedUp(
   }
 
   return (status.freeTrial?.effectiveRemainingScans ?? status.remainingScans ?? 0) <= 0
+}
+
+function getFreeTrialExhaustedDescription(
+  status: {
+    reservedScans?: number
+    freeTrial?: {
+      accountRemainingScans: number
+      effectiveRemainingScans: number
+    } | null
+  } | undefined,
+  t: ReturnType<typeof useLanguage>['t'],
+) {
+  if (status?.reservedScans && status.reservedScans > 0) {
+    return t('upload.freeTrialReservedDescription')
+  }
+
+  const freeTrial = status?.freeTrial
+  if (freeTrial && freeTrial.accountRemainingScans > freeTrial.effectiveRemainingScans) {
+    return t('upload.freeTrialDeviceLimitDescription')
+  }
+
+  return t('upload.freeTrialExhaustedDescription')
 }
 
 function validateFileSizePreflight(
