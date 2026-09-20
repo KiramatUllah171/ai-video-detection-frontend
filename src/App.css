@@ -8054,9 +8054,22 @@ html.theme-dark .admin-toolbar select {
 
 .admin-manual-grant-fields {
   display: grid;
-  grid-template-columns: minmax(240px, 1.35fr) minmax(120px, 170px) minmax(120px, 170px) minmax(170px, 220px) minmax(240px, 1fr);
+  grid-template-columns: minmax(360px, 1.45fr) minmax(120px, 170px) minmax(120px, 170px) minmax(170px, 220px) minmax(240px, 1fr);
   gap: 0.9rem;
   align-items: end;
+}
+
+.admin-manual-grant-email-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: end;
+  min-width: 0;
+}
+
+.admin-manual-grant-email-field .app-button-outline {
+  min-height: 46px;
+  white-space: nowrap;
 }
 
 .admin-manual-grant-form label {
@@ -8078,7 +8091,7 @@ html.theme-dark .admin-toolbar select {
 .admin-manual-grant-form textarea {
   width: 100%;
   min-height: 46px;
-  border: 1px solid var(--border-color);
+  border: 1.5px solid rgba(148, 163, 184, 0.62);
   border-radius: 8px;
   padding: 0 0.9rem;
   background: var(--card-bg);
@@ -8096,7 +8109,7 @@ html.theme-dark .admin-toolbar select {
 
 .admin-manual-grant-form input:focus,
 .admin-manual-grant-form textarea:focus {
-  border-color: rgba(37, 99, 235, 0.55);
+  border-color: rgba(37, 99, 235, 0.78);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
@@ -8135,6 +8148,33 @@ html.theme-dark .admin-toolbar select {
   flex-wrap: wrap;
   gap: 0.7rem;
   justify-content: flex-end;
+}
+
+.admin-manual-grant-feedback {
+  display: grid;
+  gap: 0.18rem;
+  margin-top: 0.8rem;
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 0.78rem 0.95rem;
+}
+
+.admin-manual-grant-feedback strong {
+  color: var(--text-strong);
+}
+
+.admin-manual-grant-feedback span {
+  color: var(--text-muted);
+}
+
+.admin-manual-grant-feedback.success {
+  border-color: rgba(16, 185, 129, 0.32);
+  background: rgba(16, 185, 129, 0.09);
+}
+
+.admin-manual-grant-feedback.danger {
+  border-color: rgba(239, 68, 68, 0.32);
+  background: rgba(239, 68, 68, 0.08);
 }
 
 .admin-manual-grant-result {
@@ -8306,6 +8346,14 @@ html.theme-dark .admin-request-summary-strip span {
   .admin-manual-grant-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .admin-manual-grant-email-field {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-manual-grant-email-field .app-button-outline {
+    width: 100%;
   }
 
   .admin-manual-grant-button-row {

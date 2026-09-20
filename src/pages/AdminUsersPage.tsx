@@ -70,6 +70,9 @@ export function AdminUsersPage() {
         grant={manualGrant}
         mode={manualGrantMode}
         onLoaded={(grant) => {
+          if (grant === null) {
+            requestGrantMutation.reset()
+          }
           setManualGrant(grant)
           setManualGrantMode('loaded')
         }}
@@ -255,6 +258,8 @@ function ManualRequestGrantCard({
   const parsedValidityDays = Number(form.validityDays)
   const normalizedEmail = form.email.trim()
   const canLoad = normalizedEmail.includes('@') && normalizedEmail.includes('.')
+  const saveError = error ? getApiErrorMessage(error, t) : ''
+  const saveSuccess = mode === 'saved' && grant !== null && !saveError
   const canSubmit =
     canLoad &&
     Number.isInteger(parsedScanLimit) &&
@@ -306,19 +311,24 @@ function ManualRequestGrantCard({
 
       <form className="admin-manual-grant-form" onSubmit={submit}>
         <div className="admin-manual-grant-fields">
-          <label>
-            <span>{t('admin.manualRequests.email')}</span>
-            <input
-              inputMode="email"
-              type="email"
-              value={form.email}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, email: event.target.value }))
-                onLoaded(null)
-              }}
-              placeholder="user@example.com"
-            />
-          </label>
+          <div className="admin-manual-grant-email-field">
+            <label>
+              <span>{t('admin.manualRequests.email')}</span>
+              <input
+                inputMode="email"
+                type="email"
+                value={form.email}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, email: event.target.value }))
+                  onLoaded(null)
+                }}
+                placeholder="user@example.com"
+              />
+            </label>
+            <button type="button" className={buttonClassName('outline')} disabled={!canLoad || loadMutation.isPending || busy} onClick={() => loadMutation.mutate()}>
+              {loadMutation.isPending ? t('admin.manualRequests.loading') : t('admin.manualRequests.load')}
+            </button>
+          </div>
           <label>
             <span>{t('admin.manualRequests.scanLimit')}</span>
             <input
@@ -362,9 +372,6 @@ function ManualRequestGrantCard({
         <div className="admin-manual-grant-actions">
           <p>{t('admin.manualRequests.upsertNote')}</p>
           <div className="admin-manual-grant-button-row">
-            <button type="button" className={buttonClassName('outline')} disabled={!canLoad || loadMutation.isPending || busy} onClick={() => loadMutation.mutate()}>
-              {loadMutation.isPending ? t('admin.manualRequests.loading') : t('admin.manualRequests.load')}
-            </button>
             <button type="submit" className={buttonClassName('primary')} disabled={!canSubmit || busy || loadMutation.isPending}>
               {busy ? t('admin.manualRequests.saving') : t('admin.manualRequests.save')}
             </button>
@@ -373,7 +380,18 @@ function ManualRequestGrantCard({
       </form>
 
       {loadMutation.error && <ErrorMessage message={getApiErrorMessage(loadMutation.error, t)} />}
-      {Boolean(error) && <ErrorMessage message={getApiErrorMessage(error, t)} />}
+      {saveError && (
+        <div className="admin-manual-grant-feedback danger" role="alert">
+          <strong>{t('admin.manualRequests.saveFailed')}</strong>
+          <span>{saveError}</span>
+        </div>
+      )}
+      {saveSuccess && (
+        <div className="admin-manual-grant-feedback success" role="status" aria-live="polite">
+          <strong>{t('admin.manualRequests.saveSuccess')}</strong>
+          <span>{t('admin.manualRequests.saveSuccessDetail', { email: grant?.userEmail ?? '' })}</span>
+        </div>
+      )}
       {grant && (
         <div className="admin-manual-grant-result" role="status">
           <strong>{t(resolveGrantTitleKey(grant, mode), { email: grant.userEmail })}</strong>
