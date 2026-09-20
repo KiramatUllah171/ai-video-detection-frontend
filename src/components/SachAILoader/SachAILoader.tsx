@@ -67,6 +67,12 @@ export function SachAILoader({ isReady }: SachAILoaderProps) {
       aria-label="Loading SachAI"
     >
       <img className="sachai-loader-art" src="/loading.png" alt="SachAI loading" draggable={false} />
+      <div className="sachai-loader-motion-layer" aria-hidden="true">
+        <div className="sachai-loader-orbit" aria-hidden="true">
+          <span className="sachai-loader-ring" />
+          <span className="sachai-loader-dot" />
+        </div>
+      </div>
     </div>
   )
 }

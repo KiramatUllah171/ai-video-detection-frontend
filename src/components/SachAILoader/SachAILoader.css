@@ -24,25 +24,74 @@
 }
 
 .sachai-loader-art {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
   object-position: center;
   user-select: none;
-  animation: sachaiLoaderBreath 2.4s ease-in-out infinite;
 }
 
-@keyframes sachaiLoaderBreath {
-  0%,
-  100% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
+.sachai-loader-motion-layer {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: min(82vmin, 46rem);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
 
-  50% {
-    transform: scale(1.018);
-    filter: brightness(1.07);
+.sachai-loader-orbit,
+.sachai-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+}
+
+.sachai-loader-orbit {
+  animation: sachaiLoaderOrbit 1.45s linear infinite;
+}
+
+.sachai-loader-ring {
+  background: conic-gradient(
+    from 302deg,
+    transparent 0deg,
+    rgba(197, 232, 255, 0.42) 16deg,
+    #38ddff 44deg,
+    #0a79ff 92deg,
+    rgba(231, 247, 255, 0.72) 118deg,
+    transparent 146deg,
+    transparent 360deg
+  );
+  filter:
+    drop-shadow(0 0 0.55rem rgba(56, 221, 255, 0.92))
+    drop-shadow(0 0 1.35rem rgba(10, 121, 255, 0.68))
+    drop-shadow(0 0 2.2rem rgba(180, 226, 255, 0.36));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 5px));
+}
+
+.sachai-loader-dot {
+  position: absolute;
+  top: 7.2%;
+  left: 80.8%;
+  width: clamp(0.78rem, 2.2vmin, 1.15rem);
+  height: clamp(0.78rem, 2.2vmin, 1.15rem);
+  border-radius: 999px;
+  background: radial-gradient(circle at 34% 30%, #a7fbff, #20d2ff 46%, #0870f4);
+  box-shadow:
+    0 0 0 0.42rem rgba(32, 210, 255, 0.18),
+    0 0 1rem rgba(32, 210, 255, 0.95),
+    0 0 2.2rem rgba(8, 112, 244, 0.82);
+  transform: translate(-50%, -50%);
+}
+
+@keyframes sachaiLoaderOrbit {
+  to {
+    transform: rotate(1turn);
   }
 }
 
@@ -50,11 +99,15 @@
   .sachai-loader-art {
     object-fit: contain;
   }
+
+  .sachai-loader-motion-layer {
+    width: min(88vw, 31rem);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sachai-loader-shell,
-  .sachai-loader-art {
+  .sachai-loader-orbit {
     animation: none;
     transition: opacity 220ms ease;
   }
