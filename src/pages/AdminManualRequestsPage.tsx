@@ -10,7 +10,7 @@ import { ActivityIcon, AlertCircleIcon, CheckCircleIcon, XIcon } from '../compon
 import { useLanguage } from '../i18n/LanguageContext'
 import { formatAdminDate } from './adminUtils'
 
-type GrantMode = 'add' | 'set'
+type GrantMode = 'add' | 'remove' | 'set'
 type ToastTone = 'success' | 'danger' | 'warning'
 
 type ToastMessage = {
@@ -144,6 +144,11 @@ export function AdminManualRequestsPage() {
       return
     }
 
+    if (mode === 'remove') {
+      setRequestValue('1')
+      return
+    }
+
     setRequestValue(String(Math.max(1, loadedGrant?.scanLimit ?? 10)))
   }
 
@@ -224,6 +229,10 @@ export function AdminManualRequestsPage() {
                         <strong>{t('admin.manualRequests.addMode')}</strong>
                         <span>{t('admin.manualRequests.addModeHint')}</span>
                       </button>
+                      <button type="button" aria-pressed={grantMode === 'remove'} onClick={() => switchMode('remove')}>
+                        <strong>{t('admin.manualRequests.removeMode')}</strong>
+                        <span>{t('admin.manualRequests.removeModeHint')}</span>
+                      </button>
                       <button type="button" aria-pressed={grantMode === 'set'} onClick={() => switchMode('set')}>
                         <strong>{t('admin.manualRequests.setMode')}</strong>
                         <span>{t('admin.manualRequests.setModeHint')}</span>
@@ -232,7 +241,7 @@ export function AdminManualRequestsPage() {
                   </div>
 
                   <label>
-                    <span>{t(grantMode === 'add' ? 'admin.manualRequests.extraRequests' : 'admin.manualRequests.finalTotalLimit')}</span>
+                    <span>{t(getRequestValueLabelKey(grantMode))}</span>
                     <input
                       inputMode="numeric"
                       min="1"
@@ -241,7 +250,7 @@ export function AdminManualRequestsPage() {
                       value={requestValue}
                       onChange={(event) => setRequestValue(event.target.value)}
                     />
-                    <small>{t(grantMode === 'add' ? 'admin.manualRequests.extraRequestsHelp' : 'admin.manualRequests.finalTotalHelp')}</small>
+                    <small>{t(getRequestValueHelpKey(grantMode))}</small>
                   </label>
 
                   <label>
@@ -304,8 +313,9 @@ export function AdminManualRequestsPage() {
             <div className="admin-grant-flow-list">
               <FlowStep number="1" title={t('admin.manualRequests.flowLoadTitle')} copy={t('admin.manualRequests.flowLoadCopy')} />
               <FlowStep number="2" title={t('admin.manualRequests.flowAddTitle')} copy={t('admin.manualRequests.flowAddCopy')} />
-              <FlowStep number="3" title={t('admin.manualRequests.flowReviewTitle')} copy={t('admin.manualRequests.flowReviewCopy')} />
-              <FlowStep number="4" title={t('admin.manualRequests.flowPopupTitle')} copy={t('admin.manualRequests.flowPopupCopy')} />
+              <FlowStep number="3" title={t('admin.manualRequests.flowRemoveTitle')} copy={t('admin.manualRequests.flowRemoveCopy')} />
+              <FlowStep number="4" title={t('admin.manualRequests.flowReviewTitle')} copy={t('admin.manualRequests.flowReviewCopy')} />
+              <FlowStep number="5" title={t('admin.manualRequests.flowPopupTitle')} copy={t('admin.manualRequests.flowPopupCopy')} />
             </div>
           </AppCard>
         </aside>
@@ -381,7 +391,9 @@ function GrantCalculationPanel({
         <p>{loaded
           ? grantMode === 'add'
             ? t('admin.manualRequests.addCalculationSummary', { amount: Number(requestValue) || 0, current: calculation.currentTotal, total: calculation.newTotal })
-            : t('admin.manualRequests.setCalculationSummary', { current: calculation.currentTotal, total: calculation.newTotal })
+            : grantMode === 'remove'
+              ? t('admin.manualRequests.removeCalculationSummary', { amount: Number(requestValue) || 0, current: calculation.currentTotal, total: calculation.newTotal })
+              : t('admin.manualRequests.setCalculationSummary', { current: calculation.currentTotal, total: calculation.newTotal })
           : t('admin.manualRequests.loadUserToPreview')}</p>
       </div>
       {loaded && (
@@ -389,7 +401,9 @@ function GrantCalculationPanel({
           <div className="admin-grant-formula">
             {grantMode === 'add'
               ? <span><b>{calculation.currentTotal}</b> {t('admin.manualRequests.currentTotalShort')} + <b>{Number(requestValue) || 0}</b> {t('admin.manualRequests.extraShort')} = <b>{calculation.newTotal}</b> {t('admin.manualRequests.newTotalShort')}</span>
-              : <span><b>{calculation.newTotal}</b> {t('admin.manualRequests.finalTotalShort')} - <b>{calculation.newTotal - calculation.newAvailable}</b> {t('admin.manualRequests.usedReservedShort')} = <b>{calculation.newAvailable}</b> {t('admin.manualRequests.availableAfterSave')}</span>}
+              : grantMode === 'remove'
+                ? <span><b>{calculation.currentTotal}</b> {t('admin.manualRequests.currentTotalShort')} - <b>{Number(requestValue) || 0}</b> {t('admin.manualRequests.removeShort')} = <b>{calculation.newTotal}</b> {t('admin.manualRequests.newTotalShort')}</span>
+                : <span><b>{calculation.newTotal}</b> {t('admin.manualRequests.finalTotalShort')} - <b>{calculation.newTotal - calculation.newAvailable}</b> {t('admin.manualRequests.usedReservedShort')} = <b>{calculation.newAvailable}</b> {t('admin.manualRequests.availableAfterSave')}</span>}
           </div>
           <div className="admin-grant-review-grid">
             <Metric label={t('admin.manualRequests.currentTotal')} value={calculation.currentTotal} />
@@ -440,7 +454,9 @@ function ConfirmGrantDialog({
             <h2 id="grant-confirm-title">{t('admin.manualRequests.confirmTitle')}</h2>
             <p>{grantMode === 'add'
               ? t('admin.manualRequests.confirmAddCopy', { amount: requestValue, email })
-              : t('admin.manualRequests.confirmSetCopy', { total: calculation.newTotal, email })}</p>
+              : grantMode === 'remove'
+                ? t('admin.manualRequests.confirmRemoveCopy', { amount: requestValue, email })
+                : t('admin.manualRequests.confirmSetCopy', { total: calculation.newTotal, email })}</p>
           </div>
           <button type="button" className="admin-grant-icon-button" aria-label={t('common.close')} disabled={saving} onClick={onCancel}>
             <XIcon />
@@ -528,9 +544,17 @@ function calculateGrantChange(grant: AdminManualSubscriptionGrant | null, mode: 
     return invalidGrantCalculation(currentTotal, currentAvailable, 'Validity days must be between 1 and 365.')
   }
 
-  const newTotal = mode === 'add' ? currentTotal + rawValue : rawValue
+  const newTotal = mode === 'add'
+    ? currentTotal + rawValue
+    : mode === 'remove'
+      ? currentTotal - rawValue
+      : rawValue
   if (newTotal > 1000) {
     return invalidGrantCalculation(currentTotal, currentAvailable, 'Final total request limit cannot be higher than 1000.')
+  }
+
+  if (newTotal < 1) {
+    return invalidGrantCalculation(currentTotal, currentAvailable, 'Final total request limit cannot be lower than 1.', newTotal)
   }
 
   if (newTotal < usedReserved) {
@@ -546,6 +570,30 @@ function calculateGrantChange(grant: AdminManualSubscriptionGrant | null, mode: 
     currentAvailable,
     newAvailable: Math.max(0, newTotal - usedReserved),
   }
+}
+
+function getRequestValueLabelKey(mode: GrantMode) {
+  if (mode === 'add') {
+    return 'admin.manualRequests.extraRequests'
+  }
+
+  if (mode === 'remove') {
+    return 'admin.manualRequests.requestsToRemove'
+  }
+
+  return 'admin.manualRequests.finalTotalLimit'
+}
+
+function getRequestValueHelpKey(mode: GrantMode) {
+  if (mode === 'add') {
+    return 'admin.manualRequests.extraRequestsHelp'
+  }
+
+  if (mode === 'remove') {
+    return 'admin.manualRequests.requestsToRemoveHelp'
+  }
+
+  return 'admin.manualRequests.finalTotalHelp'
 }
 
 function invalidGrantCalculation(currentTotal: number, currentAvailable: number, message: string, newTotal = currentTotal): GrantCalculation {
