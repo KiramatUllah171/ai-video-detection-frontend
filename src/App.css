@@ -8787,43 +8787,16 @@ html.theme-dark .admin-toolbar select {
   height: 18px;
 }
 
-.admin-grant-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  display: grid;
-  place-items: center;
-  padding: 1.2rem;
-  background: rgba(15, 23, 42, 0.42);
+.admin-grant-confirm-modal {
+  width: min(100%, 720px);
 }
 
-.admin-grant-modal {
-  width: min(580px, 100%);
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 1.1rem;
-  background: var(--card-bg);
-  box-shadow: 0 32px 80px rgba(15, 23, 42, 0.26);
+.admin-grant-modal-review {
+  margin-top: 1rem;
 }
 
-.admin-grant-modal-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.admin-grant-modal-header h2 {
-  margin: 0;
-  color: var(--text-strong);
-  font-size: 1.15rem;
-}
-
-.admin-grant-modal-header p {
-  margin: 0.35rem 0 0;
-  color: var(--text-muted);
-  line-height: 1.45;
+.admin-grant-confirm-modal .app-modal-actions .app-button {
+  min-width: 132px;
 }
 
 html.theme-dark .admin-filter-grid input,

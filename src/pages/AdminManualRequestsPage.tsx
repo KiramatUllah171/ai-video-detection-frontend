@@ -2,7 +2,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useMemo, useState } from 'react'
 import { assignAdminUserRequests, getAdminUserRequestGrant, getApiErrorMessage } from '../api/client'
 import type { AdminManualSubscriptionGrant } from '../api/types'
+import { AppButton } from '../components/ui/AppButton'
 import { AppCard } from '../components/ui/AppCard'
+import { AppModal } from '../components/ui/AppModal'
 import { buttonClassName } from '../components/ui/buttonStyles'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -443,39 +445,46 @@ function ConfirmGrantDialog({
   t: ReturnType<typeof useLanguage>['t']
 }) {
   return (
-    <div className="admin-grant-modal-backdrop" role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget && !saving) {
-        onCancel()
-      }
-    }}>
-      <section className="admin-grant-modal" role="dialog" aria-modal="true" aria-labelledby="grant-confirm-title">
-        <div className="admin-grant-modal-header">
-          <div>
-            <h2 id="grant-confirm-title">{t('admin.manualRequests.confirmTitle')}</h2>
-            <p>{grantMode === 'add'
-              ? t('admin.manualRequests.confirmAddCopy', { amount: requestValue, email })
-              : grantMode === 'remove'
-                ? t('admin.manualRequests.confirmRemoveCopy', { amount: requestValue, email })
-                : t('admin.manualRequests.confirmSetCopy', { total: calculation.newTotal, email })}</p>
-          </div>
-          <button type="button" className="admin-grant-icon-button" aria-label={t('common.close')} disabled={saving} onClick={onCancel}>
-            <XIcon />
-          </button>
-        </div>
-        <div className="admin-grant-review-grid">
-          <Metric label={t('admin.manualRequests.currentTotal')} value={calculation.currentTotal} />
-          <Metric label={t('admin.manualRequests.newTotal')} value={calculation.newTotal} />
-          <Metric label={t('admin.manualRequests.netChange')} value={`${calculation.netChange >= 0 ? '+' : ''}${calculation.netChange}`} tone={calculation.netChange >= 0 ? 'success' : 'warning'} />
-          <Metric label={t('admin.manualRequests.availableAfter')} value={calculation.newAvailable} />
-        </div>
-        <div className="admin-grant-actions">
-          <button type="button" className={buttonClassName('outline')} disabled={saving} onClick={onCancel}>{t('admin.manualRequests.editValues')}</button>
-          <button type="button" className={buttonClassName('primary')} disabled={saving} onClick={onConfirm}>
-            {saving ? t('admin.manualRequests.saving') : t('admin.manualRequests.confirmSave')}
-          </button>
-        </div>
-      </section>
-    </div>
+    <AppModal
+      open
+      title={t('admin.manualRequests.confirmTitle')}
+      icon={<AlertCircleIcon />}
+      busy={saving}
+      className="admin-grant-confirm-modal"
+      onClose={onCancel}
+      footer={<>
+        <AppButton
+          type="button"
+          variant="outline"
+          disabled={saving}
+          onClick={onCancel}
+        >
+          {t('admin.manualRequests.editValues')}
+        </AppButton>
+        <AppButton
+          type="button"
+          loading={saving}
+          disabled={saving}
+          onClick={onConfirm}
+        >
+          {saving ? t('admin.manualRequests.saving') : t('admin.manualRequests.confirmSave')}
+        </AppButton>
+      </>}
+    >
+      <p className="app-modal-copy">
+        {grantMode === 'add'
+          ? t('admin.manualRequests.confirmAddCopy', { amount: requestValue, email })
+          : grantMode === 'remove'
+            ? t('admin.manualRequests.confirmRemoveCopy', { amount: requestValue, email })
+            : t('admin.manualRequests.confirmSetCopy', { total: calculation.newTotal, email })}
+      </p>
+      <div className="admin-grant-review-grid admin-grant-modal-review">
+        <Metric label={t('admin.manualRequests.currentTotal')} value={calculation.currentTotal} />
+        <Metric label={t('admin.manualRequests.newTotal')} value={calculation.newTotal} />
+        <Metric label={t('admin.manualRequests.netChange')} value={`${calculation.netChange >= 0 ? '+' : ''}${calculation.netChange}`} tone={calculation.netChange >= 0 ? 'success' : 'warning'} />
+        <Metric label={t('admin.manualRequests.availableAfter')} value={calculation.newAvailable} />
+      </div>
+    </AppModal>
   )
 }
 
