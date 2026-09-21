@@ -105,6 +105,14 @@ export const apiClient = axios.create({
 let refreshSessionPromise: Promise<AuthResponse | null> | null = null
 
 export function refreshAuthSession() {
+  const startingAccessToken = authStorage.getAccessToken()
+  const startingExpiresAt = authStorage.getExpiresAt()
+  const clearIfRefreshIsStillCurrent = () => {
+    if (authStorage.getAccessToken() === startingAccessToken && authStorage.getExpiresAt() === startingExpiresAt) {
+      authStorage.clear()
+    }
+  }
+
   refreshSessionPromise ??= axios
     .post<ApiResponse<AuthResponse>>(`${baseURL}/api/auth/refresh`, {}, { withCredentials: true })
     .then((response) => {
@@ -113,11 +121,11 @@ export function refreshAuthSession() {
         return response.data.data
       }
 
-      authStorage.clear()
+      clearIfRefreshIsStillCurrent()
       return null
     })
     .catch((error: unknown) => {
-      authStorage.clear()
+      clearIfRefreshIsStillCurrent()
       throw error
     })
     .finally(() => {
@@ -175,7 +183,7 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest)
         }
       } catch {
-        authStorage.clear()
+        // refreshAuthSession clears only when the failed refresh still matches the active session.
       }
     }
 

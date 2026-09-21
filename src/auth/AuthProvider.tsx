@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function loadCurrentUser() {
       const storedAccessToken = authStorage.getAccessToken()
       const storedExpiresAt = authStorage.getExpiresAt()
+      const isGoogleCallback = window.location.pathname === '/auth/google/callback'
 
       if (storedAccessToken && (!storedExpiresAt || authStorage.isSessionExpired())) {
         authStorage.clear()
@@ -39,6 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (!storedAccessToken) {
+        if (isGoogleCallback) {
+          setIsLoading(false)
+          return
+        }
+
         try {
           const refreshedSession = await refreshAuthSession()
           if (!cancelled && refreshedSession) {
@@ -46,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSessionExpiresAt(refreshedSession.expiresAt)
           }
         } catch {
-          authStorage.clear()
+          // refreshAuthSession owns storage cleanup and keeps newer login sessions intact.
         } finally {
           if (!cancelled) {
             setIsLoading(false)

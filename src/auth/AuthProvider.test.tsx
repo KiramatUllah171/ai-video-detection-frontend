@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiClient, claimGuestVideo } from '../api/client'
+import { apiClient, claimGuestVideo, refreshAuthSession } from '../api/client'
 import { getGuestVideoToken, saveGuestVideoAccess } from '../guest/guestVideoAccess'
 import { authStorage } from './authStorage'
 import { useAuth } from './AuthContext'
@@ -24,6 +24,7 @@ vi.mock('../api/client', async () => {
 describe('AuthProvider', () => {
   beforeEach(() => {
     localStorage.clear()
+    window.history.pushState({}, '', '/')
     vi.clearAllMocks()
   })
 
@@ -108,6 +109,55 @@ describe('AuthProvider', () => {
     })
     expect(getGuestVideoToken(42)).toBeNull()
   })
+
+  it('does not run startup refresh while the browser is on the Google callback route', async () => {
+    window.history.pushState({}, '', '/auth/google/callback?code=google-code&state=oauth-state')
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AuthStatus />
+        </AuthProvider>
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('auth-status')).toHaveTextContent('ready'))
+    expect(refreshAuthSession).not.toHaveBeenCalled()
+  })
+
+  it('clears an expired stored session during startup', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    authStorage.setSession({
+      accessToken: 'expired-token',
+      refreshToken: '',
+      expiresAt: new Date(Date.now() - 1_000).toISOString(),
+      user: { id: 8, name: 'Expired User', email: 'expired@example.com', role: 'User' },
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AuthStatus />
+        </AuthProvider>
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('auth-status')).toHaveTextContent('ready'))
+    expect(authStorage.getAccessToken()).toBeNull()
+    expect(authStorage.getUser()).toBeNull()
+    expect(refreshAuthSession).not.toHaveBeenCalled()
+  })
 })
 
 function LogoutButton() {
@@ -118,4 +168,9 @@ function LogoutButton() {
 function LoginButton() {
   const auth = useAuth()
   return <button type="button" onClick={() => void auth.login('signed@example.com', 'Password123!')}>Login</button>
+}
+
+function AuthStatus() {
+  const auth = useAuth()
+  return <div data-testid="auth-status">{auth.isLoading ? 'loading' : 'ready'}</div>
 }

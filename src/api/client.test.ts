@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { ApiRequestError, getApiErrorMessage } from './client'
+import axios from 'axios'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { authStorage } from '../auth/authStorage'
+import type { ApiResponse, AuthResponse } from './types'
+import { ApiRequestError, getApiErrorMessage, refreshAuthSession } from './client'
 
 const translations: Record<string, string> = {
   'api.correlationReference': 'Reference ID: {correlationId}',
@@ -31,6 +34,66 @@ function t(key: string, values?: Record<string, string | number>) {
     template,
   )
 }
+
+const signedInSession: AuthResponse = {
+  accessToken: 'new-google-access-token',
+  refreshToken: '',
+  expiresAt: new Date(Date.now() + 60_000).toISOString(),
+  user: { id: 11, name: 'Google User', email: 'google@example.com', role: 'User' },
+}
+
+describe('refreshAuthSession', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.restoreAllMocks()
+  })
+
+  it('does not clear a newer Google session when an older anonymous refresh fails', async () => {
+    let rejectRefresh: ((error: unknown) => void) | undefined
+    vi.spyOn(axios, 'post').mockReturnValue(new Promise((_, reject) => {
+      rejectRefresh = reject
+    }))
+
+    const refreshPromise = refreshAuthSession()
+    authStorage.setSession(signedInSession)
+
+    rejectRefresh?.(new Error('Invalid refresh token.'))
+    await expect(refreshPromise).rejects.toThrow('Invalid refresh token.')
+
+    expect(authStorage.getAccessToken()).toBe(signedInSession.accessToken)
+    expect(authStorage.getUser()?.email).toBe('google@example.com')
+  })
+
+  it('clears the current session when refresh fails and no newer session was written', async () => {
+    authStorage.setSession({
+      accessToken: 'expired-access-token',
+      refreshToken: '',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      user: { id: 12, name: 'Expired User', email: 'expired@example.com', role: 'User' },
+    })
+    vi.spyOn(axios, 'post').mockRejectedValue(new Error('Invalid refresh token.'))
+
+    await expect(refreshAuthSession()).rejects.toThrow('Invalid refresh token.')
+
+    expect(authStorage.getAccessToken()).toBeNull()
+    expect(authStorage.getUser()).toBeNull()
+  })
+
+  it('clears an unchanged anonymous session when refresh returns an unsuccessful API response', async () => {
+    vi.spyOn(axios, 'post').mockResolvedValue({
+      data: {
+        success: false,
+        message: 'Invalid refresh token.',
+        errors: ['Invalid refresh token.'],
+      } satisfies ApiResponse<AuthResponse>,
+    })
+
+    await expect(refreshAuthSession()).resolves.toBeNull()
+
+    expect(authStorage.getAccessToken()).toBeNull()
+    expect(authStorage.getUser()).toBeNull()
+  })
+})
 
 describe('getApiErrorMessage', () => {
   it('localizes structured API errors and preserves correlation IDs', () => {
