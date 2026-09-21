@@ -95,6 +95,10 @@ export function AppLayout() {
                 <UserIcon />
                 {t('nav.users')}
               </NavLink>
+              <NavLink to="/admin/manual-requests" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <ActivityIcon />
+                {t('nav.manualRequests')}
+              </NavLink>
               <NavLink to="/admin/videos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <VideoIcon />
                 {t('nav.videos')}

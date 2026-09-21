@@ -5,6 +5,7 @@ import { AdminRoute } from './routes/AdminRoute'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AdminLogsPage } from './pages/AdminLogsPage'
+import { AdminManualRequestsPage } from './pages/AdminManualRequestsPage'
 import { AdminRequestsPage } from './pages/AdminRequestsPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
 import { AdminVideoDetailPage } from './pages/AdminVideoDetailPage'
@@ -56,6 +57,7 @@ function App() {
             <Route element={<AdminRoute />}>
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
               <Route path="/admin/users" element={<AdminUsersPage />} />
+              <Route path="/admin/manual-requests" element={<AdminManualRequestsPage />} />
               <Route path="/admin/videos" element={<AdminVideosPage />} />
               <Route path="/admin/videos/:videoId" element={<AdminVideoDetailPage />} />
               <Route path="/admin/requests" element={<AdminRequestsPage />} />

@@ -8328,11 +8328,489 @@ html.theme-dark .admin-toolbar select {
   box-shadow: none;
 }
 
+.admin-manual-requests-page {
+  position: relative;
+}
+
+.admin-grant-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.55fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.admin-grant-main,
+.admin-grant-side,
+.admin-grant-flow-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-grant-lookup-card,
+.admin-grant-form-card,
+.admin-grant-help-card {
+  padding: 1.2rem 1.35rem;
+}
+
+.admin-grant-state-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 0.38rem 0.7rem;
+  color: var(--text-muted);
+  background: rgba(248, 250, 252, 0.72);
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.admin-grant-state-pill.success {
+  border-color: rgba(16, 185, 129, 0.28);
+  color: #047857;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.admin-grant-lookup-form {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(160px, 220px) auto;
+  gap: 0.85rem;
+  align-items: end;
+  margin-top: 1rem;
+}
+
+.admin-grant-form fieldset {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.admin-grant-mode-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 1.15fr) minmax(150px, 0.45fr) minmax(150px, 0.45fr);
+  gap: 0.9rem;
+  align-items: start;
+  margin-top: 1rem;
+}
+
+.admin-grant-secondary-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.45fr) minmax(260px, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.admin-grant-lookup-form label,
+.admin-grant-mode-grid label,
+.admin-grant-secondary-grid label {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.admin-grant-lookup-form label > span,
+.admin-grant-mode-grid label > span,
+.admin-grant-secondary-grid label > span,
+.admin-grant-label {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-grant-lookup-form input,
+.admin-grant-lookup-form select,
+.admin-grant-mode-grid input,
+.admin-grant-secondary-grid select,
+.admin-grant-secondary-grid textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1.5px solid rgba(148, 163, 184, 0.62);
+  border-radius: 8px;
+  padding: 0 0.9rem;
+  background: var(--card-bg);
+  color: var(--text-strong);
+  font: inherit;
+  font-weight: 700;
+  outline: none;
+}
+
+.admin-grant-secondary-grid textarea {
+  min-height: 82px;
+  padding-top: 0.8rem;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.admin-grant-lookup-form input:focus,
+.admin-grant-lookup-form select:focus,
+.admin-grant-mode-grid input:focus,
+.admin-grant-secondary-grid select:focus,
+.admin-grant-secondary-grid textarea:focus {
+  border-color: rgba(37, 99, 235, 0.78);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.admin-grant-lookup-form select:disabled,
+.admin-grant-form fieldset:disabled input,
+.admin-grant-form fieldset:disabled select,
+.admin-grant-form fieldset:disabled textarea,
+.admin-grant-form fieldset:disabled button {
+  cursor: not-allowed;
+  opacity: 0.66;
+}
+
+.admin-grant-mode-grid small,
+.admin-grant-secondary-grid small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.admin-grant-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.45rem;
+}
+
+.admin-grant-segmented button {
+  min-height: 74px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  padding: 0.72rem;
+  text-align: left;
+  background: rgba(248, 250, 252, 0.76);
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-grant-segmented button[aria-pressed="true"] {
+  border-color: rgba(37, 99, 235, 0.38);
+  color: var(--brand-primary);
+  background: rgba(37, 99, 235, 0.08);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.admin-grant-segmented strong,
+.admin-grant-segmented span {
+  display: block;
+}
+
+.admin-grant-segmented strong {
+  color: var(--text-strong);
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+.admin-grant-segmented span {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.admin-grant-status-card,
+.admin-grant-calculation {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  border-radius: 10px;
+  padding: 0.95rem;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.admin-grant-calculation {
+  border-color: var(--border-color);
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.admin-grant-calculation.has-warning {
+  border-color: rgba(245, 158, 11, 0.34);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.admin-grant-calculation strong,
+.admin-grant-status-head strong {
+  color: var(--text-strong);
+}
+
+.admin-grant-calculation p,
+.admin-grant-status-head span {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.admin-grant-status-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.admin-grant-metrics,
+.admin-grant-review-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.admin-grant-metric {
+  display: grid;
+  gap: 0.12rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.admin-grant-metric small {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-grant-metric strong {
+  color: var(--text-strong);
+  font-size: 1.05rem;
+}
+
+.admin-grant-metric.success strong {
+  color: #047857;
+}
+
+.admin-grant-metric.warning strong {
+  color: #b45309;
+}
+
+.admin-grant-formula {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.admin-grant-formula b {
+  color: var(--text-strong);
+}
+
+.admin-grant-validation {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem;
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.1);
+  font-weight: 750;
+}
+
+.admin-grant-validation svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.admin-grant-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-color);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.admin-grant-flow-step {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.78rem;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.admin-grant-flow-step > span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--brand-primary);
+  background: rgba(37, 99, 235, 0.1);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.admin-grant-flow-step strong,
+.admin-grant-flow-step small {
+  display: block;
+}
+
+.admin-grant-flow-step small {
+  margin-top: 0.18rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.admin-grant-toast-stack {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 80;
+  display: grid;
+  gap: 0.75rem;
+  width: min(390px, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.admin-grant-toast {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 32px;
+  gap: 0.75rem;
+  align-items: flex-start;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: var(--card-bg);
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.18);
+  pointer-events: auto;
+}
+
+.admin-grant-toast.success {
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+.admin-grant-toast.danger {
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.admin-grant-toast.warning {
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.admin-grant-toast-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+}
+
+.admin-grant-toast.success .admin-grant-toast-icon {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.admin-grant-toast.danger .admin-grant-toast-icon {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.admin-grant-toast.warning .admin-grant-toast-icon {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.admin-grant-toast-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-grant-toast strong,
+.admin-grant-toast span {
+  display: block;
+}
+
+.admin-grant-toast span {
+  margin-top: 0.2rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.admin-grant-toast button,
+.admin-grant-icon-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.admin-grant-toast button svg,
+.admin-grant-icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-grant-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.admin-grant-modal {
+  width: min(580px, 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.1rem;
+  background: var(--card-bg);
+  box-shadow: 0 32px 80px rgba(15, 23, 42, 0.26);
+}
+
+.admin-grant-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.admin-grant-modal-header h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 1.15rem;
+}
+
+.admin-grant-modal-header p {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
 html.theme-dark .admin-filter-grid input,
 html.theme-dark .admin-filter-grid select,
 html.theme-dark .admin-manual-grant-form input,
 html.theme-dark .admin-manual-grant-form textarea,
 html.theme-dark .admin-manual-grant-stats span,
+html.theme-dark .admin-grant-flow-step,
+html.theme-dark .admin-grant-calculation,
+html.theme-dark .admin-grant-metric,
+html.theme-dark .admin-grant-lookup-form input,
+html.theme-dark .admin-grant-lookup-form select,
+html.theme-dark .admin-grant-mode-grid input,
+html.theme-dark .admin-grant-secondary-grid select,
+html.theme-dark .admin-grant-secondary-grid textarea,
 html.theme-dark .admin-request-summary-strip span {
   background: rgba(15, 23, 42, 0.72);
 }
@@ -8375,8 +8853,27 @@ html.theme-dark .admin-request-summary-strip span {
 
   .admin-filter-grid,
   .admin-filter-grid.two,
-  .admin-request-summary-strip {
+  .admin-request-summary-strip,
+  .admin-grant-workspace,
+  .admin-grant-lookup-form,
+  .admin-grant-mode-grid,
+  .admin-grant-secondary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-grant-metrics,
+  .admin-grant-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-grant-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-grant-actions .app-button-primary,
+  .admin-grant-actions .app-button-outline {
+    width: 100%;
   }
 }
 

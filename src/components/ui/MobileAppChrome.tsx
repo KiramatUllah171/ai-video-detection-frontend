@@ -162,6 +162,7 @@ export function MobileAppChrome({
           <div className="mobile-sheet-nav">
             <MobileSheetLink to="/admin/dashboard" icon={<ShieldIcon />} label={t('nav.admin')} onClick={closeSheets} />
             <MobileSheetLink to="/admin/users" icon={<UserIcon />} label={t('nav.users')} onClick={closeSheets} />
+            <MobileSheetLink to="/admin/manual-requests" icon={<ActivityIcon />} label={t('nav.manualRequests')} onClick={closeSheets} />
             <MobileSheetLink to="/admin/videos" icon={<VideoIcon />} label={t('nav.videos')} onClick={closeSheets} />
             <MobileSheetLink to="/admin/requests" icon={<ActivityIcon />} label={t('nav.requests')} onClick={closeSheets} />
             <MobileSheetLink to="/admin/logs" icon={<ActivityIcon />} label={t('nav.logs')} onClick={closeSheets} />
@@ -276,6 +277,7 @@ function getMobileTitle(pathname: string, isAdmin: boolean, t: ReturnType<typeof
   if (pathname.startsWith('/processing')) return t('processing.title')
   if (pathname.startsWith('/analysis')) return t('analysis.title')
   if (pathname === '/admin/users') return t('nav.users')
+  if (pathname === '/admin/manual-requests') return t('nav.manualRequests')
   if (pathname === '/admin/videos') return t('nav.videos')
   if (pathname.startsWith('/admin/videos/')) return t('admin.videoDetail.preview')
   if (pathname === '/admin/requests') return t('nav.requests')
