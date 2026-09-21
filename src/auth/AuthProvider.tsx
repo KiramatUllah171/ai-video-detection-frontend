@@ -130,6 +130,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applySession, claimStoredGuestVideos],
   )
 
+  const loginWithGoogle = useCallback(
+    async (code: string, redirectUri: string) => {
+      const response = await apiClient.post<ApiResponse<AuthResponse>>('/api/auth/google', { code, redirectUri })
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.errors[0] ?? response.data.message)
+      }
+      applySession(response.data.data)
+      await claimStoredGuestVideos()
+    },
+    [applySession, claimStoredGuestVideos],
+  )
+
   const signup = useCallback(
     async (name: string, email: string, password: string, confirmPassword: string) => {
       const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/signup', {
@@ -159,10 +171,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(user && authStorage.getAccessToken() && !authStorage.isSessionExpired()),
       isLoading,
       login,
+      loginWithGoogle,
       signup,
       logout,
     }),
-    [isLoading, login, logout, signup, user],
+    [isLoading, login, loginWithGoogle, logout, signup, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

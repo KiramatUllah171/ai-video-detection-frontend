@@ -3,9 +3,10 @@ import axios from 'axios'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { beginGoogleLogin } from '../auth/googleAuth'
 import type { ApiResponse } from '../api/types'
 import { AppButton } from '../components/ui/AppButton'
-import { AlertCircleIcon, EyeIcon, EyeOffIcon } from '../components/ui/icons'
+import { AlertCircleIcon, EyeIcon, EyeOffIcon, GoogleIcon } from '../components/ui/icons'
 import { AuthCard, AuthLayout } from '../layouts/AuthLayout'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -21,6 +22,7 @@ export function LoginPage() {
   const location = useLocation()
   const [error, setError] = useState<LoginErrorState | null>(null)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [email, setEmail] = useState(() => localStorage.getItem('ai-video-detection-last-email') ?? '')
   const [password, setPassword] = useState('')
   const [rememberEmail, setRememberEmail] = useState(() => localStorage.getItem('ai-video-detection-remember-email') === 'true')
@@ -65,6 +67,22 @@ export function LoginPage() {
       setError(getLoginError(requestError, t))
     } finally {
       setLoading(false)
+    }
+  }
+
+  function handleGoogleLogin() {
+    if (loading || googleLoading) {
+      return
+    }
+
+    setGoogleLoading(true)
+    setError(null)
+    try {
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/dashboard'
+      beginGoogleLogin(from)
+    } catch {
+      setGoogleLoading(false)
+      setError({ message: t('login.googleNotConfigured'), field: 'form' })
     }
   }
 
@@ -159,6 +177,13 @@ export function LoginPage() {
             {loading ? t('login.signingIn') : t('login.signIn')}
           </AppButton>
         </form>
+        <div className="auth-divider" role="separator">
+          <span>{t('login.orContinueWith')}</span>
+        </div>
+        <button type="button" className="auth-social-button" onClick={handleGoogleLogin} disabled={loading || googleLoading}>
+          <GoogleIcon />
+          <span>{googleLoading ? t('login.redirectingToGoogle') : t('login.continueWithGoogle')}</span>
+        </button>
         <p className="auth-switch">
           {t('login.noAccount')} <Link to="/signup">{t('login.createAccount')}</Link>
         </p>

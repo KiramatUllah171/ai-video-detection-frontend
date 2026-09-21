@@ -16,6 +16,7 @@ describe('AppLayout profile dropdown', () => {
             isAuthenticated: true,
             isLoading: false,
             login: vi.fn(),
+            loginWithGoogle: vi.fn(),
             signup: vi.fn(),
             logout: vi.fn(),
           }}
@@ -50,6 +51,7 @@ describe('AppLayout profile dropdown', () => {
             isAuthenticated: false,
             isLoading: false,
             login: vi.fn(),
+            loginWithGoogle: vi.fn(),
             signup: vi.fn(),
             logout: vi.fn(),
           }}

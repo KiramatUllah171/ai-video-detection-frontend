@@ -7221,6 +7221,60 @@ html.theme-dark .password-toggle:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: rgba(224, 238, 250, 0.62);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(160, 199, 229, 0.22);
+}
+
+.auth-social-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(160, 199, 229, 0.32);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #122033;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.auth-social-button svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+
+.auth-social-button:hover:not(:disabled) {
+  border-color: rgba(35, 213, 255, 0.55);
+  box-shadow: 0 12px 28px rgba(8, 29, 53, 0.18);
+  transform: translateY(-1px);
+}
+
+.auth-social-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 .auth-switch {
   color: rgba(224, 238, 250, 0.78);
   font-size: 13px;
