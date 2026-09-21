@@ -7258,6 +7258,11 @@ html.theme-dark .password-toggle:hover:not(:disabled) {
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
+.auth-social-actions {
+  display: grid;
+  gap: 10px;
+}
+
 .auth-social-button svg {
   width: 20px;
   height: 20px;

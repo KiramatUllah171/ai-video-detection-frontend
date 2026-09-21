@@ -31,7 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function loadCurrentUser() {
       const storedAccessToken = authStorage.getAccessToken()
       const storedExpiresAt = authStorage.getExpiresAt()
-      const isGoogleCallback = window.location.pathname === '/auth/google/callback'
+      const isExternalAuthCallback = window.location.pathname === '/auth/google/callback' ||
+        window.location.pathname === '/auth/facebook/callback'
 
       if (storedAccessToken && (!storedExpiresAt || authStorage.isSessionExpired())) {
         authStorage.clear()
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (!storedAccessToken) {
-        if (isGoogleCallback) {
+        if (isExternalAuthCallback) {
           setIsLoading(false)
           return
         }
@@ -148,6 +149,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applySession, claimStoredGuestVideos],
   )
 
+  const loginWithFacebook = useCallback(
+    async (code: string, redirectUri: string) => {
+      const response = await apiClient.post<ApiResponse<AuthResponse>>('/api/auth/facebook', { code, redirectUri })
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.errors[0] ?? response.data.message)
+      }
+      applySession(response.data.data)
+      await claimStoredGuestVideos()
+    },
+    [applySession, claimStoredGuestVideos],
+  )
+
   const signup = useCallback(
     async (name: string, email: string, password: string, confirmPassword: string) => {
       const response = await apiClient.post<ApiResponse<boolean>>('/api/auth/signup', {
@@ -178,10 +191,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       login,
       loginWithGoogle,
+      loginWithFacebook,
       signup,
       logout,
     }),
-    [isLoading, login, loginWithGoogle, logout, signup, user],
+    [isLoading, login, loginWithGoogle, loginWithFacebook, logout, signup, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

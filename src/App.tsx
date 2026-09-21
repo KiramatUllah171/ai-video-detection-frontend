@@ -13,6 +13,7 @@ import { AdminVideosPage } from './pages/AdminVideosPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { GoogleAuthCallbackPage } from './pages/GoogleAuthCallbackPage'
+import { FacebookAuthCallbackPage } from './pages/FacebookAuthCallbackPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { ConfirmEmailPage } from './pages/ConfirmEmailPage'
@@ -44,6 +45,7 @@ function App() {
         </Route>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/google/callback" element={<GoogleAuthCallbackPage />} />
+        <Route path="/auth/facebook/callback" element={<FacebookAuthCallbackPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/confirm-email" element={<ConfirmEmailPage />} />

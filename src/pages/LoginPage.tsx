@@ -3,10 +3,11 @@ import axios from 'axios'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { beginFacebookLogin } from '../auth/facebookAuth'
 import { beginGoogleLogin } from '../auth/googleAuth'
 import type { ApiResponse } from '../api/types'
 import { AppButton } from '../components/ui/AppButton'
-import { AlertCircleIcon, EyeIcon, EyeOffIcon, GoogleIcon } from '../components/ui/icons'
+import { AlertCircleIcon, EyeIcon, EyeOffIcon, FacebookIcon, GoogleIcon } from '../components/ui/icons'
 import { AuthCard, AuthLayout } from '../layouts/AuthLayout'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -23,6 +24,7 @@ export function LoginPage() {
   const [error, setError] = useState<LoginErrorState | null>(null)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [facebookLoading, setFacebookLoading] = useState(false)
   const [email, setEmail] = useState(() => localStorage.getItem('ai-video-detection-last-email') ?? '')
   const [password, setPassword] = useState('')
   const [rememberEmail, setRememberEmail] = useState(() => localStorage.getItem('ai-video-detection-remember-email') === 'true')
@@ -71,7 +73,7 @@ export function LoginPage() {
   }
 
   function handleGoogleLogin() {
-    if (loading || googleLoading) {
+    if (loading || googleLoading || facebookLoading) {
       return
     }
 
@@ -83,6 +85,22 @@ export function LoginPage() {
     } catch {
       setGoogleLoading(false)
       setError({ message: t('login.googleNotConfigured'), field: 'form' })
+    }
+  }
+
+  function handleFacebookLogin() {
+    if (loading || googleLoading || facebookLoading) {
+      return
+    }
+
+    setFacebookLoading(true)
+    setError(null)
+    try {
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/dashboard'
+      beginFacebookLogin(from)
+    } catch {
+      setFacebookLoading(false)
+      setError({ message: t('login.facebookNotConfigured'), field: 'form' })
     }
   }
 
@@ -180,10 +198,16 @@ export function LoginPage() {
         <div className="auth-divider" role="separator">
           <span>{t('login.orContinueWith')}</span>
         </div>
-        <button type="button" className="auth-social-button" onClick={handleGoogleLogin} disabled={loading || googleLoading}>
-          <GoogleIcon />
-          <span>{googleLoading ? t('login.redirectingToGoogle') : t('login.continueWithGoogle')}</span>
-        </button>
+        <div className="auth-social-actions">
+          <button type="button" className="auth-social-button" onClick={handleGoogleLogin} disabled={loading || googleLoading || facebookLoading}>
+            <GoogleIcon />
+            <span>{googleLoading ? t('login.redirectingToGoogle') : t('login.continueWithGoogle')}</span>
+          </button>
+          <button type="button" className="auth-social-button auth-social-facebook" onClick={handleFacebookLogin} disabled={loading || googleLoading || facebookLoading}>
+            <FacebookIcon />
+            <span>{facebookLoading ? t('login.redirectingToFacebook') : t('login.continueWithFacebook')}</span>
+          </button>
+        </div>
         <p className="auth-switch">
           {t('login.noAccount')} <Link to="/signup">{t('login.createAccount')}</Link>
         </p>
