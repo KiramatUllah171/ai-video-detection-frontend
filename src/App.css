@@ -8799,6 +8799,185 @@ html.theme-dark .admin-toolbar select {
   min-width: 132px;
 }
 
+@media (min-width: 901px) {
+  .admin-manual-requests-page {
+    gap: 0.78rem;
+    font-size: 0.84rem;
+    padding-top: 1.2rem;
+  }
+
+  .admin-manual-requests-page .page-header {
+    margin-bottom: 0;
+  }
+
+  .admin-manual-requests-page .page-title {
+    font-size: clamp(1.55rem, 2.25vw, 2.18rem);
+  }
+
+  .admin-manual-requests-page .page-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.42;
+  }
+
+  .admin-manual-requests-page .hero-pill {
+    min-height: 34px;
+    padding: 0.48rem 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .admin-grant-workspace {
+    grid-template-columns: minmax(0, 1.52fr) minmax(270px, 0.48fr);
+    gap: 0.82rem;
+  }
+
+  .admin-grant-main,
+  .admin-grant-side,
+  .admin-grant-flow-list {
+    gap: 0.82rem;
+  }
+
+  .admin-grant-lookup-card,
+  .admin-grant-form-card,
+  .admin-grant-help-card {
+    padding: 0.82rem 0.95rem;
+  }
+
+  .admin-manual-requests-page .card-header.compact {
+    gap: 0.65rem;
+    margin-bottom: 0.72rem;
+  }
+
+  .admin-manual-requests-page .card-header.compact h2,
+  .admin-manual-requests-page .admin-grant-help-card h2 {
+    font-size: 0.98rem;
+  }
+
+  .admin-manual-requests-page .card-header.compact p {
+    font-size: 0.82rem;
+  }
+
+  .admin-grant-state-pill {
+    padding: 0.28rem 0.55rem;
+    font-size: 0.63rem;
+  }
+
+  .admin-grant-lookup-form,
+  .admin-grant-mode-grid {
+    gap: 0.65rem;
+    margin-top: 0.65rem;
+  }
+
+  .admin-grant-form fieldset,
+  .admin-grant-secondary-grid {
+    gap: 0.7rem;
+  }
+
+  .admin-grant-lookup-form input,
+  .admin-grant-lookup-form select,
+  .admin-grant-mode-grid input,
+  .admin-grant-secondary-grid select,
+  .admin-grant-secondary-grid textarea {
+    min-height: 36px;
+    padding-inline: 0.65rem;
+    font-size: 0.84rem;
+  }
+
+  .admin-grant-secondary-grid textarea {
+    min-height: 64px;
+  }
+
+  .admin-grant-lookup-form label > span,
+  .admin-grant-mode-grid label > span,
+  .admin-grant-secondary-grid label > span,
+  .admin-grant-label {
+    font-size: 0.62rem;
+  }
+
+  .admin-grant-mode-grid small,
+  .admin-grant-secondary-grid small {
+    font-size: 0.65rem;
+  }
+
+  .admin-grant-segmented {
+    gap: 0.38rem;
+  }
+
+  .admin-grant-segmented button {
+    min-height: 58px;
+    padding: 0.48rem;
+  }
+
+  .admin-grant-segmented strong {
+    font-size: 0.74rem;
+  }
+
+  .admin-grant-segmented span {
+    font-size: 0.61rem;
+  }
+
+  .admin-grant-status-card,
+  .admin-grant-calculation {
+    gap: 0.65rem;
+    margin-top: 0.65rem;
+    padding: 0.65rem;
+  }
+
+  .admin-grant-calculation p,
+  .admin-grant-status-head span {
+    font-size: 0.78rem;
+  }
+
+  .admin-grant-metrics,
+  .admin-grant-review-grid {
+    gap: 0.45rem;
+  }
+
+  .admin-grant-metric {
+    padding: 0.45rem 0.55rem;
+  }
+
+  .admin-grant-metric small {
+    font-size: 0.58rem;
+  }
+
+  .admin-grant-metric strong {
+    font-size: 0.88rem;
+  }
+
+  .admin-grant-formula,
+  .admin-grant-validation {
+    font-size: 0.76rem;
+  }
+
+  .admin-grant-actions {
+    gap: 0.55rem;
+    margin-top: 0.68rem;
+    padding-top: 0.68rem;
+  }
+
+  .admin-manual-requests-page .app-button {
+    min-height: 38px;
+    padding: 0.62rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  .admin-grant-flow-step {
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 0.55rem;
+    padding: 0.55rem;
+  }
+
+  .admin-grant-flow-step > span {
+    width: 26px;
+    height: 26px;
+    font-size: 0.72rem;
+  }
+
+  .admin-grant-flow-step small {
+    font-size: 0.7rem;
+  }
+}
+
 html.theme-dark .admin-filter-grid input,
 html.theme-dark .admin-filter-grid select,
 html.theme-dark .admin-manual-grant-form input,

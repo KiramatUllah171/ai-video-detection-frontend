@@ -48,8 +48,8 @@ export function AdminManualRequestsPage() {
   const normalizedEmail = email.trim()
   const canLoad = normalizedEmail.includes('@') && normalizedEmail.includes('.')
   const calculation = useMemo(
-    () => calculateGrantChange(loadedGrant, grantMode, Number(requestValue), Number(validityDays)),
-    [grantMode, loadedGrant, requestValue, validityDays],
+    () => calculateGrantChange(loadedGrant, grantMode, Number(requestValue), Number(validityDays), t),
+    [grantMode, loadedGrant, requestValue, t, validityDays],
   )
   const formReady = Boolean(loadedGrant)
 
@@ -113,7 +113,6 @@ export function AdminManualRequestsPage() {
       await queryClient.invalidateQueries({ queryKey: ['subscription-status'] })
     },
     onError: (error) => {
-      setConfirmOpen(false)
       pushToast('danger', t('admin.manualRequests.toastSaveFailed'), getApiErrorMessage(error, t))
     },
   })
@@ -332,7 +331,11 @@ export function AdminManualRequestsPage() {
           saving={saveMutation.isPending}
           t={t}
           onCancel={() => setConfirmOpen(false)}
-          onConfirm={() => saveMutation.mutate()}
+          onConfirm={() => {
+            setConfirmOpen(false)
+            scrollManualRequestsToTop()
+            saveMutation.mutate()
+          }}
         />
       )}
     </main>
@@ -528,7 +531,13 @@ function Metric({ label, value, tone }: { label: string; value: number | string;
   )
 }
 
-function calculateGrantChange(grant: AdminManualSubscriptionGrant | null, mode: GrantMode, rawValue: number, rawValidityDays: number): GrantCalculation {
+function calculateGrantChange(
+  grant: AdminManualSubscriptionGrant | null,
+  mode: GrantMode,
+  rawValue: number,
+  rawValidityDays: number,
+  t: ReturnType<typeof useLanguage>['t'],
+): GrantCalculation {
   const currentTotal = grant?.scanLimit ?? 0
   const usedReserved = (grant?.usedScans ?? 0) + (grant?.reservedScans ?? 0)
   const currentAvailable = Math.max(0, currentTotal - usedReserved)
@@ -546,11 +555,11 @@ function calculateGrantChange(grant: AdminManualSubscriptionGrant | null, mode: 
   }
 
   if (!Number.isInteger(rawValue) || rawValue < 1 || rawValue > 1000) {
-    return invalidGrantCalculation(currentTotal, currentAvailable, 'Request value must be between 1 and 1000.')
+    return invalidGrantCalculation(currentTotal, currentAvailable, t('admin.manualRequests.validationRequestRange'))
   }
 
   if (!Number.isInteger(rawValidityDays) || rawValidityDays < 1 || rawValidityDays > 365) {
-    return invalidGrantCalculation(currentTotal, currentAvailable, 'Validity days must be between 1 and 365.')
+    return invalidGrantCalculation(currentTotal, currentAvailable, t('admin.manualRequests.validationValidityRange'))
   }
 
   const newTotal = mode === 'add'
@@ -559,15 +568,15 @@ function calculateGrantChange(grant: AdminManualSubscriptionGrant | null, mode: 
       ? currentTotal - rawValue
       : rawValue
   if (newTotal > 1000) {
-    return invalidGrantCalculation(currentTotal, currentAvailable, 'Final total request limit cannot be higher than 1000.')
+    return invalidGrantCalculation(currentTotal, currentAvailable, t('admin.manualRequests.validationTotalMax'))
   }
 
   if (newTotal < 1) {
-    return invalidGrantCalculation(currentTotal, currentAvailable, 'Final total request limit cannot be lower than 1.', newTotal)
+    return invalidGrantCalculation(currentTotal, currentAvailable, t('admin.manualRequests.validationTotalMin'), newTotal)
   }
 
   if (newTotal < usedReserved) {
-    return invalidGrantCalculation(currentTotal, currentAvailable, `Final total cannot be lower than already used or reserved requests (${usedReserved}).`, newTotal)
+    return invalidGrantCalculation(currentTotal, currentAvailable, t('admin.manualRequests.validationUsedReserved', { usedReserved }), newTotal)
   }
 
   return {
@@ -624,4 +633,10 @@ function getRemainingValidityDays(grant: AdminManualSubscriptionGrant) {
 
   const remainingDays = Math.ceil((new Date(grant.expiresAt).getTime() - Date.now()) / 86_400_000)
   return String(Math.min(365, Math.max(1, remainingDays || 30)))
+}
+
+function scrollManualRequestsToTop() {
+  window.requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  })
 }
